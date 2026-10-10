@@ -113,10 +113,32 @@ if (!function_exists('app_base_path')) {
     }
 }
 
+if (!function_exists('app_base_url')) {
+    /**
+     * Public site origin. On the production host, ignore a localhost APP_URL
+     * left over from a local .env so links stay on https://tavis.spmmsk.go.th.
+     */
+    function app_base_url(): string
+    {
+        $configured = rtrim((string) env('APP_URL', ''), '/');
+        $host = strtolower((string) preg_replace('/:\d+$/', '', (string) ($_SERVER['HTTP_HOST'] ?? '')));
+        if ($host === 'tavis.spmmsk.go.th') {
+            $configuredHost = strtolower((string) (parse_url($configured, PHP_URL_HOST) ?: ''));
+            if ($configuredHost !== $host) {
+                return 'https://tavis.spmmsk.go.th';
+            }
+        }
+        if ($configured !== '') {
+            return $configured;
+        }
+        return 'https://tavis.spmmsk.go.th';
+    }
+}
+
 if (!function_exists('url')) {
     function url(string $path = ''): string
     {
-        $base = rtrim((string) env('APP_URL', ''), '/');
+        $base = app_base_url();
         $path = '/' . ltrim($path, '/');
         return $base . ($path === '/' ? '' : $path);
     }
