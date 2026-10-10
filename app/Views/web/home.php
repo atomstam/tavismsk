@@ -15,7 +15,7 @@ $tagline = app_brand('tagline');
     <div class="home-hero-grid">
       <div>
         <span class="home-badge"><i class="fa fa-shield-halved"></i> <?= e($sys) ?> · <?= e($tagline) ?></span>
-        <h1>อบรม · ประเมิน · ผ่านหลักสูตร<br><em>44444555ffff66666777ออกเกียรติบัตรออนไลน์</em></h1>
+        <h1>อบรม · ประเมิน · ผ่านหลักสูตร<br><em>44444555ffff666667779999ออกเกียรติบัตรออนไลน์</em></h1>
         <p class="home-quote"><?= e(app_brand('name')) ?> — <?= e(app_brand('description')) ?></p>
         <div class="home-ctas">
           <?php if (auth()->check()): ?>

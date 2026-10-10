@@ -62229,7 +62229,7 @@ INSERT INTO `settings` (`id`, `setting_key`, `setting_value`, `updated_at`) VALU
 (7, 'org_email', 'tavis@spmmsk.go.th', '2026-09-10 13:52:11'),
 (8, 'org_facebook', 'https://facebook.com/cyp.ac.th', '2026-09-10 13:19:35'),
 (9, 'org_line', '@cyp.ac.th', '2026-09-10 13:19:35'),
-(10, 'org_website', 'https://tavis.thaiedu.in.th', '2026-09-10 13:19:35'),
+(10, 'org_website', 'https://tavis.spmmsk.go.th', '2026-09-10 13:19:35'),
 (11, 'director_name', 'นายอดุลย์ ภูปลื้ม', '2026-09-20 10:16:52'),
 (12, 'director_position', 'ผู้อำนวยการ สพม.มหาสารคาม', '2026-09-20 10:16:52'),
 (13, 'academic_year', '2569', '2026-09-10 13:19:35'),
