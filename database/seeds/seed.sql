@@ -49,7 +49,7 @@ INSERT INTO `settings` (`setting_key`,`setting_value`) VALUES
 ('org_email','tavis@spmmsk.go.th'),
 ('org_facebook',''),
 ('org_line',''),
-('org_website','https://tavis.spmmsk.go.th'),
+('org_website','https://tavis.thaiedu.in.th'),
 ('director_name',''),
 ('director_position',''),
 ('academic_year','2569'),

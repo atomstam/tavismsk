@@ -6,7 +6,7 @@ cd "$(dirname "$0")/.."
 
 if [ ! -f .env ]; then
   echo "Missing .env — create it on the server from .env.example before deploying."
-  echo "Set APP_ENV=production APP_DEBUG=false APP_URL=https://tavis.spmmsk.go.th and the server DB_* values."
+  echo "Set APP_ENV=production APP_DEBUG=false APP_URL=https://tavis.thaiedu.in.th and the server DB_* values."
   exit 1
 fi
 
@@ -24,4 +24,4 @@ $row = db()->fetch("SELECT DATABASE() AS db, COUNT(*) AS users FROM users");
 echo "database=" . ($row["db"] ?? "") . " users=" . ($row["users"] ?? "0") . PHP_EOL;
 '
 
-echo "Deployed. Site: https://tavis.spmmsk.go.th"
+echo "Deployed. Site: https://tavis.thaiedu.in.th"

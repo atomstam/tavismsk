@@ -5,7 +5,7 @@ UPDATE `settings` SET `setting_value` = 'สำนักงานเขตพื
 UPDATE `settings` SET `setting_value` = 'Secondary Educational Service Area Office Maha Sarakham' WHERE `setting_key` = 'org_name_en';
 UPDATE `settings` SET `setting_value` = 'สำนักงานคณะกรรมการการศึกษาขั้นพื้นฐาน' WHERE `setting_key` = 'org_affiliation';
 UPDATE `settings` SET `setting_value` = 'tavis@spmmsk.go.th' WHERE `setting_key` = 'org_email';
-UPDATE `settings` SET `setting_value` = 'https://tavis.spmmsk.go.th' WHERE `setting_key` = 'org_website';
+UPDATE `settings` SET `setting_value` = 'https://tavis.thaiedu.in.th' WHERE `setting_key` = 'org_website';
 UPDATE `settings` SET `setting_value` = 'สพม.มหาสารคาม' WHERE `setting_key` = 'developer_name';
 UPDATE `settings` SET `setting_value` = 'จัดทำโดย สำนักงานเขตพื้นที่การศึกษามัธยมศึกษามหาสารคาม' WHERE `setting_key` = 'footer_credit';
 

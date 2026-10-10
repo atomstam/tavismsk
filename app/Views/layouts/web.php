@@ -232,7 +232,7 @@ $authAvatar = $authUser ? avatar_url($authUser['avatar'] ?? null) : '';
           <li><i class="fa fa-location-dot"></i> <?= e(setting('org_address')) ?></li>
           <li><i class="fa fa-phone"></i> <?= e(setting('org_phone')) ?></li>
           <li><i class="fa fa-envelope"></i> <?= e(setting('org_email')) ?></li>
-          <li><i class="fa fa-globe"></i> <?= e(setting('org_website') ?: 'tavis.spmmsk.go.th') ?></li>
+          <li><i class="fa fa-globe"></i> <?= e(setting('org_website') ?: 'tavis.thaiedu.in.th') ?></li>
         </ul>
         <div class="ws-footer-socials">
           <a class="fb" href="<?= e($fb) ?>" target="_blank" rel="noopener"><i class="fab fa-facebook-f"></i></a>

@@ -37,4 +37,4 @@ TAVIS (Traffic Awareness Vaccine Intelligent System) เป็นระบบว
 - ที่อยู่: 134 ถนนเลี่ยงเมืองมหาสารคาม-ร้อยเอ็ด ตำบลแวงน่าง อำเภอเมือง จังหวัดมหาสารคาม 44000
 - โทรศัพท์: 085-537-4109
 - อีเมล: tavis@spmmsk.go.th
-- เว็บ: https://tavis.spmmsk.go.th
+- เว็บ: https://tavis.thaiedu.in.th

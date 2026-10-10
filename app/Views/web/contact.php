@@ -39,7 +39,7 @@
           </div>
           <div class="d-flex gap-3 mb-3">
             <div class="rounded-circle bg-info bg-opacity-10 text-info d-grid" style="width:42px;height:42px;place-items:center;display:grid"><i class="fa fa-globe"></i></div>
-            <div><div class="fw-semibold">เว็บไซต์</div><div class="text-muted small"><?= e(setting('org_website') ?: 'https://tavis.spmmsk.go.th') ?></div></div>
+            <div><div class="fw-semibold">เว็บไซต์</div><div class="text-muted small"><?= e(setting('org_website') ?: 'https://tavis.thaiedu.in.th') ?></div></div>
           </div>
           <?php $map = setting('maps_embed'); ?>
           <div class="ratio ratio-16x9 rounded-3 overflow-hidden mt-3">

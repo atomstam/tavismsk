@@ -43,4 +43,4 @@ Endpoint stub อยู่ที่ `/admin/ai`
 - ตั้ง `APP_ENV=production`, `APP_DEBUG=false`
 - เปลี่ยน `APP_KEY`, `JWT_SECRET`, รหัสผ่าน admin
 - ชี้ DocumentRoot ไปที่ `public/`
-- เปิด HTTPS และอัปเดต `APP_URL=https://tavis.spmmsk.go.th`
+- เปิด HTTPS และอัปเดต `APP_URL=https://tavis.thaiedu.in.th`

@@ -25,7 +25,7 @@ $env = static function (string $key, string $default = ''): string {
 
 $configuredBase = function_exists('app_base_url')
     ? app_base_url()
-    : rtrim($env('APP_URL', 'https://tavis.spmmsk.go.th'), '/');
+    : rtrim($env('APP_URL', 'https://tavis.thaiedu.in.th'), '/');
 $appPath = $configuredBase;
 if (preg_match('#^https?://#i', $appPath)) {
     $parsed = parse_url($appPath);
@@ -63,7 +63,7 @@ $resolveRedirect = static function (string $provider, string $envKey) use ($buil
     $requestHost = strtolower((string) preg_replace('/:\d+$/', '', (string) ($_SERVER['HTTP_HOST'] ?? '')));
     $explicitHost = strtolower((string) (parse_url($explicit, PHP_URL_HOST) ?: ''));
     $explicitIsLocal = in_array($explicitHost, ['localhost', '127.0.0.1'], true);
-    if ($explicit !== '' && !($requestHost === 'tavis.spmmsk.go.th' && $explicitIsLocal)) {
+    if ($explicit !== '' && !($requestHost === 'tavis.thaiedu.in.th' && $explicitIsLocal)) {
         return $explicit;
     }
 
