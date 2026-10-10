@@ -1,0 +1,128 @@
+<?php
+
+$all = ['view', 'create', 'edit', 'delete', 'export', 'print', 'certify', 'issue_cert'];
+$trainerCore = ['view', 'create', 'edit', 'delete', 'export', 'print', 'certify', 'issue_cert'];
+$viewExport = ['view', 'export', 'print'];
+
+/**
+ * Module permissions by primary role.
+ * Legacy roles (director/deputy/teacher) resolve via config/roles.php alias_of
+ * in PermissionService / Auth — matrices below are for resolved roles only.
+ */
+return [
+    'modules' => [
+        'dashboard' => 'แดชบอร์ด',
+        'curriculum' => 'โมดูลการอบรม',
+        'enrollments' => 'การลงทะเบียนอบรม',
+        'assessments' => 'วัดประเมินผล / LMS',
+        'learn' => 'บทเรียนของฉัน',
+        'certificates' => 'เกียรติบัตรออนไลน์',
+        'hours' => 'นับชั่วโมงอบรม',
+        'members' => 'ผู้เข้ารับการพัฒนา',
+        'org_units' => 'โครงสร้างหน่วยงาน',
+        'portfolio' => 'กิจกรรม/ผลงานอบรม',
+        'ai' => 'AI ผู้ช่วย',
+        'reports' => 'สารสนเทศ / รายงาน',
+        'users' => 'ผู้ใช้งาน',
+        'personnel' => 'บุคลากร',
+        'departments' => 'หน่วยงานย่อย',
+        'roles' => 'บทบาท',
+        'forms' => 'แบบฟอร์มออนไลน์',
+        'tickets' => 'ระบบบันทึก',
+        'news' => 'ข่าวสาร/กิจกรรม',
+        'pages' => 'หน้าเว็บไซต์',
+        'notifications' => 'แจ้งเตือน',
+        'logs' => 'Log / Audit',
+        'settings' => 'ตั้งค่า',
+        'backup' => 'สำรองข้อมูล',
+        'contact' => 'ติดต่อเรา',
+    ],
+    'actions' => [
+        'view' => 'ดู',
+        'create' => 'เพิ่ม',
+        'edit' => 'แก้ไข',
+        'delete' => 'ลบ',
+        'export' => 'ส่งออก',
+        'print' => 'พิมพ์',
+        'certify' => 'รับรองผล',
+        'issue_cert' => 'ออกเกียรติบัตร',
+    ],
+
+    // —— Admin: full system ——
+    'admin' => [
+        '*' => $all,
+    ],
+
+    // —— Trainer: training operations (no user/role/settings/logs) ——
+    'trainer' => [
+        'dashboard' => ['view'],
+        'curriculum' => $trainerCore,
+        'learn' => ['view'],
+        'enrollments' => $trainerCore,
+        'assessments' => $trainerCore,
+        'certificates' => ['view', 'create', 'edit', 'export', 'print', 'issue_cert'],
+        'hours' => ['view', 'create', 'edit', 'export'],
+        'members' => $trainerCore,
+        'org_units' => $viewExport,
+        'portfolio' => ['view', 'create', 'edit', 'delete', 'export', 'print'],
+        'ai' => ['view'],
+        'reports' => ['view', 'export', 'print', 'certify'],
+        'personnel' => $viewExport,
+        'departments' => ['view'],
+        'forms' => $viewExport,
+        'tickets' => ['view', 'create', 'edit'],
+        'notifications' => ['view'],
+        'contact' => ['view'],
+    ],
+
+    // —— User (learner): own learning only ——
+    'user' => [
+        'dashboard' => ['view'],
+        'learn' => ['view'],
+        'enrollments' => ['view', 'create'],
+        'assessments' => ['view'],
+        'certificates' => ['view', 'print'],
+        'hours' => ['view'],
+        'portfolio' => ['view', 'create', 'edit'],
+        'tickets' => ['view', 'create'],
+        'notifications' => ['view'],
+        'contact' => ['view'],
+    ],
+
+    // —— Legacy matrices (kept for direct role keys before alias resolve) ——
+    'director' => [
+        '*' => $all,
+    ],
+    'deputy' => [
+        'dashboard' => ['view'],
+        'curriculum' => $trainerCore,
+        'learn' => ['view'],
+        'enrollments' => $trainerCore,
+        'assessments' => $trainerCore,
+        'certificates' => ['view', 'create', 'edit', 'export', 'print', 'issue_cert'],
+        'hours' => ['view', 'create', 'edit', 'export'],
+        'members' => $trainerCore,
+        'org_units' => $viewExport,
+        'portfolio' => ['view', 'create', 'edit', 'delete', 'export', 'print'],
+        'ai' => ['view'],
+        'reports' => ['view', 'export', 'print', 'certify'],
+        'personnel' => $viewExport,
+        'departments' => ['view'],
+        'forms' => $viewExport,
+        'tickets' => ['view', 'create'],
+        'notifications' => ['view'],
+        'contact' => ['view'],
+    ],
+    'teacher' => [
+        'dashboard' => ['view'],
+        'learn' => ['view'],
+        'enrollments' => ['view', 'create'],
+        'assessments' => ['view'],
+        'certificates' => ['view', 'print'],
+        'hours' => ['view'],
+        'portfolio' => ['view', 'create', 'edit'],
+        'tickets' => ['view', 'create'],
+        'notifications' => ['view'],
+        'contact' => ['view'],
+    ],
+];

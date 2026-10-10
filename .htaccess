@@ -1,0 +1,23 @@
+Options -Indexes
+ServerSignature Off
+
+# Deny sensitive files/dirs if document root is project root
+<IfModule mod_authz_core.c>
+  <FilesMatch "(?i)^(\.env|\.env\..*|composer\.(json|lock)|.*\.(bak|back|sql|zip|log|md))$">
+    Require all denied
+  </FilesMatch>
+</IfModule>
+
+# Block sensitive directories from direct HTTP access
+RedirectMatch 403 (?i)^/(app|config|storage|vendor|cron|scripts|database|docs|lang|routes|tests)(/|$)
+RedirectMatch 403 (?i)/\.(git|svn|hg|env)(/|$)
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # Never expose .env via rewrite
+  RewriteRule (?:^|/)\.env - [F,L]
+  RewriteRule ^Archive\.zip$ - [F,L]
+  RewriteRule ^(app|config|storage|vendor|cron|scripts|database|docs|lang|routes)(/|$) - [F,L]
+  # Front to public/
+  RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

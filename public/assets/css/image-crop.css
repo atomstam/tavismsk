@@ -1,0 +1,314 @@
+/* AntiBully — news cover crop modal (16:9) */
+.ab-cover-crop-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.ab-cover-crop-modal.is-open {
+  display: flex;
+}
+
+.ab-cover-crop-modal[hidden]:not(.is-open) {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.ab-cover-crop-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.ab-cover-crop-modal__panel {
+  position: relative;
+  z-index: 1;
+  width: min(960px, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow: hidden;
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+  display: flex;
+  flex-direction: column;
+}
+
+.ab-cover-crop-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, #760807, #a82828);
+  color: #fff;
+}
+
+.ab-cover-crop-modal__title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.ab-cover-crop-modal__close {
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 1.75rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+.ab-cover-crop-modal__body {
+  padding: 1.25rem;
+  overflow: auto;
+}
+
+.ab-cover-crop-modal__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: 1.25rem;
+}
+
+@media (max-width: 768px) {
+  .ab-cover-crop-modal__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ab-cover-crop-modal__preview-wrap {
+  min-height: 280px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 0.75rem;
+  background: #f8fafc;
+  overflow: auto;
+  padding: 0.75rem;
+  text-align: center;
+}
+
+.ab-cover-crop-modal__stage-inner {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: top;
+  line-height: 0;
+  overflow: hidden;
+}
+
+.ab-cover-crop-modal__stage-inner img#abCoverCropPhoto {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.ab-cover-crop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  touch-action: none;
+}
+
+.ab-cover-crop-overlay__shade {
+  position: absolute;
+  background: rgba(15, 23, 42, 0.45);
+  pointer-events: none;
+}
+
+.ab-cover-crop-overlay__box {
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px dashed #760807;
+  cursor: move;
+}
+
+.ab-cover-crop-overlay__handle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #760807;
+  border: 2px solid #fff;
+  border-radius: 1px;
+  box-shadow: 0 0 0 1px rgba(118, 8, 7, 0.35);
+  box-sizing: border-box;
+}
+
+.ab-cover-crop-overlay__handle--nw { top: -5px; left: -5px; cursor: nwse-resize; }
+.ab-cover-crop-overlay__handle--ne { top: -5px; right: -5px; cursor: nesw-resize; }
+.ab-cover-crop-overlay__handle--sw { bottom: -5px; left: -5px; cursor: nesw-resize; }
+.ab-cover-crop-overlay__handle--se { right: -5px; bottom: -5px; cursor: nwse-resize; }
+
+.ab-cover-crop-modal__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.ab-cover-crop-modal__tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ab-cover-crop-modal__tool-btn:hover:not(:disabled) {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+}
+
+.ab-cover-crop-modal__tool-btn:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.ab-cover-crop-modal__tool-btn--reset {
+  background: #fff7ed;
+  border-color: #fdba74;
+  color: #c2410c;
+}
+
+.ab-cover-crop-modal__placeholder {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.9375rem;
+}
+
+.ab-cover-crop-modal__hint,
+.ab-cover-crop-modal__aside-note {
+  margin: 0.75rem 0 0;
+  color: #64748b;
+  font-size: 0.8125rem;
+}
+
+.ab-cover-crop-modal__aside {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.ab-cover-crop-modal__aside-label {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.ab-cover-crop-modal__rect {
+  width: 220px;
+  aspect-ratio: 16 / 9;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 3px solid #e2e8f0;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ab-cover-crop-modal__rect img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ab-cover-crop-modal__rect-placeholder {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.ab-cover-crop-modal__foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.ab-cover-crop-modal__stage-inner img#abImageCropPhoto {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.ab-cover-crop-modal__rect.is-circle {
+  width: 140px;
+  height: 140px;
+  aspect-ratio: 1 / 1;
+  border-radius: 9999px;
+}
+.ab-cover-crop-modal__rect.is-square {
+  width: 140px;
+  height: 140px;
+  aspect-ratio: 1 / 1;
+  border-radius: 0.5rem;
+}
+
+.ab-image-crop-preview {
+  position: relative;
+  width: 100%;
+  max-width: 220px;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px dashed var(--ab-border, #ced4da);
+  background: #f8fafc;
+}
+.ab-image-crop-preview--circle {
+  border-radius: 9999px;
+  max-width: 160px;
+}
+.ab-image-crop-preview--rect {
+  max-width: 320px;
+  aspect-ratio: 16 / 9;
+}
+.ab-image-crop-field[data-crop-type="site_logo"] .ab-image-crop-preview {
+  max-width: 320px;
+  aspect-ratio: 3 / 1;
+}
+.ab-image-crop-field[data-crop-type="cover"] .ab-image-crop-preview {
+  max-width: 420px;
+  aspect-ratio: 16 / 9;
+}
+.ab-image-crop-preview.has-image { border-style: solid; }
+.ab-image-crop-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.ab-image-crop-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+  color: #6c757d;
+  font-size: .85rem;
+  padding: .75rem;
+  text-align: center;
+}
+.ab-image-crop-empty i { font-size: 1.5rem; opacity: .7; }

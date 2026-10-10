@@ -1,0 +1,10 @@
+/vendor/
+/storage/logs/*
+/storage/cache/*
+/storage/backups/*
+/storage/tmp/*
+/public/uploads/**
+!/public/uploads/.htaccess
+.env
+.DS_Store
+/storage/credentials/*.json

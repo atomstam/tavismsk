@@ -1,0 +1,40 @@
+Options -Indexes
+ServerSignature Off
+
+<IfModule mod_authz_core.c>
+  <FilesMatch "(?i)^(\.env|\.env\..*|composer\.(json|lock)|install\.php(\.back)?|.*\.(bak|back|sql|zip|log))$">
+    Require all denied
+  </FilesMatch>
+</IfModule>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Block sensitive / script uploads early
+  RewriteRule (^|/)\.env - [F,L]
+  RewriteRule ^composer\.(json|lock)$ - [F,L]
+  RewriteRule ^install\.php(\.back)?$ - [F,L]
+  RewriteRule ^uploads/.*\.(?i:php\d?|phtml|phar|cgi|pl|asp|aspx|jsp|sh)$ - [F,L]
+
+  # Existing files/dirs (except blocked above)
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+  Header always set Cross-Origin-Opener-Policy "same-origin"
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" env=HTTPS
+
+  <FilesMatch "\.(?i:css|js|mjs|png|jpe?g|gif|webp|svg|ico|woff2?|ttf|otf|map)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+
+  <FilesMatch "\.(?i:php|html?)$">
+    Header set Cache-Control "no-store, no-cache, must-revalidate"
+  </FilesMatch>
+</IfModule>
