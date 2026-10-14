@@ -56,9 +56,10 @@ if (file_exists($envFile)) {
 $config = require CONFIG_PATH . '/app.php';
 date_default_timezone_set($config['timezone']);
 
+// Only the actual request. APP_URL=https must not force HSTS on plain HTTP,
+// or browsers lock onto HTTPS while the origin certificate is still invalid.
 $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
     || ((int) ($_SERVER['SERVER_PORT'] ?? 0) === 443)
-    || str_starts_with(strtolower((string) ($config['url'] ?? '')), 'https://')
     || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
 
 $requestPath = (string) (parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '');
