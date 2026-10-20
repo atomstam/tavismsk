@@ -27,12 +27,12 @@ $activeIdx = $stageOrder[$stage] ?? 0;
 <?php if ($webShell): ?><div class="container py-4 ws-page-stack learn-web"><?php endif; ?>
 <div class="page-head">
   <div>
-    <p class="page-kicker">พื้นที่เรียน · แผนที่ <?= (int)($plan['plan_no'] ?? 0) ?></p>
+    <p class="page-kicker">พื้นที่เรียน · แผนที่ <?= (int)($plan['plan_no'] ?? 0) ?> · <?= e(\App\Services\PlanProgress::trackLabel($plan)) ?></p>
     <h1><?= e($plan['title'] ?? '') ?></h1>
   </div>
   <div class="d-flex flex-wrap gap-2">
-    <a class="btn btn-outline-secondary" href="<?= url('/curriculum/' . (int)($plan['plan_no'] ?? 0)) ?>"><i class="fa fa-info-circle"></i> รายละเอียดแผน</a>
-    <a class="btn btn-outline-secondary" href="<?= url($learnBase) ?>"><i class="fa fa-arrow-left"></i> กลับ</a>
+    <a class="btn <?= $webShell ? 'btn-outline-secondary' : 'btn-learn-outline' ?>" href="<?= url($webShell ? '/curriculum/' . (int)($plan['plan_no'] ?? 0) : '/admin/curriculum/' . $pid) ?>"><i class="fa fa-circle-info"></i> รายละเอียดแผน</a>
+    <a class="btn <?= $webShell ? 'btn-outline-secondary' : 'btn-learn-outline' ?>" href="<?= url($learnBase) ?>"><i class="fa fa-arrow-left"></i> กลับ</a>
   </div>
 </div>
 
@@ -45,7 +45,15 @@ $activeIdx = $stageOrder[$stage] ?? 0;
     </div>
     <div class="text-end">
       <div class="learn-pct"><?= number_format($pct, 1) ?>%</div>
-      <div class="small opacity-75">เสร็จสมบูรณ์</div>
+      <div class="small opacity-75">เกณฑ์ผ่าน <?= number_format((float)($settings['pass_percent'] ?? 80), 0) ?>%</div>
+      <?php if ((int)($progress['is_passed'] ?? 0) === 1): ?>
+        <form method="post" action="<?= url($learnBase . '/' . $pid . '/certificate') ?>" class="mt-2">
+          <?= csrf_field() ?>
+          <button class="btn btn-light btn-sm" type="submit"><i class="fa fa-download"></i> ดาวน์โหลดเกียรติบัตรแผนนี้</button>
+        </form>
+      <?php else: ?>
+        <div class="small opacity-75 mt-1">ผ่านเกณฑ์แล้วจึงดาวน์โหลดเกียรติบัตรของแผนนี้ได้</div>
+      <?php endif; ?>
     </div>
   </div>
   <div class="learn-progress-track"><span style="width:<?= min(100, $pct) ?>%"></span></div>
@@ -106,7 +114,14 @@ $activeIdx = $stageOrder[$stage] ?? 0;
                 <?= $done ? '<span class="learn-pill ok">เรียนแล้ว</span>' : '' ?>
               </div>
               <div class="d-flex gap-1">
-                <a class="btn btn-sm btn-outline-primary" href="<?= url($learnBase . '/' . $pid . '/content/' . (int)$c['id']) ?>">เปิด</a>
+                <?php
+                  $openOutside = in_array((string) $c['content_type'], ['gdrive', 'link'], true);
+                  $outsideUrl = trim((string) ($c['external_url'] ?? ''));
+                  $openHref = ($openOutside && $outsideUrl !== '')
+                    ? $outsideUrl
+                    : url($learnBase . '/' . $pid . '/content/' . (int) $c['id']);
+                ?>
+                <a class="btn btn-sm btn-outline-primary" href="<?= e($openHref) ?>"<?= $openOutside ? ' target="_blank" rel="noopener"' : '' ?>>เปิด</a>
                 <?php if (!$done): ?>
                 <form method="post" action="<?= url($learnBase . '/' . $pid . '/content/' . (int)$c['id'] . '/complete') ?>">
                   <?= csrf_field() ?>

@@ -154,7 +154,7 @@ function upsert_person(PDO $pdo, array $row): bool
     ]);
     $uid = (int) $pdo->lastInsertId();
     $pdo->prepare(
-        'INSERT INTO personnel (user_id,code,id_card,title,first_name,last_name,gender,position_id,academic_rank_id,salary_step,salary,department_id,phone,email,status,created_at,updated_at)
+        'INSERT INTO personnel (user_id,code,id_card,title,first_name,last_name,gender,personal_type_id,academic_rank_id,salary_step,salary,department_id,phone,email,status,created_at,updated_at)
          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),NOW())'
     )->execute([
         $uid,
@@ -164,7 +164,7 @@ function upsert_person(PDO $pdo, array $row): bool
         $row['first_name'],
         $row['last_name'],
         $row['gender'],
-        $row['position_id'],
+        null,
         $row['academic_rank_id'],
         $row['salary_step'],
         $row['salary'],

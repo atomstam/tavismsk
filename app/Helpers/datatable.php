@@ -19,6 +19,10 @@ if (!function_exists('dt_params')) {
         if ($search === '') {
             $search = trim((string) ($_GET['q'] ?? ''));
         }
+        $search = str_replace(["\0", '%', '_'], '', $search);
+        if (mb_strlen($search) > 80) {
+            $search = mb_substr($search, 0, 80);
+        }
 
         $orderColumn = 1;
         $orderDir = 'DESC';
@@ -108,6 +112,7 @@ if (!function_exists('dt_btn')) {
     {
         $title = (string) ($opts['title'] ?? match ($kind) {
             'view' => 'รายละเอียด',
+            'detail' => 'ดูรายละเอียด',
             'edit' => 'แก้ไข',
             'delete' => 'ลบ',
             'key' => 'รีเซ็ตรหัสผ่าน',
@@ -127,6 +132,7 @@ if (!function_exists('dt_btn')) {
 
         $map = [
             'view' => ['outline-secondary', 'fa-eye'],
+            'detail' => ['outline-secondary', 'fa-search'],
             'edit' => ['outline-primary', 'fa-pen'],
             'delete' => ['outline-danger', 'fa-trash'],
             'key' => ['outline-secondary', 'fa-key'],

@@ -11,39 +11,40 @@ class DataTableService
         $where = 'u.deleted_at IS NULL';
         $params = [];
         if ($p['search'] !== '') {
-            $where .= ' AND (u.username LIKE ? OR u.email LIKE ? OR u.first_name LIKE ? OR u.last_name LIKE ? OR u.id_card LIKE ? OR u.school_code LIKE ?)';
+            $where .= ' AND (u.username LIKE ? OR u.email LIKE ? OR u.first_name LIKE ? OR u.last_name LIKE ? OR u.phone LIKE ? OR u.org_name LIKE ? OR u.affiliation LIKE ? OR u.position_text LIKE ?)';
             $s = '%' . $p['search'] . '%';
-            $params = [$s, $s, $s, $s, $s, $s];
+            $params = [$s, $s, $s, $s, $s, $s, $s, $s];
         }
         if ($role) {
             $where .= ' AND u.role = ?';
             $params[] = $role;
         }
-        $cluster = trim((string) ($_GET['cluster'] ?? $p['cluster'] ?? ''));
-        $areaId = (int) ($_GET['area_id'] ?? $p['area_id'] ?? 0);
-        $schoolId = (int) ($_GET['org_unit_id'] ?? $_GET['school_id'] ?? $p['org_unit_id'] ?? 0);
-        $flt = OrgMembershipService::filterSql($cluster, $areaId, $schoolId, 'u');
+        $flt = RegistrationProfile::listFilter('u');
         $where .= $flt['where'];
         $params = array_merge($params, $flt['params']);
         $total = (int) (db()->fetch('SELECT COUNT(*) AS c FROM users u WHERE u.deleted_at IS NULL')['c'] ?? 0);
-        $filtered = (int) (db()->fetch("SELECT COUNT(*) AS c FROM users u WHERE {$where}", $params)['c'] ?? 0);
+        $unfiltered = $p['search'] === '' && $role === null && $flt['where'] === '';
+        $filtered = $unfiltered
+            ? $total
+            : (int) (db()->fetch("SELECT COUNT(*) AS c FROM users u WHERE {$where}", $params)['c'] ?? 0);
         $order = dt_order_sql([
-            1 => 'u.first_name',
-            2 => 'u.email',
-            3 => 'u.role',
-            4 => 'area.name',
-            5 => 'sch.name',
+            0 => 'u.first_name',
+            1 => 'u.email',
+            2 => 'u.role',
+            3 => 'u.member_type',
+            4 => 'sch.name',
+            5 => 'pv.name',
             6 => 'u.status',
         ], $p['order_column'], $p['order_dir'], 'u.id DESC');
 
         $rows = db()->fetchAll(
             "SELECT u.id, u.username, u.email, u.title, u.first_name, u.last_name, u.avatar, u.role, u.status,
-                    u.cluster_code, u.school_code, u.org_name, u.affiliation,
-                    sch.name AS school_name, area.name AS area_name, c.name AS cluster_name
+                    u.member_type, u.position_text, u.org_name, u.affiliation,
+                    sch.name AS school_name, pt.title AS position_name, pv.name AS province_name
              FROM users u
              LEFT JOIN org_units sch ON sch.id = u.org_unit_id AND sch.org_type = 'school' AND sch.deleted_at IS NULL
-             LEFT JOIN org_units area ON area.id = u.area_id AND area.deleted_at IS NULL
-             LEFT JOIN sc_clusters c ON c.id = CAST(NULLIF(u.cluster_code,'') AS UNSIGNED)
+             LEFT JOIN sc_personal_types pt ON pt.id = u.personal_type_id
+             LEFT JOIN province pv ON pv.id = u.province_id
              WHERE {$where} ORDER BY {$order} LIMIT {$p['length']} OFFSET {$p['start']}",
             $params
         );
@@ -58,18 +59,30 @@ class DataTableService
                 . '<img src="' . $avatar . '" width="36" height="36" class="rounded-circle" style="object-fit:cover" alt="">'
                 . '<div><div class="fw-semibold">' . $name . '</div><small class="text-muted">@' . e($u['username']) . '</small></div></div>';
             $isStaff = in_array((string) $u['role'], OrgMembershipService::STAFF_ROLES, true);
+            $memberLabels = ['staff' => 'ครูและบุคลากรทางการศึกษา', 'student' => 'นักเรียน', 'general' => 'ทั่วไป'];
+            $position = (string) (($u['position_name'] ?? '') !== '' ? $u['position_name'] : ($u['position_text'] ?? ''));
             if ($isStaff) {
-                $areaName = '—';
-                $orgHtml = '<span class="text-muted">ไม่สังกัด</span>';
+                $memberHtml = '<span class="text-muted">ไม่สังกัด</span>';
+                $orgHtml = '<span class="text-muted">—</span>';
+                $provinceName = '—';
             } else {
-                $areaName = (string) (($u['area_name'] ?? '') !== '' ? $u['area_name'] : ($u['affiliation'] ?? '-'));
-                $schoolName = (string) (($u['school_name'] ?? '') !== '' ? $u['school_name'] : ($u['org_name'] ?? ''));
-                $orgHtml = e($schoolName !== '' ? $schoolName : '-');
-                if ($areaName !== '' && $areaName !== '-' && $schoolName !== '') {
-                    $orgHtml = '<div>' . e($schoolName) . '</div><small class="text-muted">' . e($areaName) . '</small>';
+                $memberLabel = $memberLabels[$u['member_type'] ?? ''] ?? (string) ($u['member_type'] ?? '-');
+                $memberHtml = '<div>' . e($memberLabel) . '</div>';
+                if ($position !== '') {
+                    $memberHtml .= '<small class="text-muted">' . e($position) . '</small>';
                 }
+                $schoolName = (string) (($u['school_name'] ?? '') !== '' ? $u['school_name'] : ($u['org_name'] ?? ''));
+                $aff = (string) ($u['affiliation'] ?? '');
+                $orgHtml = e($schoolName !== '' ? $schoolName : '-');
+                if ($aff !== '' && $schoolName !== '') {
+                    $orgHtml = '<div>' . e($schoolName) . '</div><small class="text-muted">' . e($aff) . '</small>';
+                } elseif ($aff !== '') {
+                    $orgHtml = e($aff);
+                }
+                $provinceName = (string) (($u['province_name'] ?? '') !== '' ? $u['province_name'] : '-');
             }
             $actions = dt_actions_wrap(
+                dt_btn('detail', url('/admin/users/' . $u['id'])),
                 $canEdit ? dt_btn('edit', url('/admin/users/' . $u['id'] . '/edit')) : '',
                 $canEdit ? dt_btn('key', url('/admin/users/' . $u['id'] . '/reset-password'), ['method' => 'post', 'confirm' => 'รีเซ็ตรหัสผ่านเป็นค่าเริ่มต้น?']) : '',
                 $canDelete ? dt_btn('delete', url('/admin/users/' . $u['id'] . '/delete'), ['method' => 'post', 'confirm_delete' => 'ลบผู้ใช้นี้?']) : ''
@@ -78,8 +91,9 @@ class DataTableService
                 'user_html' => $userHtml,
                 'email' => (string) ($u['email'] ?? '-'),
                 'role_label' => role_name((string) $u['role']),
-                'area_name' => $areaName,
+                'member_html' => $memberHtml,
                 'org_name' => $orgHtml,
+                'province_name' => $provinceName,
                 'status_html' => ((int) $u['status'] === 1)
                     ? '<span class="badge-pill-ok">ใช้งาน</span>'
                     : '<span class="badge-pill-off">ระงับ</span>',
@@ -90,40 +104,43 @@ class DataTableService
         return dt_response($p['draw'], $total, $filtered, $data);
     }
 
-    public static function personnel(array $p, ?int $deptId = null): array
+    public static function personnel(array $p): array
     {
         $where = 'p.deleted_at IS NULL';
         $params = [];
         if ($p['search'] !== '') {
-            $where .= ' AND (p.code LIKE ? OR p.first_name LIKE ? OR p.last_name LIKE ? OR p.id_card LIKE ? OR p.phone LIKE ? OR p.email LIKE ?)';
+            $where .= ' AND (p.code LIKE ? OR p.first_name LIKE ? OR p.last_name LIKE ? OR p.id_card LIKE ? OR p.phone LIKE ? OR p.email LIKE ? OR p.org_name LIKE ? OR p.affiliation LIKE ? OR p.position_text LIKE ?)';
             $s = '%' . $p['search'] . '%';
-            $params = [$s, $s, $s, $s, $s, $s];
+            $params = [$s, $s, $s, $s, $s, $s, $s, $s, $s];
         }
-        if ($deptId) {
-            $where .= ' AND p.department_id = ?';
-            $params[] = $deptId;
-        }
+        $flt = RegistrationProfile::listFilter('p');
+        $where .= $flt['where'];
+        $params = array_merge($params, $flt['params']);
         if (!can_see_all_personnel() && auth()->id()) {
             $where .= ' AND p.user_id = ?';
             $params[] = auth()->id();
         }
         $total = (int) (db()->fetch('SELECT COUNT(*) AS c FROM personnel p WHERE p.deleted_at IS NULL')['c'] ?? 0);
-        $filtered = (int) (db()->fetch("SELECT COUNT(*) AS c FROM personnel p WHERE {$where}", $params)['c'] ?? 0);
+        $unfiltered = $p['search'] === '' && $flt['where'] === '' && (can_see_all_personnel() || !auth()->id());
+        $filtered = $unfiltered
+            ? $total
+            : (int) (db()->fetch("SELECT COUNT(*) AS c FROM personnel p WHERE {$where}", $params)['c'] ?? 0);
         $order = dt_order_sql([
-            1 => 'p.code',
-            2 => 'p.first_name',
-            3 => 'pos.name',
-            4 => 'r.name',
-            5 => 'd.name',
+            0 => 'p.code',
+            1 => 'p.first_name',
+            2 => 'p.member_type',
+            3 => 'pt.title',
+            4 => 'sch.name',
+            5 => 'pv.name',
             6 => 'p.phone',
         ], $p['order_column'], $p['order_dir'], 'p.sort_order ASC, p.id ASC');
 
         $rows = db()->fetchAll(
-            "SELECT p.*, d.name AS department_name, d.color AS department_color, pos.name AS position_name, r.name AS rank_name
+            "SELECT p.*, sch.name AS school_name, pt.title AS position_name, pv.name AS province_name
              FROM personnel p
-             LEFT JOIN departments d ON d.id = p.department_id
-             LEFT JOIN positions pos ON pos.id = p.position_id
-             LEFT JOIN academic_ranks r ON r.id = p.academic_rank_id
+             LEFT JOIN org_units sch ON sch.id = p.org_unit_id AND sch.deleted_at IS NULL
+             LEFT JOIN sc_personal_types pt ON pt.id = p.personal_type_id
+             LEFT JOIN province pv ON pv.id = p.province_id
              WHERE {$where} ORDER BY {$order} LIMIT {$p['length']} OFFSET {$p['start']}",
             $params
         );
@@ -139,16 +156,25 @@ class DataTableService
                 . '<img src="' . $avatarSrc . '" width="40" height="40" class="rounded-circle" style="object-fit:cover" alt="">'
                 . '<div class="fw-semibold">' . e($fullName) . '</div></div>';
             $actions = dt_actions_wrap(
-                dt_btn('view', url('/admin/personnel/' . $row['id'])),
+                dt_btn('detail', url('/admin/personnel/' . $row['id'])),
                 $canEdit ? dt_btn('edit', url('/admin/personnel/' . $row['id'] . '/edit')) : '',
                 $canDelete ? dt_btn('delete', url('/admin/personnel/' . $row['id'] . '/delete'), ['method' => 'post', 'confirm_delete' => 'ลบข้อมูลบุคลากรนี้?']) : ''
             );
+            $memberLabels = ['staff' => 'ครูและบุคลากรทางการศึกษา', 'student' => 'นักเรียน', 'general' => 'ทั่วไป'];
+            $position = (string) (($row['position_name'] ?? '') !== '' ? $row['position_name'] : ($row['position_text'] ?? ''));
+            $schoolName = (string) (($row['school_name'] ?? '') !== '' ? $row['school_name'] : ($row['org_name'] ?? ''));
+            $aff = (string) ($row['affiliation'] ?? '');
+            $orgHtml = e($schoolName !== '' ? $schoolName : '-');
+            if ($aff !== '' && $schoolName !== '') {
+                $orgHtml = '<div>' . e($schoolName) . '</div><small class="text-muted">' . e($aff) . '</small>';
+            }
             $data[] = [
                 'code_html' => '<span class="fw-semibold">' . e((string) ($row['code'] ?? '-')) . '</span>',
                 'name_html' => $nameHtml,
-                'position' => (string) ($row['position_name'] ?? '-'),
-                'rank' => (string) ($row['rank_name'] ?? '-'),
-                'department_name' => (string) ($row['department_name'] ?? '-'),
+                'member_label' => (string) ($memberLabels[$row['member_type'] ?? ''] ?? ($row['member_type'] ?? '-')),
+                'position' => $position !== '' ? $position : '-',
+                'org_html' => $orgHtml,
+                'province_name' => (string) (($row['province_name'] ?? '') !== '' ? $row['province_name'] : '-'),
                 'phone' => (string) ($row['phone'] ?? '-'),
                 'actions' => $actions,
             ];
@@ -555,12 +581,21 @@ class DataTableService
     {
         $where = 'status = 1';
         $params = [];
+        if (auth()->role() === 'trainer') {
+            $ids = (new \App\Services\PlanOwnerService())->approvedPlanIds((int) auth()->id());
+            $where .= $ids === [] ? ' AND 1=0' : ' AND id IN (' . implode(',', array_map('intval', $ids)) . ')';
+        }
         if ($p['search'] !== '') {
             $where .= ' AND (title LIKE ? OR topic_group LIKE ? OR instructor_label LIKE ? OR CAST(plan_no AS CHAR) LIKE ?)';
             $s = '%' . $p['search'] . '%';
             $params = [$s, $s, $s, $s];
         }
-        $total = (int) db()->count('learning_plans', 'status = 1');
+        $scope = 'status = 1';
+        if (auth()->role() === 'trainer') {
+            $ids = (new \App\Services\PlanOwnerService())->approvedPlanIds((int) auth()->id());
+            $scope .= $ids === [] ? ' AND 1=0' : ' AND id IN (' . implode(',', array_map('intval', $ids)) . ')';
+        }
+        $total = (int) db()->count('learning_plans', $scope);
         $filtered = (int) (db()->fetch("SELECT COUNT(*) AS c FROM learning_plans WHERE {$where}", $params)['c'] ?? 0);
         $order = dt_order_sql([
             0 => 'plan_no',
@@ -927,13 +962,22 @@ class DataTableService
     {
         $where = 'p.status = 1';
         $params = [];
+        if (auth()->role() === 'trainer') {
+            $ids = (new \App\Services\PlanOwnerService())->approvedPlanIds((int) auth()->id());
+            $where .= $ids === [] ? ' AND 1=0' : ' AND p.id IN (' . implode(',', array_map('intval', $ids)) . ')';
+        }
         if ($p['search'] !== '') {
             $where .= ' AND (p.title LIKE ? OR p.instructor_label LIKE ? OR p.topic_group LIKE ? OR CAST(p.plan_no AS CHAR) LIKE ?)';
             $s = '%' . $p['search'] . '%';
             $params = [$s, $s, $s, $s];
         }
 
-        $total = (int) (db()->fetch('SELECT COUNT(*) AS c FROM learning_plans p WHERE p.status = 1')['c'] ?? 0);
+        $scope = 'p.status = 1';
+        if (auth()->role() === 'trainer') {
+            $owned = (new \App\Services\PlanOwnerService())->approvedPlanIds((int) auth()->id());
+            $scope .= $owned === [] ? ' AND 1=0' : ' AND p.id IN (' . implode(',', array_map('intval', $owned)) . ')';
+        }
+        $total = (int) (db()->fetch("SELECT COUNT(*) AS c FROM learning_plans p WHERE {$scope}")['c'] ?? 0);
         $filtered = (int) (db()->fetch("SELECT COUNT(*) AS c FROM learning_plans p WHERE {$where}", $params)['c'] ?? 0);
         $order = dt_order_sql([
             1 => 'p.plan_no',
@@ -953,7 +997,7 @@ class DataTableService
                   WHERE z.plan_id = p.id AND z.quiz_type = 'pretest' AND q.status = 1) AS pretest_q,
                 (SELECT COUNT(*) FROM training_quiz_questions q
                   INNER JOIN training_quizzes z ON z.id = q.quiz_id
-                  WHERE z.plan_id = p.id AND z.quiz_type = 'posttest' AND q.status = 1) AS posttest_q
+                  WHERE z.plan_id = p.id AND z.quiz_type = 'pretest' AND q.status = 1) AS posttest_q
              FROM learning_plans p
              WHERE {$where}
              ORDER BY {$order}

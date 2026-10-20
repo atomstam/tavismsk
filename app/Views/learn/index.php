@@ -1,6 +1,7 @@
 <?php
 $modules = $modules ?? [];
 $courseOverall = (float)($courseOverall ?? 0);
+$requiredStanding = $requiredStanding ?? ['total' => 0, 'passed' => 0, 'ready' => false];
 $learnBase = rtrim((string)($learnBase ?? '/learn'), '/') ?: '/learn';
 $webShell = !empty($webShell);
 ?>
@@ -11,9 +12,9 @@ $webShell = !empty($webShell);
     <h1>บทเรียนของฉัน</h1>
   </div>
   <div class="d-flex flex-wrap gap-2">
-    <a class="btn btn-outline-secondary" href="<?= url('/curriculum') ?>"><i class="fa fa-list"></i> แผนการเรียนรู้</a>
+    <a class="btn <?= $webShell ? 'btn-outline-secondary' : 'btn-learn-outline' ?>" href="<?= url($webShell ? '/curriculum' : '/admin/curriculum') ?>"><i class="fa fa-list"></i> แผนการเรียนรู้</a>
     <?php if (can_perm('assessments', 'create')): ?>
-    <a class="btn btn-outline-secondary" href="<?= url('/admin/training') ?>"><i class="fa fa-chalkboard-user"></i> จัดการบทเรียน</a>
+    <a class="btn <?= $webShell ? 'btn-outline-secondary' : 'btn-learn-outline' ?>" href="<?= url('/admin/training') ?>"><i class="fa fa-chalkboard-user"></i> จัดการบทเรียน</a>
     <?php endif; ?>
   </div>
 </div>
@@ -26,7 +27,15 @@ $webShell = !empty($webShell);
   <div class="progress mb-2">
     <div class="progress-bar" style="width:<?= min(100, $courseOverall) ?>%"></div>
   </div>
-  <p class="small text-muted mb-0">ลำดับการเรียนทุกแผน: <strong>ทดสอบก่อน → เนื้อหา → ภาระงาน → สอบหลัง → ประเมินความพึงพอใจ</strong></p>
+  <p class="small text-muted mb-2">ความก้าวหน้านี้คิดจากแผนบังคับ <?= (int) ($requiredStanding['passed'] ?? 0) ?>/<?= (int) ($requiredStanding['required'] ?? $requiredStanding['total'] ?? 0) ?> แผน แผนทั่วไปไม่นับในการดาวน์โหลดวุฒิบัตร</p>
+  <?php if (!empty($requiredStanding['ready'])): ?>
+    <form method="post" action="<?= url($learnBase . '/diploma') ?>">
+      <?= csrf_field() ?>
+      <button class="btn btn-learn-primary" type="submit"><i class="fa fa-download"></i> ดาวน์โหลดวุฒิบัตร</button>
+    </form>
+  <?php else: ?>
+    <p class="small mb-0">ต้องเรียนแผนบังคับให้ครบและผ่านเกณฑ์ก่อน จึงจะดาวน์โหลดวุฒิบัตรได้</p>
+  <?php endif; ?>
 </div>
 
 <div class="row g-3">
@@ -36,6 +45,8 @@ $webShell = !empty($webShell);
   $pct = (float)($pr['overall_percent'] ?? 0);
   $stage = (string)($pr['stage'] ?? 'pretest');
   $planNo = (int)($p['plan_no'] ?? 0);
+  $requiredPlan = \App\Services\PlanProgress::isRequired($p);
+  $trackLabel = \App\Services\PlanProgress::trackLabel($p);
   $coverRel = sprintf('img/plans/plan-%02d.png', $planNo);
   $coverFile = defined('PUBLIC_PATH') ? PUBLIC_PATH . '/assets/' . $coverRel : '';
   $hasCover = $coverFile !== '' && is_file($coverFile);
@@ -61,6 +72,7 @@ $webShell = !empty($webShell);
         <?php endif; ?>
         <span class="learn-plan-cover-badge">แผนที่ <?= $planNo ?></span>
         <span class="learn-plan-cover-hours"><i class="fa fa-clock"></i> <?= e((string)$p['hours']) ?> ชม.</span>
+        <span class="learn-plan-track <?= $requiredPlan ? 'is-required' : 'is-elective' ?>"><?= e($trackLabel) ?></span>
       </div>
       <div class="card-body d-flex flex-column">
         <h2 class="learn-plan-title"><?= e($p['title']) ?></h2>

@@ -150,12 +150,20 @@ class TrainingService
         $required = (float) ($enroll['required_hours'] ?? 14);
         $avg = (float) ($sum['avg_score'] ?? 0);
         $passScore = (float) ($enroll['pass_score'] ?? 60);
-        $planCount = (int) (db()->fetch('SELECT COUNT(*) AS c FROM learning_plans WHERE status = 1')['c'] ?? 14);
-        $passedModules = (int) ($sum['passed_modules'] ?? 0);
-        $attendance = $planCount > 0 ? round(($passedModules / $planCount) * 100, 2) : 0;
-        $minAttendance = (float) (setting('attendance_percent') ?: 80);
-
-        $isPassed = ($totalHours >= $required && $avg >= $passScore && $attendance >= $minAttendance) ? 1 : 0;
+        $requiredIds = db()->fetchAll('SELECT id FROM learning_plans WHERE status = 1 AND is_required = 1');
+        $requiredTotal = count($requiredIds);
+        $requiredPassed = 0;
+        foreach ($requiredIds as $plan) {
+            $row = db()->fetch(
+                'SELECT is_passed FROM training_module_progress WHERE enrollment_id = ? AND plan_id = ?',
+                [$enrollmentId, (int) $plan['id']]
+            );
+            if ((int) ($row['is_passed'] ?? 0) === 1) {
+                $requiredPassed++;
+            }
+        }
+        $attendance = $requiredTotal > 0 ? round(($requiredPassed / $requiredTotal) * 100, 2) : 0;
+        $isPassed = ($requiredTotal > 0 && $requiredPassed === $requiredTotal) ? 1 : 0;
         $status = $enroll['status'];
         if ($isPassed) {
             $status = 'completed';
@@ -184,12 +192,24 @@ class TrainingService
              WHERE e.id = ?',
             [$enrollmentId]
         );
-        if (!$enroll || !(int) $enroll['is_passed']) {
+        if (!$enroll) {
+            return null;
+        }
+        $this->recalculateEnrollment($enrollmentId);
+        $enroll = db()->fetch(
+            'SELECT e.*, u.title, u.first_name, u.last_name, o.name AS org_name
+             FROM course_enrollments e
+             INNER JOIN users u ON u.id = e.user_id
+             LEFT JOIN org_units o ON o.id = e.org_unit_id
+             WHERE e.id = ?',
+            [$enrollmentId]
+        );
+        if (!$enroll || !$this->requiredPlansComplete($enrollmentId)) {
             return null;
         }
 
         $existing = db()->fetch(
-            "SELECT * FROM certificates WHERE enrollment_id = ? AND status = 'active'",
+            "SELECT * FROM certificates WHERE enrollment_id = ? AND plan_id IS NULL AND status = 'active'",
             [$enrollmentId]
         );
         if ($existing) {
@@ -203,7 +223,7 @@ class TrainingService
             'enrollment_id' => $enrollmentId,
             'user_id' => (int) $enroll['user_id'],
             'org_unit_id' => $enroll['org_unit_id'] ?? null,
-            'title' => 'เกียรติบัตรผ่านหลักสูตร ' . app_brand('full_name') . ' (' . app_brand('short_name') . ')',
+            'title' => 'วุฒิบัตรผ่านหลักสูตร ' . app_brand('full_name') . ' (' . app_brand('short_name') . ')',
             'recipient_name' => $name,
             'org_name' => $enroll['org_name'] ?? null,
             'hours' => (float) $enroll['total_hours'],
@@ -216,5 +236,82 @@ class TrainingService
         ]);
 
         return db()->fetch('SELECT * FROM certificates WHERE id = ?', [$id]) ?: null;
+    }
+
+    /** เกียรติบัตรของแผนเดียว ออกได้เมื่อแผนนั้นผ่านเกณฑ์ */
+    public function issuePlanCertificate(int $enrollmentId, int $planId, int $issuerId): ?array
+    {
+        $enroll = db()->fetch(
+            'SELECT e.*, u.title, u.first_name, u.last_name, o.name AS org_name
+             FROM course_enrollments e
+             INNER JOIN users u ON u.id = e.user_id
+             LEFT JOIN org_units o ON o.id = e.org_unit_id
+             WHERE e.id = ?',
+            [$enrollmentId]
+        );
+        $plan = db()->fetch('SELECT * FROM learning_plans WHERE id = ? AND status = 1', [$planId]);
+        $progress = db()->fetch(
+            'SELECT is_passed, overall_percent FROM training_module_progress WHERE enrollment_id = ? AND plan_id = ?',
+            [$enrollmentId, $planId]
+        );
+        if (!$enroll || !$plan || !(int) ($progress['is_passed'] ?? 0)) {
+            return null;
+        }
+        $existing = db()->fetch(
+            "SELECT * FROM certificates WHERE enrollment_id = ? AND plan_id = ? AND status = 'active'",
+            [$enrollmentId, $planId]
+        );
+        if ($existing) {
+            return $existing;
+        }
+        $name = trim(($enroll['title'] ?? '') . ($enroll['first_name'] ?? '') . ' ' . ($enroll['last_name'] ?? ''));
+        $id = (int) db()->insert('certificates', [
+            'cert_no' => $this->nextCertNo(),
+            'verify_code' => bin2hex(random_bytes(16)),
+            'enrollment_id' => $enrollmentId,
+            'plan_id' => $planId,
+            'user_id' => (int) $enroll['user_id'],
+            'org_unit_id' => $enroll['org_unit_id'] ?? null,
+            'title' => 'เกียรติบัตรแผนที่ ' . (int) $plan['plan_no'] . ' ' . $plan['title'],
+            'recipient_name' => $name,
+            'org_name' => $enroll['org_name'] ?? null,
+            'hours' => (float) ($plan['hours'] ?? 1),
+            'final_score' => $progress['overall_percent'] ?? null,
+            'issued_at' => date('Y-m-d H:i:s'),
+            'issued_by' => $issuerId,
+            'status' => 'active',
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        return db()->fetch('SELECT * FROM certificates WHERE id = ?', [$id]) ?: null;
+    }
+
+    /** @return array{total:int,passed:int,ready:bool} */
+    public function requiredPlanStanding(int $enrollmentId): array
+    {
+        $plans = db()->fetchAll(
+            'SELECT id FROM learning_plans WHERE status = 1 AND is_required = 1'
+        );
+        $passed = 0;
+        foreach ($plans as $plan) {
+            $row = db()->fetch(
+                'SELECT is_passed FROM training_module_progress WHERE enrollment_id = ? AND plan_id = ?',
+                [$enrollmentId, (int) $plan['id']]
+            );
+            if ((int) ($row['is_passed'] ?? 0) === 1) {
+                $passed++;
+            }
+        }
+        $total = count($plans);
+        return [
+            'total' => $total,
+            'passed' => $passed,
+            'ready' => $total > 0 && $passed === $total,
+        ];
+    }
+
+    private function requiredPlansComplete(int $enrollmentId): bool
+    {
+        return $this->requiredPlanStanding($enrollmentId)['ready'];
     }
 }

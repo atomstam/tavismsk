@@ -14,19 +14,6 @@ USE `tavis`;
 -- Master data
 -- --------------------------------------------------------
 
-CREATE TABLE `positions` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `name` VARCHAR(120) NOT NULL,
-  `name_en` VARCHAR(120) DEFAULT NULL,
-  `standard` ENUM('w9','w10') DEFAULT NULL COMMENT 'ว9=ครู ว10=ผอ/รองผอ',
-  `role_key` VARCHAR(30) NOT NULL DEFAULT 'teacher',
-  `sort_order` INT NOT NULL DEFAULT 0,
-  `status` TINYINT(1) NOT NULL DEFAULT 1,
-  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 CREATE TABLE `academic_ranks` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(100) NOT NULL,
@@ -35,13 +22,6 @@ CREATE TABLE `academic_ranks` (
   `status` TINYINT(1) NOT NULL DEFAULT 1,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE `prefixes` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `title` VARCHAR(80) NOT NULL,
-  `sort_order` INT NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -126,7 +106,6 @@ CREATE TABLE `personnel` (
   `last_name` VARCHAR(100) NOT NULL,
   `gender` ENUM('male','female','other') DEFAULT NULL,
   `birth_date` DATE DEFAULT NULL,
-  `position_id` INT UNSIGNED DEFAULT NULL,
   `academic_rank_id` INT UNSIGNED DEFAULT NULL,
   `salary_step` VARCHAR(20) DEFAULT NULL,
   `salary` DECIMAL(10,2) DEFAULT NULL,
@@ -153,9 +132,7 @@ CREATE TABLE `personnel` (
   KEY `idx_code` (`code`),
   KEY `idx_idcard` (`id_card`),
   KEY `idx_name` (`first_name`,`last_name`),
-  KEY `idx_position` (`position_id`),
   CONSTRAINT `fk_personnel_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_personnel_pos` FOREIGN KEY (`position_id`) REFERENCES `positions` (`id`) ON DELETE SET NULL,
   CONSTRAINT `fk_personnel_rank` FOREIGN KEY (`academic_rank_id`) REFERENCES `academic_ranks` (`id`) ON DELETE SET NULL,
   CONSTRAINT `fk_personnel_dept` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -528,6 +505,7 @@ CREATE TABLE `learning_plans` (
   `objectives` TEXT,
   `sort_order` INT NOT NULL DEFAULT 0,
   `status` TINYINT(1) NOT NULL DEFAULT 1,
+  `is_required` TINYINT(1) NOT NULL DEFAULT 1,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -562,6 +540,34 @@ CREATE TABLE `worksheets` (
   PRIMARY KEY (`id`),
   KEY `idx_ws_plan` (`plan_id`),
   CONSTRAINT `fk_ws_plan` FOREIGN KEY (`plan_id`) REFERENCES `learning_plans` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `user_roles` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` INT UNSIGNED NOT NULL,
+  `role` VARCHAR(30) NOT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user_role` (`user_id`, `role`),
+  KEY `idx_user_roles_role` (`role`),
+  CONSTRAINT `fk_user_roles_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `learning_plan_owners` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `plan_id` INT UNSIGNED NOT NULL,
+  `user_id` INT UNSIGNED NOT NULL,
+  `status` ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+  `note` VARCHAR(255) DEFAULT NULL,
+  `reviewed_by` INT UNSIGNED DEFAULT NULL,
+  `reviewed_at` DATETIME DEFAULT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_plan_owner` (`plan_id`, `user_id`),
+  KEY `idx_plan_owner_status` (`status`),
+  CONSTRAINT `fk_plan_owner_plan` FOREIGN KEY (`plan_id`) REFERENCES `learning_plans` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_plan_owner_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `club_members` (
@@ -726,6 +732,7 @@ CREATE TABLE `certificates` (
   `cert_no` VARCHAR(60) NOT NULL,
   `verify_code` VARCHAR(64) NOT NULL,
   `enrollment_id` INT UNSIGNED NOT NULL,
+  `plan_id` INT UNSIGNED DEFAULT NULL,
   `user_id` INT UNSIGNED NOT NULL,
   `org_unit_id` INT UNSIGNED DEFAULT NULL,
   `title` VARCHAR(255) NOT NULL,
@@ -744,8 +751,10 @@ CREATE TABLE `certificates` (
   UNIQUE KEY `uk_verify` (`verify_code`),
   KEY `idx_cert_user` (`user_id`),
   KEY `idx_cert_enroll` (`enrollment_id`),
+  KEY `idx_cert_plan` (`plan_id`),
   CONSTRAINT `fk_cert_enroll` FOREIGN KEY (`enrollment_id`) REFERENCES `course_enrollments` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_cert_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+  CONSTRAINT `fk_cert_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_cert_plan` FOREIGN KEY (`plan_id`) REFERENCES `learning_plans` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;
@@ -765,6 +774,9 @@ CREATE TABLE IF NOT EXISTS `training_plan_settings` (
   `require_pass_posttest` TINYINT(1) NOT NULL DEFAULT 1,
   `gate_content_after_pretest` TINYINT(1) NOT NULL DEFAULT 1,
   `gate_posttest_after_content` TINYINT(1) NOT NULL DEFAULT 1,
+  `quiz_draw_count` INT UNSIGNED NOT NULL DEFAULT 10,
+  `quiz_shuffle` TINYINT(1) NOT NULL DEFAULT 1,
+  `pass_percent` DECIMAL(5,2) NOT NULL DEFAULT 80.00,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -775,14 +787,16 @@ CREATE TABLE IF NOT EXISTS `training_plan_settings` (
 CREATE TABLE IF NOT EXISTS `training_quizzes` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `plan_id` INT UNSIGNED NOT NULL,
-  `quiz_type` ENUM('pretest','posttest') NOT NULL,
+  `quiz_type` ENUM('pretest','posttest','satisfaction') NOT NULL,
   `title` VARCHAR(255) NOT NULL,
   `description` TEXT,
   `pass_score` DECIMAL(5,2) NOT NULL DEFAULT 60.00,
   `time_limit_minutes` INT UNSIGNED DEFAULT NULL,
   `max_attempts` INT UNSIGNED NOT NULL DEFAULT 3,
+  `draw_count` INT UNSIGNED NOT NULL DEFAULT 0,
   `shuffle_questions` TINYINT(1) NOT NULL DEFAULT 0,
   `status` TINYINT(1) NOT NULL DEFAULT 1,
+  `is_central` TINYINT(1) NOT NULL DEFAULT 0,
   `created_by` INT UNSIGNED DEFAULT NULL,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -795,6 +809,7 @@ CREATE TABLE IF NOT EXISTS `training_quiz_questions` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `quiz_id` INT UNSIGNED NOT NULL,
   `question_text` TEXT NOT NULL,
+  `image_path` VARCHAR(500) DEFAULT NULL,
   `question_type` ENUM('single','true_false') NOT NULL DEFAULT 'single',
   `points` DECIMAL(5,2) NOT NULL DEFAULT 1.00,
   `explanation` TEXT,
@@ -811,11 +826,27 @@ CREATE TABLE IF NOT EXISTS `training_quiz_choices` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `question_id` INT UNSIGNED NOT NULL,
   `choice_text` VARCHAR(1000) NOT NULL,
+  `image_path` VARCHAR(500) DEFAULT NULL,
   `is_correct` TINYINT(1) NOT NULL DEFAULT 0,
   `sort_order` INT NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   KEY `idx_tqc_q` (`question_id`),
   CONSTRAINT `fk_tqc_q` FOREIGN KEY (`question_id`) REFERENCES `training_quiz_questions` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `training_quiz_papers` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `plan_id` INT UNSIGNED NOT NULL,
+  `enrollment_id` INT UNSIGNED NOT NULL,
+  `user_id` INT UNSIGNED NOT NULL,
+  `question_ids` JSON NOT NULL,
+  `post_question_ids` JSON NOT NULL,
+  `choice_orders` JSON NOT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_quiz_paper` (`plan_id`,`enrollment_id`),
+  CONSTRAINT `fk_paper_plan` FOREIGN KEY (`plan_id`) REFERENCES `learning_plans` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_paper_enroll` FOREIGN KEY (`enrollment_id`) REFERENCES `course_enrollments` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `training_quiz_attempts` (
@@ -945,6 +976,7 @@ CREATE TABLE IF NOT EXISTS `training_module_progress` (
   `task_percent` DECIMAL(5,2) NOT NULL DEFAULT 0,
   `posttest_percent` DECIMAL(5,2) NOT NULL DEFAULT 0,
   `overall_percent` DECIMAL(5,2) NOT NULL DEFAULT 0,
+  `is_passed` TINYINT(1) NOT NULL DEFAULT 0,
   `pretest_done` TINYINT(1) NOT NULL DEFAULT 0,
   `content_done` TINYINT(1) NOT NULL DEFAULT 0,
   `task_done` TINYINT(1) NOT NULL DEFAULT 0,

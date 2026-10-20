@@ -22,7 +22,9 @@ class SidebarMenuService
         }
 
         $out = [];
+        $section = null;
         $pendingLabel = null;
+        $this->seenHrefs = [];
 
         foreach ($defs as $def) {
             if (!is_array($def)) {
@@ -40,40 +42,95 @@ class SidebarMenuService
                 continue;
             }
 
-            if ($type === 'label') {
-                $pendingLabel = [
-                    'type' => 'label',
+            if ($type === 'label' && ($def['audience'] ?? '') !== '') {
+                $this->flushSection($section, $out);
+                $pendingLabel = null;
+                $section = [
+                    'type' => 'section',
                     'label' => (string) ($def['label'] ?? ''),
+                    'icon' => (string) ($def['icon'] ?? 'fa-layer-group'),
+                    'audience' => (string) $def['audience'],
+                    'items' => [],
                 ];
                 continue;
             }
 
+            if ($type === 'label') {
+                $pendingLabel = (string) ($def['label'] ?? '');
+                continue;
+            }
+
             $built = match ($type) {
-                'link' => $this->buildLink($def, $unreadNotifications),
+                'link' => [$this->buildLink($def, $unreadNotifications)],
                 'portfolio' => $this->buildPortfolioLinks(),
-                'reports' => $this->buildReportsGroup($def),
-                default => null,
+                'reports' => [$this->buildReportsGroup($def)],
+                'catalog' => $this->buildCatalogLinks((string) ($def['group'] ?? '')),
+                default => [],
             };
 
-            if ($built === null || $built === []) {
+            $accepted = [];
+            foreach ($built as $item) {
+                if (!is_array($item) || !$this->acceptItem($item)) {
+                    continue;
+                }
+                $accepted[] = $item;
+            }
+            if ($accepted === []) {
                 continue;
             }
 
             if ($pendingLabel !== null) {
-                $out[] = $pendingLabel;
+                $this->pushItem($section, $out, [
+                    'type' => 'label',
+                    'label' => $pendingLabel,
+                ]);
                 $pendingLabel = null;
             }
-
-            if ($type === 'portfolio') {
-                foreach ($built as $link) {
-                    $out[] = $link;
-                }
-            } else {
-                $out[] = $built;
+            foreach ($accepted as $item) {
+                $this->pushItem($section, $out, $item);
             }
         }
 
+        $this->flushSection($section, $out);
         return $out;
+    }
+
+    /** @var array<string, true> */
+    private array $seenHrefs = [];
+
+    /** @param array<string, mixed>|null $section @param list<array<string, mixed>> $out */
+    private function flushSection(?array &$section, array &$out): void
+    {
+        if ($section === null || ($section['items'] ?? []) === []) {
+            $section = null;
+            return;
+        }
+        $out[] = $section;
+        $section = null;
+    }
+
+    /** @param array<string, mixed>|null $section @param list<array<string, mixed>> $out @param array<string, mixed> $item */
+    private function pushItem(?array &$section, array &$out, array $item): void
+    {
+        if ($section !== null) {
+            $section['items'][] = $item;
+            return;
+        }
+        $out[] = $item;
+    }
+
+    /** @param array<string, mixed> $item */
+    private function acceptItem(array $item): bool
+    {
+        $href = (string) ($item['href'] ?? '');
+        if ($href === '') {
+            return true;
+        }
+        if (isset($this->seenHrefs[$href])) {
+            return false;
+        }
+        $this->seenHrefs[$href] = true;
+        return true;
     }
 
     public function resolveRole(string $role): string
@@ -92,6 +149,12 @@ class SidebarMenuService
     private function roleAllowed(array $def, string $rawRole, string $resolvedRole): bool
     {
         $roles = $def['roles'] ?? null;
+        if (!empty($def['portal_only'])) {
+            return is_array($roles) && (in_array($rawRole, $roles, true) || in_array($resolvedRole, $roles, true));
+        }
+        if ($rawRole === 'admin' || $resolvedRole === 'admin') {
+            return true;
+        }
         if (!is_array($roles) || $roles === []) {
             return true;
         }
@@ -139,6 +202,33 @@ class SidebarMenuService
         return $links;
     }
 
+    /** @return list<array<string, mixed>> */
+    private function buildCatalogLinks(string $group = ''): array
+    {
+        $catalogs = config('catalogs');
+        if (!is_array($catalogs)) {
+            return [];
+        }
+        $links = [];
+        foreach ($catalogs as $key => $cat) {
+            if (!is_array($cat) || !can_perm((string) ($cat['module'] ?? ''), 'view')) {
+                continue;
+            }
+            if ($group !== '' && (string) ($cat['group'] ?? '') !== $group) {
+                continue;
+            }
+            $path = '/admin/catalog/' . $key;
+            $links[] = [
+                'type' => 'link',
+                'label' => (string) ($cat['title'] ?? $key),
+                'icon' => (string) ($cat['icon'] ?? 'fa-table'),
+                'href' => url($path),
+                'active' => active_menu($path) !== '',
+            ];
+        }
+        return $links;
+    }
+
     /**
      * @param array<string, mixed> $def
      * @return array<string, mixed>|null
@@ -153,6 +243,7 @@ class SidebarMenuService
         $children = [
             [
                 'label' => 'สารสนเทศตามหน่วยงาน',
+                'icon' => 'fa-sitemap',
                 'href' => url('/admin/reports/org-stats'),
                 'active' => active_menu('/admin/reports/org-stats') !== '',
             ],
@@ -161,6 +252,7 @@ class SidebarMenuService
             $path = '/admin/reports/' . $k;
             $children[] = [
                 'label' => (string) ($m['title'] ?? $k),
+                'icon' => (string) ($m['icon'] ?? 'fa-file-lines'),
                 'href' => url($path),
                 'active' => active_menu($path) !== '',
             ];

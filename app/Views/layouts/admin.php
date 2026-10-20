@@ -26,8 +26,8 @@ $sidebarItems = (new \App\Services\SidebarMenuService())->items(null, (int) $unr
   <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
   <link rel="stylesheet" href="<?= asset('vendor/overlayScrollbars/css/OverlayScrollbars.min.css') ?>">
-  <link rel="stylesheet" href="<?= asset('css/app.css') ?>?v=27">
-  <link rel="stylesheet" href="<?= asset('css/learn.css') ?>?v=3">
+  <link rel="stylesheet" href="<?= asset('css/app.css') ?>?v=37">
+  <link rel="stylesheet" href="<?= asset('css/learn.css') ?>?v=9">
   <link rel="stylesheet" href="<?= asset('css/image-crop.css') ?>?v=1">
   <script>
     tailwind.config = { corePlugins: { preflight: false }, blocklist: ['collapse', 'container'] };
@@ -67,35 +67,62 @@ $sidebarItems = (new \App\Services\SidebarMenuService())->items(null, (int) $unr
     </div>
     <div class="sidebar-scroll" id="sidebar-scroll">
       <nav class="sidebar-nav">
-        <?php foreach ($sidebarItems as $item):
+        <?php
+        $renderNavItem = static function (array $item): void {
+            $type = (string) ($item['type'] ?? 'link');
+            if ($type === 'label') {
+                echo '<div class="nav-label">' . e((string) ($item['label'] ?? '')) . '</div>';
+                return;
+            }
+            if ($type === 'group') {
+                $open = !empty($item['open']);
+                echo '<div class="nav-group' . ($open ? ' open' : '') . '" data-nav-group>';
+                echo '<button type="button" class="nav-group-toggle' . ($open ? ' is-current' : '') . '" data-nav-toggle' . ($open ? ' aria-current="true"' : '') . '>';
+                echo '<i class="fa-solid ' . e((string) ($item['icon'] ?? 'fa-folder')) . '"></i>';
+                echo '<span>' . e((string) ($item['label'] ?? '')) . '</span>';
+                echo '<i class="fa-solid fa-chevron-right chevron"></i></button>';
+                echo '<div class="nav-submenu">';
+                foreach (($item['children'] ?? []) as $child) {
+                    if (!is_array($child)) {
+                        continue;
+                    }
+                    $cActive = !empty($child['active']);
+                    echo '<a class="' . ($cActive ? 'active' : '') . '" href="' . e((string) ($child['href'] ?? '#')) . '"' . ($cActive ? ' aria-current="page"' : '') . '>';
+                    echo '<i class="fa-solid ' . e((string) ($child['icon'] ?? 'fa-file-lines')) . '"></i>';
+                    echo e((string) ($child['label'] ?? '')) . '</a>';
+                }
+                echo '</div></div>';
+                return;
+            }
+            $active = !empty($item['active']);
+            echo '<a class="' . ($active ? 'active' : '') . '" href="' . e((string) ($item['href'] ?? '#')) . '"' . ($active ? ' aria-current="page"' : '') . '>';
+            echo '<i class="fa-solid ' . e((string) ($item['icon'] ?? 'fa-circle')) . '"></i>';
+            echo e((string) ($item['label'] ?? ''));
+            if (!empty($item['badge'])) {
+                echo '<span class="badge bg-danger ms-auto">' . (int) $item['badge'] . '</span>';
+            }
+            echo '</a>';
+        };
+        foreach ($sidebarItems as $item):
           $type = (string) ($item['type'] ?? 'link');
-          if ($type === 'label'): ?>
-        <div class="nav-label"><?= e((string) ($item['label'] ?? '')) ?></div>
-          <?php elseif ($type === 'group'):
-            $open = !empty($item['open']); ?>
-        <div class="nav-group<?= $open ? ' open' : '' ?>" data-nav-group>
-          <button type="button" class="nav-group-toggle<?= $open ? ' is-current' : '' ?>" data-nav-toggle<?= $open ? ' aria-current="true"' : '' ?>>
-            <i class="fa <?= e((string) ($item['icon'] ?? 'fa-folder')) ?>"></i>
+          if ($type === 'section'):
+            $audience = (string) ($item['audience'] ?? 'shared'); ?>
+        <section class="nav-role nav-role-<?= e($audience) ?>">
+          <div class="nav-role-label">
+            <i class="fa-solid <?= e((string) ($item['icon'] ?? 'fa-layer-group')) ?>"></i>
             <span><?= e((string) ($item['label'] ?? '')) ?></span>
-            <i class="fa fa-chevron-right chevron"></i>
-          </button>
-          <div class="nav-submenu">
-            <?php foreach (($item['children'] ?? []) as $child):
-              $cActive = !empty($child['active']); ?>
-            <a class="<?= $cActive ? 'active' : '' ?>" href="<?= e((string) ($child['href'] ?? '#')) ?>"<?= $cActive ? ' aria-current="page"' : '' ?>><?= e((string) ($child['label'] ?? '')) ?></a>
-            <?php endforeach; ?>
           </div>
-        </div>
+          <div class="nav-role-body">
+            <?php foreach (($item['items'] ?? []) as $child) {
+                if (is_array($child)) {
+                    $renderNavItem($child);
+                }
+            } ?>
+          </div>
+        </section>
           <?php else:
-            $active = !empty($item['active']); ?>
-        <a class="<?= $active ? 'active' : '' ?>" href="<?= e((string) ($item['href'] ?? '#')) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
-          <i class="fa <?= e((string) ($item['icon'] ?? 'fa-circle')) ?>"></i>
-          <?= e((string) ($item['label'] ?? '')) ?>
-          <?php if (!empty($item['badge'])): ?>
-          <span class="badge bg-danger ms-auto"><?= (int) $item['badge'] ?></span>
-          <?php endif; ?>
-        </a>
-          <?php endif;
+            $renderNavItem($item);
+          endif;
         endforeach; ?>
       </nav>
     </div>
@@ -204,9 +231,9 @@ $sidebarItems = (new \App\Services\SidebarMenuService())->items(null, (int) $unr
 <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
 <script src="<?= asset('vendor/overlayScrollbars/js/jquery.overlayScrollbars.min.js') ?>"></script>
-<script src="<?= asset('js/ab-datatable.js') ?>?v=3"></script>
-<script src="<?= asset('js/admin-ajax-tables.js') ?>?v=4"></script>
-  <script src="<?= asset('js/app.js') ?>?v=7"></script>
+<script src="<?= asset('js/ab-datatable.js') ?>?v=5"></script>
+<script src="<?= asset('js/admin-ajax-tables.js') ?>?v=11"></script>
+  <script src="<?= asset('js/app.js') ?>?v=8"></script>
 <link rel="stylesheet" href="<?= asset('css/image-crop.css') ?>?v=1">
 <script>
 window.AB_IMAGE_CROP = {

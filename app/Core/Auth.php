@@ -44,7 +44,23 @@ class Auth
 
     public function role(): ?string
     {
+        $active = isset($_SESSION['active_role']) ? (string) $_SESSION['active_role'] : '';
+        $owned = $this->roles();
+        if ($active !== '' && in_array($active, $owned, true)) {
+            return $active;
+        }
         return $this->user['role'] ?? null;
+    }
+
+    /** @return list<string> */
+    public function roles(): array
+    {
+        $roles = $this->user['roles'] ?? null;
+        if (is_array($roles) && $roles !== []) {
+            return array_values($roles);
+        }
+        $role = (string) ($this->user['role'] ?? '');
+        return $role !== '' ? [$role] : [];
     }
 
     /** Primary role after resolving config/roles.php alias_of (e.g. director → admin). */
@@ -87,14 +103,21 @@ class Auth
         return $this->hasRole(['user']) && !$this->hasRole(['admin', 'trainer']);
     }
 
-    public function login(array $user, bool $remember = false): void
+    public function login(array $user, bool $remember = false, ?string $portal = null): void
     {
         session_regenerate_id(true);
         $_SESSION['user_id'] = $user['id'];
-        $_SESSION['user_role'] = $user['role'];
         $_SESSION['login_at'] = time();
         $_SESSION['last_activity'] = time();
         $this->user = $user;
+        $this->attachRoles();
+        $roles = $this->roles();
+        if ($portal !== null && in_array($portal, $roles, true)) {
+            $_SESSION['active_role'] = $portal;
+        } elseif (empty($_SESSION['active_role']) || !in_array((string) $_SESSION['active_role'], $roles, true)) {
+            $_SESSION['active_role'] = (string) ($user['role'] ?? ($roles[0] ?? 'user'));
+        }
+        $_SESSION['user_role'] = (string) $_SESSION['active_role'];
 
         if ($remember) {
             $token = bin2hex(random_bytes(32));
@@ -174,12 +197,27 @@ class Auth
         try {
             $db = Database::getInstance();
             $user = $db->fetch('SELECT * FROM users WHERE id = ? AND status = 1', [$id]);
-            $this->user = $user;
+            $this->user = $user ?: null;
             if (!$user) {
-                unset($_SESSION['user_id']);
+                unset($_SESSION['user_id'], $_SESSION['active_role']);
+                return;
             }
+            $this->attachRoles();
         } catch (\Throwable $e) {
             $this->user = null;
+        }
+    }
+
+    private function attachRoles(): void
+    {
+        if (!$this->user) {
+            return;
+        }
+        try {
+            $this->user['roles'] = (new \App\Services\UserRoleService())->of((int) $this->user['id']);
+        } catch (\Throwable $e) {
+            $role = (string) ($this->user['role'] ?? 'user');
+            $this->user['roles'] = $role !== '' ? [$role] : ['user'];
         }
     }
 }

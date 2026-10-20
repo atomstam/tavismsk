@@ -86,6 +86,9 @@ return [
             ],
         ],
     ],
+    'lms' => [
+        'questions_per_learner' => 10,
+    ],
     'maintenance_mode' => filter_var(env('MAINTENANCE_MODE', false), FILTER_VALIDATE_BOOLEAN),
     'fiscal_year' => date('Y') + 543,
 ];

@@ -39,7 +39,34 @@ class ModuleLearningService
             'gate_content_after_pretest' => 1,
             'gate_posttest_after_content' => 1,
             'gate_satisfaction_after_posttest' => 1,
+            'quiz_draw_count' => 10,
+            'quiz_shuffle' => 1,
+            'pass_percent' => 80,
         ];
+    }
+
+    /** แบบประเมินความพึงพอใจชุดเดียว ใช้ร่วมทุกแผน */
+    public function centralSatisfactionId(int $userId = 0): int
+    {
+        $row = db()->fetch(
+            "SELECT id FROM training_quizzes WHERE quiz_type = 'satisfaction' AND is_central = 1 ORDER BY id LIMIT 1"
+        );
+        if ($row) {
+            return (int) $row['id'];
+        }
+        $plan = db()->fetch('SELECT id FROM learning_plans ORDER BY plan_no, id LIMIT 1');
+        $planId = (int) ($plan['id'] ?? 0);
+        if ($planId < 1) {
+            return 0;
+        }
+        $id = $this->ensureQuiz($planId, 'satisfaction', 'แบบประเมินความพึงพอใจ (กลาง)', $userId);
+        db()->update('training_quizzes', [
+            'is_central' => 1,
+            'title' => 'แบบประเมินความพึงพอใจ (กลาง)',
+            'pass_score' => 0,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ], 'id = ?', [$id]);
+        return $id;
     }
 
     public function activeEnrollment(int $userId): ?array
@@ -64,6 +91,22 @@ class ModuleLearningService
         $training->approve($id, $userId);
         $en = db()->fetch('SELECT * FROM course_enrollments WHERE id = ?', [$id]);
         return $en ?: [];
+    }
+
+    /** ลงทะเบียนแผนบังคับ 1–12 ให้ผู้เรียนใหม่ */
+    public function enrollRequiredPlans(int $userId): void
+    {
+        $en = $this->ensureEnrollment($userId);
+        $enrollmentId = (int) ($en['id'] ?? 0);
+        if ($enrollmentId <= 0) {
+            return;
+        }
+        $plans = db()->fetchAll(
+            'SELECT id FROM learning_plans WHERE status = 1 AND plan_no BETWEEN 1 AND 12 ORDER BY plan_no'
+        );
+        foreach ($plans as $plan) {
+            $this->recalculate($enrollmentId, (int) $plan['id'], $userId);
+        }
     }
 
     public function quiz(int $planId, string $type): ?array
@@ -108,12 +151,221 @@ class ModuleLearningService
         }
         foreach ($qs as &$q) {
             $q['choices'] = db()->fetchAll(
-                'SELECT id, choice_text, sort_order FROM training_quiz_choices WHERE question_id = ? ORDER BY sort_order, id',
+                'SELECT id, choice_text, image_path, sort_order FROM training_quiz_choices WHERE question_id = ? ORDER BY sort_order, id',
                 [(int) $q['id']]
             );
         }
         unset($q);
         return $qs;
+    }
+
+    /**
+     * ข้อที่ผู้เรียนคนนี้ต้องทำ
+     * ทดสอบก่อน/หลังใช้คลังเดียวกัน คนละชุด และสอบหลังสลับลำดับข้อกับตัวเลือก
+     *
+     * @return list<array>
+     */
+    public function learnerQuestions(int $planId, string $type, int $enrollmentId, int $userId): array
+    {
+        if ($type === 'satisfaction') {
+            $centralId = $this->centralSatisfactionId($userId);
+            return $centralId > 0 ? $this->questions($centralId) : [];
+        }
+        $paper = $this->ensurePaper($planId, $enrollmentId, $userId);
+        $ids = $type === 'posttest' ? $paper['post_ids'] : $paper['pre_ids'];
+        $choiceMap = $paper['choices'][$type === 'posttest' ? 'post' : 'pre'] ?? [];
+        return $this->hydratePaper($ids, $choiceMap);
+    }
+
+    /** @return list<int> */
+    public function learnerQuestionIds(int $planId, string $type, int $enrollmentId, int $userId): array
+    {
+        $rows = $this->learnerQuestions($planId, $type, $enrollmentId, $userId);
+        return array_map(static fn (array $q): int => (int) $q['id'], $rows);
+    }
+
+    /**
+     * @return array{pre_ids:list<int>,post_ids:list<int>,choices:array{pre:array<string,list<int>>,post:array<string,list<int>>}}
+     */
+    private function ensurePaper(int $planId, int $enrollmentId, int $userId): array
+    {
+        $row = db()->fetch(
+            'SELECT * FROM training_quiz_papers WHERE plan_id = ? AND enrollment_id = ?',
+            [$planId, $enrollmentId]
+        );
+        if ($row) {
+            $paper = $this->decodePaper($row);
+            if ($paper['pre_ids'] !== []) {
+                return $paper;
+            }
+            db()->query('DELETE FROM training_quiz_papers WHERE id = ?', [(int) $row['id']]);
+        }
+
+        $quiz = $this->quiz($planId, 'pretest');
+        $bank = $quiz
+            ? db()->fetchAll(
+                'SELECT id FROM training_quiz_questions WHERE quiz_id = ? AND status = 1 ORDER BY sort_order, id',
+                [(int) $quiz['id']]
+            )
+            : [];
+        $ids = array_map(static fn (array $r): int => (int) $r['id'], $bank);
+        $settings = $this->settings($planId);
+        $draw = (int) ($settings['quiz_draw_count'] ?? 0);
+        if ($draw <= 0) {
+            $lms = config('app', 'lms');
+            $draw = (int) (is_array($lms) ? ($lms['questions_per_learner'] ?? 10) : 10);
+        }
+        $shuffle = (int) ($settings['quiz_shuffle'] ?? 1) === 1;
+        if ($shuffle) {
+            shuffle($ids);
+        }
+        if ($draw > 0 && $draw < count($ids)) {
+            $ids = array_slice($ids, 0, $draw);
+        }
+        $pre = array_values($ids);
+        $post = $shuffle ? $this->differentOrder($pre) : $pre;
+        $choices = ['pre' => [], 'post' => []];
+        foreach ($pre as $qid) {
+            $cids = array_map(
+                static fn (array $c): int => (int) $c['id'],
+                db()->fetchAll(
+                    'SELECT id FROM training_quiz_choices WHERE question_id = ? ORDER BY sort_order, id',
+                    [$qid]
+                )
+            );
+            $preChoices = $cids;
+            if ($shuffle) {
+                shuffle($preChoices);
+            }
+            $postChoices = $shuffle ? $this->differentOrder($preChoices) : $preChoices;
+            $choices['pre'][(string) $qid] = array_values($preChoices);
+            $choices['post'][(string) $qid] = array_values($postChoices);
+        }
+
+        try {
+            db()->insert('training_quiz_papers', [
+                'plan_id' => $planId,
+                'enrollment_id' => $enrollmentId,
+                'user_id' => $userId,
+                'question_ids' => json_encode($pre, JSON_UNESCAPED_UNICODE),
+                'post_question_ids' => json_encode($post, JSON_UNESCAPED_UNICODE),
+                'choice_orders' => json_encode($choices, JSON_UNESCAPED_UNICODE),
+                'created_at' => date('Y-m-d H:i:s'),
+            ]);
+        } catch (\Throwable $e) {
+            $row = db()->fetch(
+                'SELECT * FROM training_quiz_papers WHERE plan_id = ? AND enrollment_id = ?',
+                [$planId, $enrollmentId]
+            );
+            if ($row) {
+                return $this->decodePaper($row);
+            }
+            throw $e;
+        }
+
+        return ['pre_ids' => $pre, 'post_ids' => $post, 'choices' => $choices];
+    }
+
+    /** @param array<string, mixed> $row */
+    private function decodePaper(array $row): array
+    {
+        $choices = json_decode((string) ($row['choice_orders'] ?? ''), true);
+        if (!is_array($choices)) {
+            $choices = ['pre' => [], 'post' => []];
+        }
+        return [
+            'pre_ids' => $this->idList($row['question_ids'] ?? '[]'),
+            'post_ids' => $this->idList($row['post_question_ids'] ?? '[]'),
+            'choices' => [
+                'pre' => is_array($choices['pre'] ?? null) ? $choices['pre'] : [],
+                'post' => is_array($choices['post'] ?? null) ? $choices['post'] : [],
+            ],
+        ];
+    }
+
+    /** @return list<int> */
+    private function idList(mixed $json): array
+    {
+        $data = is_string($json) ? json_decode($json, true) : $json;
+        if (!is_array($data)) {
+            return [];
+        }
+        return array_values(array_map(static fn ($id): int => (int) $id, $data));
+    }
+
+    /**
+     * @param list<int> $ids
+     * @return list<int>
+     */
+    private function differentOrder(array $ids): array
+    {
+        $ids = array_values($ids);
+        $n = count($ids);
+        if ($n < 2) {
+            return $ids;
+        }
+        $next = $ids;
+        for ($i = 0; $i < 8; $i++) {
+            shuffle($next);
+            if ($next !== $ids) {
+                return array_values($next);
+            }
+        }
+        $first = array_shift($next);
+        $next[] = $first;
+        return array_values($next);
+    }
+
+    /**
+     * @param list<int> $ids
+     * @param array<string, list<int>> $choiceMap
+     * @return list<array>
+     */
+    private function hydratePaper(array $ids, array $choiceMap): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $rows = db()->fetchAll(
+            "SELECT * FROM training_quiz_questions WHERE id IN ({$placeholders}) AND status = 1",
+            $ids
+        );
+        $byId = [];
+        foreach ($rows as $row) {
+            $byId[(int) $row['id']] = $row;
+        }
+        $out = [];
+        foreach ($ids as $qid) {
+            if (!isset($byId[$qid])) {
+                continue;
+            }
+            $q = $byId[$qid];
+            unset($q['explanation']);
+            $choiceRows = db()->fetchAll(
+                'SELECT id, choice_text, image_path, sort_order FROM training_quiz_choices WHERE question_id = ?',
+                [$qid]
+            );
+            $byChoice = [];
+            foreach ($choiceRows as $ch) {
+                $byChoice[(int) $ch['id']] = $ch;
+            }
+            $order = $choiceMap[(string) $qid] ?? array_keys($byChoice);
+            $choices = [];
+            foreach ($order as $cid) {
+                $cid = (int) $cid;
+                if (isset($byChoice[$cid])) {
+                    $choices[] = $byChoice[$cid];
+                    unset($byChoice[$cid]);
+                }
+            }
+            foreach ($byChoice as $ch) {
+                $choices[] = $ch;
+            }
+            $q['choices'] = $choices;
+            $out[] = $q;
+        }
+        return $out;
     }
 
     /** @return list<array> */
@@ -203,12 +455,6 @@ class ModuleLearningService
         }
         $userId = (int) $enroll['user_id'];
         $s = $this->settings($planId);
-        $wPre = (float) ($s['weight_pretest'] ?? self::WEIGHT_PRETEST);
-        $wCon = (float) ($s['weight_content'] ?? self::WEIGHT_CONTENT);
-        $wTask = (float) ($s['weight_task'] ?? self::WEIGHT_TASK);
-        $wPost = (float) ($s['weight_posttest'] ?? self::WEIGHT_POSTTEST);
-        $wSat = (float) ($s['weight_satisfaction'] ?? self::WEIGHT_SATISFACTION);
-        $totalW = max(0.01, $wPre + $wCon + $wTask + $wPost + $wSat);
 
         $preQuiz = $this->quiz($planId, 'pretest');
         $postQuiz = $this->quiz($planId, 'posttest');
@@ -237,6 +483,7 @@ class ModuleLearningService
                 'task_done' => 0,
                 'posttest_done' => 0,
                 'satisfaction_done' => 0,
+                'is_passed' => 0,
                 'stage' => 'pretest',
                 'updated_at' => date('Y-m-d H:i:s'),
             ];
@@ -261,7 +508,7 @@ class ModuleLearningService
         } else {
             $best = $this->bestAttempt((int) $preQuiz['id'], $enrollmentId);
             if ($best) {
-                $pretestPct = 100.0;
+                $pretestPct = round((float) $best['percent'], 2);
                 $pretestDone = 1;
             }
         }
@@ -316,16 +563,10 @@ class ModuleLearningService
         } else {
             $best = $this->bestAttempt((int) $postQuiz['id'], $enrollmentId);
             if ($best) {
+                $posttestPct = round((float) $best['percent'], 2);
                 if ((int) ($s['require_pass_posttest'] ?? 1) === 1) {
-                    if ((int) $best['is_passed'] === 1) {
-                        $posttestPct = 100.0;
-                        $posttestDone = 1;
-                    } else {
-                        $posttestPct = min(99.0, (float) $best['percent']);
-                        $posttestDone = 0;
-                    }
+                    $posttestDone = (int) $best['is_passed'] === 1 ? 1 : 0;
                 } else {
-                    $posttestPct = 100.0;
                     $posttestDone = 1;
                 }
             }
@@ -345,15 +586,20 @@ class ModuleLearningService
             }
         }
 
-        $overall = round(
-            (($pretestPct / 100) * $wPre
-                + ($contentPct / 100) * $wCon
-                + ($taskPct / 100) * $wTask
-                + ($posttestPct / 100) * $wPost
-                + ($satisfactionPct / 100) * $wSat)
-            / $totalW * 100,
-            2
-        );
+        $decision = PlanProgress::decide($s, [
+            'pretest' => $pretestPct,
+            'content' => $contentPct,
+            'task' => $taskPct,
+            'posttest' => $posttestPct,
+            'satisfaction' => $satisfactionPct,
+        ], [
+            'pretest_done' => $pretestDone,
+            'content_done' => $contentDone,
+            'task_done' => $taskDone,
+            'posttest_done' => $posttestDone,
+            'satisfaction_done' => $satisfactionDone,
+        ]);
+        $overall = (float) $decision['overall_percent'];
 
         $stage = 'pretest';
         if (!$pretestDone) {
@@ -368,7 +614,6 @@ class ModuleLearningService
             $stage = 'satisfaction';
         } else {
             $stage = 'completed';
-            $overall = 100.0;
         }
 
         $payload = [
@@ -386,6 +631,7 @@ class ModuleLearningService
             'task_done' => $taskDone,
             'posttest_done' => $posttestDone,
             'satisfaction_done' => $satisfactionDone,
+            'is_passed' => (int) $decision['is_passed'],
             'stage' => $stage,
             'updated_at' => date('Y-m-d H:i:s'),
         ];
@@ -402,7 +648,7 @@ class ModuleLearningService
                 db()->insert('training_module_progress', $payload);
             }
 
-            if ($stage === 'completed') {
+            if ((int) $decision['is_passed'] === 1) {
                 $this->syncModuleAssessment($enrollmentId, $planId, $overall, $userId);
             }
         }
@@ -448,8 +694,9 @@ class ModuleLearningService
 
     /**
      * @param array<int,int> $answers question_id => choice_id
+     * @param list<int>|null $limitIds ข้อที่อยู่ในชุดของผู้เรียนคนนี้ ถ้าว่างจะตรวจทั้งคลัง
      */
-    public function submitQuiz(int $quizId, int $enrollmentId, int $userId, array $answers): array
+    public function submitQuiz(int $quizId, int $enrollmentId, int $userId, array $answers, ?array $limitIds = null): array
     {
         $quiz = db()->fetch('SELECT * FROM training_quizzes WHERE id = ? AND status = 1', [$quizId]);
         if (!$quiz) {
@@ -461,10 +708,32 @@ class ModuleLearningService
             throw new \RuntimeException('ครบจำนวนครั้งที่อนุญาตแล้ว');
         }
 
-        $questions = db()->fetchAll(
-            'SELECT * FROM training_quiz_questions WHERE quiz_id = ? AND status = 1',
-            [$quizId]
-        );
+        if ($limitIds !== null) {
+            $limitIds = array_values(array_filter(array_map('intval', $limitIds)));
+            if ($limitIds === []) {
+                throw new \RuntimeException('ยังไม่มีข้อสอบในชุดนี้');
+            }
+            $placeholders = implode(',', array_fill(0, count($limitIds), '?'));
+            $found = db()->fetchAll(
+                "SELECT * FROM training_quiz_questions WHERE id IN ({$placeholders}) AND status = 1",
+                $limitIds
+            );
+            $byId = [];
+            foreach ($found as $row) {
+                $byId[(int) $row['id']] = $row;
+            }
+            $questions = [];
+            foreach ($limitIds as $qid) {
+                if (isset($byId[$qid])) {
+                    $questions[] = $byId[$qid];
+                }
+            }
+        } else {
+            $questions = db()->fetchAll(
+                'SELECT * FROM training_quiz_questions WHERE quiz_id = ? AND status = 1',
+                [$quizId]
+            );
+        }
         $score = 0.0;
         $maxScore = 0.0;
         $graded = [];

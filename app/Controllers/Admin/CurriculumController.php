@@ -29,10 +29,19 @@ class CurriculumController extends Controller
             $dbPlans = [];
         }
 
+        $plans = curriculum_plans();
+        if (auth()->role() === 'trainer') {
+            $owned = (new \App\Services\PlanOwnerService())->approvedPlanIds((int) auth()->id());
+            $plans = array_values(array_filter($plans, static function (array $p) use ($dbPlans, $owned): bool {
+                $row = $dbPlans[(int) ($p['plan_no'] ?? 0)] ?? null;
+                return $row && in_array((int) $row['id'], $owned, true);
+            }));
+        }
+
         $this->view('admin/curriculum/index', [
             'title' => 'แผนการเรียนรู้',
             'breadcrumb' => 'หน้าหลัก / แผนการเรียนรู้',
-            'plans' => curriculum_plans(),
+            'plans' => $plans,
             'dbPlans' => $dbPlans,
         ]);
     }
@@ -68,6 +77,10 @@ class CurriculumController extends Controller
         }
         if (!$row) {
             $this->flash('error', 'ไม่พบแผนการเรียนรู้');
+            $this->redirect('/admin/curriculum');
+        }
+        if (auth()->role() === 'trainer' && !(new \App\Services\PlanOwnerService())->isApproved((int) auth()->id(), (int) ($row['id'] ?? 0))) {
+            $this->flash('error', 'ดูได้เฉพาะหลักสูตรที่คุณเป็นเจ้าของ');
             $this->redirect('/admin/curriculum');
         }
 

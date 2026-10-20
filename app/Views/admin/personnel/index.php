@@ -16,18 +16,18 @@
   </div>
 </div>
 <div class="card-soft"><div class="card-body">
-  <form id="personnel-filter" class="dt-filter-bar">
-    <input name="q" class="form-control" placeholder="ค้นหาชื่อ / รหัส / โทร">
-    <select name="department_id" class="form-select">
-      <option value="">ทุกกลุ่มงาน</option>
-      <?php foreach (($departments ?? []) as $d): ?>
-        <option value="<?= (int)$d['id'] ?>"><?= e($d['name']) ?></option>
-      <?php endforeach; ?>
-    </select>
+  <form id="personnel-filter" class="dt-filter-bar flex-wrap">
+    <?php partial('partials/registration_list_filters', [
+      'searchPlaceholder' => 'ค้นหาชื่อ / รหัส / โทร / หน่วยงาน',
+      'showRole' => false,
+      'memberTypes' => $memberTypes ?? [],
+      'personalTypes' => $personalTypes ?? [],
+      'schools' => $schools ?? [],
+    ]); ?>
   </form>
-  <table id="personnel-datatable" class="table ab-datatable w-100" data-ajax-url="<?= e(url('/admin/personnel/datatable')) ?>">
+  <table id="personnel-datatable" class="table ab-datatable dt-list-fit w-100" data-ajax-url="<?= e(url('/admin/personnel/datatable')) ?>">
     <thead><tr>
-      <th>รหัส</th><th>ชื่อ</th><th>ตำแหน่ง</th><th>วิทยฐานะ</th><th>กลุ่มงาน</th><th>โทร</th><th class="col-actions">จัดการ</th>
+      <th>รหัส</th><th>ชื่อ</th><th>ประเภท</th><th>ตำแหน่ง</th><th>โรงเรียน / หน่วยงาน</th><th>จังหวัด</th><th>โทร</th><th class="col-actions">จัดการ</th>
     </tr></thead>
   </table>
 </div></div>

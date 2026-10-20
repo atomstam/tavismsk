@@ -18,7 +18,7 @@ $typeLabel = match ($type) {
     <p class="page-kicker"><?= e($typeLabel) ?></p>
     <h1><?= e($quiz['title'] ?? '') ?></h1>
   </div>
-  <a class="btn btn-outline-secondary" href="<?= url($learnBase . '/' . $pid) ?>">ยกเลิก</a>
+  <a class="btn <?= $webShell ? 'btn-outline-secondary' : 'btn-learn-outline' ?>" href="<?= url($learnBase . '/' . $pid) ?>">ยกเลิก</a>
 </div>
 
 <div class="card-soft mb-3"><div class="card-body small">
@@ -33,10 +33,14 @@ $typeLabel = match ($type) {
       <div class="fw-semibold mb-2"><?= ($i+1) ?>. <?= e($q['question_text']) ?>
         <span class="badge text-bg-light border"><?= e((string)$q['points']) ?> คะแนน</span>
       </div>
+      <?php if (!empty($q['image_path'])): ?><img class="quiz-figure" src="<?= e(upload_url($q['image_path'])) ?>" alt=""><?php endif; ?>
       <?php foreach (($q['choices'] ?? []) as $ch): ?>
-        <div class="form-check mb-1">
+        <div class="form-check quiz-choice mb-2">
           <input class="form-check-input" type="radio" name="answers[<?= (int)$q['id'] ?>]" id="c<?= (int)$ch['id'] ?>" value="<?= (int)$ch['id'] ?>" required>
-          <label class="form-check-label" for="c<?= (int)$ch['id'] ?>"><?= e($ch['choice_text']) ?></label>
+          <label class="form-check-label" for="c<?= (int)$ch['id'] ?>">
+            <?php if (!empty($ch['image_path'])): ?><img class="quiz-figure quiz-figure-sm" src="<?= e(upload_url($ch['image_path'])) ?>" alt=""><?php endif; ?>
+            <?= e(trim((string)($ch['choice_text'] ?? ''))) ?>
+          </label>
         </div>
       <?php endforeach; ?>
     </div></div>

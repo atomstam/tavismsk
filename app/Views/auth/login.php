@@ -57,6 +57,35 @@ $oauthBtn = static function (string $providerId, string $label, string $cssClass
             </button>
           </div>
         </div>
+        <?php $portal = (string) old('portal', 'user'); ?>
+        <div class="login-role-group mb-3">
+          <label class="login-role-label">
+            <i class="fa fa-user-tag"></i> เลือกบทบาทการเข้าสู่ระบบ
+          </label>
+          <div class="role-options">
+            <label class="role-option role-admin">
+              <input type="radio" name="portal" value="admin" class="d-none" <?= $portal === 'admin' ? 'checked' : '' ?> required>
+              <span class="role-card">
+                <i class="fa fa-user-shield"></i>
+                <span>ผู้ดูแลระบบ</span>
+              </span>
+            </label>
+            <label class="role-option role-trainer">
+              <input type="radio" name="portal" value="trainer" class="d-none" <?= $portal === 'trainer' ? 'checked' : '' ?>>
+              <span class="role-card">
+                <i class="fa fa-chalkboard-user"></i>
+                <span>วิทยากร</span>
+              </span>
+            </label>
+            <label class="role-option role-user">
+              <input type="radio" name="portal" value="user" class="d-none" <?= $portal === 'user' ? 'checked' : '' ?>>
+              <span class="role-card">
+                <i class="fa fa-user-graduate"></i>
+                <span>ผู้รับการพัฒนา</span>
+              </span>
+            </label>
+          </div>
+        </div>
         <div class="auth-meta">
           <label class="form-check"><input class="form-check-input" type="checkbox" name="remember" value="1"> จดจำฉัน</label>
           <a href="<?= url('/forgot-password') ?>">ลืมรหัสผ่าน?</a>

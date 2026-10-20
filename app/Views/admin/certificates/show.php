@@ -2,7 +2,7 @@
 <div class="page-head">
   <div>
     <p class="page-kicker">CERTIFICATE</p>
-    <h1>เกียรติบัตรออนไลน์</h1>
+    <h1><?= empty($cert['plan_id']) ? 'วุฒิบัตรหลักสูตร' : 'เกียรติบัตรรายแผน' ?></h1>
   </div>
   <div class="d-flex gap-2">
     <button class="btn btn-outline-secondary" type="button" onclick="window.print()"><i class="fa fa-print"></i> พิมพ์</button>

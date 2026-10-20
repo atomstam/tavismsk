@@ -83,6 +83,7 @@ class AuthController extends Controller
                 ]);
                 $this->mailer()->sendOtp((string) $user['email'], $code, (string) $user['first_name']);
                 $_SESSION['pending_2fa_user'] = $userId;
+                $_SESSION['pending_portal'] = (string) $this->input('portal', 'user');
                 $this->flash('info', 'ส่งรหัส OTP ไปยังอีเมลของคุณแล้ว');
                 $this->authView('auth/otp', ['title' => 'ยืนยัน OTP', 'email' => $this->maskEmail((string) $user['email'])]);
                 return;
@@ -95,9 +96,21 @@ class AuthController extends Controller
             $this->users->update($userId, ['otp_code' => null, 'otp_expires_at' => null]);
         }
 
+        $portal = (string) $this->input('portal', 'user');
+        if (!in_array($portal, \App\Services\UserRoleService::PORTALS, true)) {
+            $portal = 'user';
+        }
+        $roles = (new \App\Services\UserRoleService())->of($userId);
+        if (!in_array($portal, $roles, true)) {
+            $this->flash('error', 'บัญชีนี้ไม่มีสิทธิ์เข้าในโหมด ' . \App\Services\UserRoleService::label($portal));
+            set_old_input(['username' => $username, 'portal' => $portal]);
+            $this->redirect('/login');
+        }
+
         $rehash = password_should_rehash((string) $user['password']) ? hash_password($password) : null;
         $this->users->markLoginSuccess($userId, $rehash);
-        auth()->login($user, $remember);
+        $_SESSION['pending_portal'] = $portal;
+        auth()->login($user, $remember, $portal);
         $this->logLogin($userId, $username, 'success');
         activity_log('login', 'auth', 'เข้าสู่ระบบสำเร็จ');
         clear_old_input();
@@ -121,7 +134,9 @@ class AuthController extends Controller
         $this->users->update($userId, ['otp_code' => null, 'otp_expires_at' => null]);
         $this->users->resetLoginAttempts($userId);
         unset($_SESSION['pending_2fa_user']);
-        auth()->login($user, false);
+        $portal = (string) ($_SESSION['pending_portal'] ?? 'user');
+        unset($_SESSION['pending_portal']);
+        auth()->login($user, false, $portal);
         $this->logLogin($userId, $user['username'], '2fa');
         $this->flash('success', 'ยืนยันตัวตนสำเร็จ');
         $this->redirectAfterLogin();
@@ -374,6 +389,12 @@ class AuthController extends Controller
             'status' => 1,
             'two_factor_enabled' => 0,
         ]);
+        (new \App\Services\UserRoleService())->grant((int) $id, 'user');
+        try {
+            (new \App\Services\ModuleLearningService())->enrollRequiredPlans((int) $id);
+        } catch (\Throwable $e) {
+            // การลงทะเบียนแผนไม่ควรทำให้สมัครสมาชิกพัง
+        }
         activity_log('register', 'auth', 'สมัครสมาชิกใหม่', null, [
             'user_id' => $id,
             'member_type' => $memberType,

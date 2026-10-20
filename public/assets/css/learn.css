@@ -238,6 +238,173 @@
   backdrop-filter: blur(4px);
 }
 .learn-plan-cover-hours i { margin-right: .25rem; opacity: .9; }
+.learn-plan-track {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 3;
+  color: #fff;
+  font-size: .95rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  line-height: 1;
+  padding: .55rem .9rem;
+  border-radius: 999px;
+  border: 2px solid #fff;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, .35);
+}
+.learn-plan-track.is-required { background: #b91c1c; }
+.learn-plan-track.is-elective { background: #0f766e; }
+.admin-plan-card {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid #e9e5ff;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 10px 28px rgba(91, 33, 182, .06);
+}
+.admin-plan-media {
+  display: flex;
+  flex-direction: column;
+  color: inherit;
+  text-decoration: none;
+  min-width: 0;
+}
+.admin-plan-media:hover { color: inherit; }
+.admin-plan-cover {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 0;
+  padding-bottom: 56.25%;
+  background: linear-gradient(135deg, #4c1d95, #7c3aed);
+  overflow: hidden;
+  line-height: 0;
+  flex: 0 0 auto;
+}
+.admin-plan-cover img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  object-position: center center;
+  display: block;
+}
+.admin-plan-cover-fallback {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 2rem;
+}
+.admin-plan-badge {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  color: #fff;
+  font-weight: 700;
+  font-size: .88rem;
+  line-height: 1;
+  padding: .45rem .85rem;
+  border-radius: 999px;
+  border: 2px solid rgba(255,255,255,.9);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, .28);
+}
+.admin-plan-cover-foot {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+.admin-plan-progress {
+  flex: 1;
+  background: #fff;
+  color: #5b21b6;
+  text-align: center;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: .45rem .8rem;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, .18);
+}
+.admin-plan-cover .learn-plan-track { position: static; }
+.admin-plan-body { padding: 1rem 1.15rem .85rem; }
+.admin-plan-top {
+  display: flex;
+  justify-content: space-between;
+  gap: .75rem;
+  align-items: flex-start;
+  margin-bottom: .45rem;
+}
+.admin-plan-pill {
+  background: #f5f3ff;
+  color: #6d28d9;
+  border-radius: 999px;
+  font-size: .78rem;
+  font-weight: 700;
+  padding: .2rem .65rem;
+}
+.admin-plan-hours { color: #64748b; font-size: .82rem; white-space: nowrap; }
+.admin-plan-hours i { color: #7c3aed; margin-right: .25rem; }
+.admin-plan-body h2 {
+  font-size: 1.02rem;
+  font-weight: 700;
+  line-height: 1.4;
+  margin: 0 0 .35rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.admin-plan-body p { margin: 0; color: #64748b; font-size: .84rem; }
+.admin-plan-actions {
+  display: flex;
+  gap: .55rem;
+  flex-wrap: wrap;
+  padding: .85rem 1.15rem 1.1rem;
+  margin-top: auto;
+  border-top: 1px solid #efeaff;
+  background: #fcfbff;
+}
+.admin-plan-actions .btn {
+  flex: 1 1 8.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+  min-height: 40px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: .9rem;
+  padding: .45rem .9rem;
+  line-height: 1.2;
+}
+.admin-plan-actions .btn-learn-primary {
+  padding: .45rem .9rem;
+  box-shadow: none;
+}
+.admin-plan-actions .admin-plan-detail {
+  background: #fff;
+  color: #5b21b6;
+  border: 1.5px solid #c4b5fd;
+  box-shadow: none;
+}
+.admin-plan-actions .admin-plan-detail:hover {
+  background: #5b21b6;
+  border-color: #5b21b6;
+  color: #fff;
+}
+.ws-page-hero-media { position: relative; }
+.ws-plan-cover { position: relative; }
 .learn-plan-card .card-body {
   position: relative;
   z-index: 1;
@@ -413,6 +580,82 @@ body.web-site .learn-plan-card {
 body.web-site .learn-hero {
   box-shadow: 0 12px 28px rgba(124, 58, 237, .22);
 }
+
+/* Backend learn — lock to admin LMS blue theme */
+.admin-shell .learn-hero,
+.admin-shell .learn-stepper,
+.admin-shell .learn-course-banner,
+.admin-shell .learn-plan-card,
+.admin-shell .learn-module-card,
+.admin-shell .content {
+  --p-primary: #1a45b8;
+  --p-primary-2: #0d1b9e;
+  --p-accent: #00a3ff;
+  --p-gradient: linear-gradient(90deg, #0d1b9e 0%, #0084ff 100%);
+  --p-gradient-btn: linear-gradient(90deg, #1a45b8 0%, #00a3ff 100%);
+  --p-soft: #eef2ff;
+  --p-border: #e2e8f0;
+  --p-shadow: 0 8px 24px rgba(26, 69, 184, .08);
+}
+.admin-shell .learn-hero {
+  background: var(--p-gradient);
+  box-shadow: 0 12px 28px rgba(13, 27, 158, .22);
+}
+.admin-shell .btn-learn-primary {
+  background: var(--p-gradient-btn) !important;
+  box-shadow: 0 8px 18px rgba(26, 69, 184, .22);
+}
+.admin-shell .btn-learn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  background: #fff !important;
+  color: var(--p-primary) !important;
+  border: 1.5px solid var(--p-primary) !important;
+  border-radius: 12px;
+  font-weight: 600;
+  padding: .45rem .95rem;
+}
+.admin-shell .btn-learn-outline:hover {
+  background: var(--p-primary) !important;
+  color: #fff !important;
+}
+.admin-shell .learn-step.is-active .learn-step-num {
+  box-shadow: 0 0 0 4px rgba(26, 69, 184, .18);
+}
+.admin-shell .learn-module-card.is-active {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(26, 69, 184, .1), var(--p-shadow);
+}
+.admin-shell .learn-module-card h2 i {
+  background: var(--p-soft);
+  color: var(--p-primary);
+}
+.admin-shell .learn-pill {
+  background: var(--p-soft);
+  color: var(--p-primary);
+}
+.admin-shell .learn-plan-card:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 16px 36px rgba(26, 69, 184, .14);
+}
+.admin-shell .learn-plan-cover {
+  background: linear-gradient(135deg, #0d1b9e, #00a3ff);
+}
+.admin-shell .learn-plan-cover-badge {
+  color: var(--p-primary);
+}
+.admin-shell .page-kicker {
+  color: var(--p-primary);
+}
+.admin-shell .learn-course-banner .progress {
+  background: #eef2ff;
+}
+.admin-shell .learn-course-banner .progress-bar,
+.admin-shell .learn-plan-card .progress-bar {
+  background: var(--p-gradient-btn);
+}
+
 body.pf-light .ws-footer-rich,
 body.pf-light .ws-footer {
   position: relative;

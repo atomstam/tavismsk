@@ -53,10 +53,10 @@ class HomeController extends Controller
 
         $teacherCards = db()->fetchAll(
             "SELECT u.id, u.title, u.first_name, u.last_name, u.avatar, u.role,
-                    p.photo, pos.name AS position_name
+                    p.photo, COALESCE(pt.title, p.position_text) AS position_name
              FROM users u
              LEFT JOIN personnel p ON p.user_id = u.id AND p.deleted_at IS NULL
-             LEFT JOIN positions pos ON pos.id = p.position_id
+             LEFT JOIN sc_personal_types pt ON pt.id = p.personal_type_id
              WHERE u.deleted_at IS NULL AND u.status = 1 AND u.role IN ('teacher','director','deputy')
              ORDER BY u.first_name LIMIT 4"
         );
@@ -64,10 +64,10 @@ class HomeController extends Controller
         // สุ่มบุคลากรสำหรับ Hero (เน้นคนที่มีรูปส่วนตัว)
         $heroStaff = db()->fetch(
             "SELECT u.id, u.title, u.first_name, u.last_name, u.avatar, u.role,
-                    p.photo, pos.name AS position_name, ar.name AS rank_name
+                    p.photo, COALESCE(pt.title, p.position_text) AS position_name, ar.name AS rank_name
              FROM users u
              LEFT JOIN personnel p ON p.user_id = u.id AND p.deleted_at IS NULL
-             LEFT JOIN positions pos ON pos.id = p.position_id
+             LEFT JOIN sc_personal_types pt ON pt.id = p.personal_type_id
              LEFT JOIN academic_ranks ar ON ar.id = p.academic_rank_id
              WHERE u.deleted_at IS NULL AND u.status = 1
                AND u.role IN ('teacher','director','deputy')

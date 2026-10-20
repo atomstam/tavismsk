@@ -1140,7 +1140,7 @@ body.web-site .container {
 }
 .ws-plan-cover-progress {
   position: absolute;
-  right: 12px;
+  left: 12px;
   bottom: 12px;
   z-index: 2;
   display: inline-flex;

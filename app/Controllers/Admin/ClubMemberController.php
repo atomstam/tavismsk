@@ -91,7 +91,7 @@ class ClubMemberController extends Controller
             'breadcrumb' => 'หน้าหลัก / สมาชิกชมรม',
             'row' => $row,
             'years' => $years,
-            'prefixes' => db()->fetchAll('SELECT title FROM prefixes ORDER BY sort_order ASC') ?: [],
+            'prefixes' => (new \App\Services\OrgMasterService())->prefixes(),
         ]);
     }
 

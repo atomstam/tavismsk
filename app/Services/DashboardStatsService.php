@@ -323,10 +323,10 @@ class DashboardStatsService
         $posLabels = [];
         $posData = [];
         foreach (db()->fetchAll(
-            "SELECT COALESCE(pos.name,'ไม่ระบุ') AS n, COUNT(*) AS c
-             FROM personnel p LEFT JOIN positions pos ON pos.id = p.position_id
+            "SELECT COALESCE(pt.title, NULLIF(p.position_text,''), 'ไม่ระบุ') AS n, COUNT(*) AS c
+             FROM personnel p LEFT JOIN sc_personal_types pt ON pt.id = p.personal_type_id
              WHERE p.deleted_at IS NULL
-             GROUP BY COALESCE(pos.name,'ไม่ระบุ') ORDER BY c DESC"
+             GROUP BY COALESCE(pt.title, NULLIF(p.position_text,''), 'ไม่ระบุ') ORDER BY c DESC"
         ) as $row) {
             $posLabels[] = (string) $row['n'];
             $posData[] = (int) $row['c'];

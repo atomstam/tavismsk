@@ -31,6 +31,87 @@
     return document.querySelector(sel)?.value?.trim() || '';
   }
 
+  function registrationFilterParams(formSel) {
+    return {
+      q: val(formSel + ' [name="q"]'),
+      role: val(formSel + ' [name="role"]'),
+      member_type: val(formSel + ' [name="member_type"]'),
+      personal_type_id: val(formSel + ' [name="personal_type_id"]'),
+      area_choice: val(formSel + ' [name="area_choice"]'),
+      school_id: val(formSel + ' [name="school_id"]')
+    };
+  }
+
+  function bindRegistrationFilters(formId) {
+    const form = document.getElementById(formId);
+    if (!form) return;
+    const member = form.querySelector('[name="member_type"]');
+    const personal = form.querySelector('[name="personal_type_id"]');
+    const area = form.querySelector('[name="area_choice"]');
+    const school = form.querySelector('[name="school_id"]');
+    const positionCatalog = personal
+      ? Array.from(personal.options).filter(function (opt) { return opt.value; }).map(function (opt) {
+          return { value: opt.value, label: opt.textContent, kind: opt.getAttribute('data-kind') || '' };
+        })
+      : [];
+    function syncPersonal() {
+      if (!personal) return;
+      const kind = member?.value || '';
+      const general = kind === 'general';
+      const current = personal.value;
+      const placeholder = !kind
+        ? 'เลือกประเภทก่อน'
+        : (general ? 'ตำแหน่งกรอกเอง — ไม่มีรายการ' : 'ทุกตำแหน่ง / ระดับชั้น');
+      personal.innerHTML = '';
+      const empty = document.createElement('option');
+      empty.value = '';
+      empty.textContent = placeholder;
+      personal.appendChild(empty);
+      if (kind === 'staff' || kind === 'student') {
+        positionCatalog.forEach(function (item) {
+          if (item.kind !== kind) return;
+          const opt = document.createElement('option');
+          opt.value = item.value;
+          opt.textContent = item.label;
+          opt.setAttribute('data-kind', item.kind);
+          if (item.value === current) opt.selected = true;
+          personal.appendChild(opt);
+        });
+      }
+      personal.disabled = !kind || general;
+      personal.hidden = general;
+    }
+    function syncArea() {
+      if (!school) return;
+      const other = area?.value === 'other';
+      school.hidden = other;
+      school.disabled = other;
+      if (other) school.value = '';
+    }
+    member?.addEventListener('change', syncPersonal);
+    area?.addEventListener('change', syncArea);
+    syncPersonal();
+    syncArea();
+  }
+
+  // Extra registration columns stay out of the desktop row. The expand control
+  // is only useful once those columns are shown again on a phone.
+  function bindListLayout(table) {
+    if (!table) return;
+    const mq = window.matchMedia('(max-width: 991.98px)');
+    const apply = function () {
+      const mobile = mq.matches;
+      table.columns('.col-mobile-detail').visible(mobile, false);
+      table.columns.adjust();
+      if (table.responsive && typeof table.responsive.recalc === 'function') {
+        table.responsive.recalc();
+      }
+    };
+    table.one('draw', apply);
+    if (mq.addEventListener) mq.addEventListener('change', apply);
+    else if (mq.addListener) mq.addListener(apply);
+  }
+
   function initUsers() {
     const el = document.getElementById('users-datatable');
     if (!el) return;
@@ -38,24 +119,21 @@
       ajaxUrl: el.dataset.ajaxUrl,
       order: [[0, 'asc']],
       getParams: function () {
-        return {
-          q: val('#users-filter [name="q"]'),
-          role: val('#users-filter [name="role"]'),
-          cluster: val('#users-filter [name="cluster"]'),
-          area_id: val('#users-filter [name="area_id"]'),
-          school_id: val('#users-filter [name="school_id"]')
-        };
+        return registrationFilterParams('#users-filter');
       },
       columns: [
-        { data: 'user_html', className: 'col-primary', render: raw },
-        { data: 'email', render: (d) => esc(d) },
-        { data: 'role_label', render: (d) => `<span class="badge text-bg-secondary">${esc(d)}</span>` },
-        { data: 'area_name', render: (d) => esc(d) },
-        { data: 'org_name', className: 'col-wrap', render: raw },
-        { data: 'status_html', render: raw },
-        { data: 'actions', orderable: false, searchable: false, className: 'col-actions', render: raw }
+        { data: 'user_html', className: 'col-primary', responsivePriority: 1, render: raw },
+        { data: 'email', className: 'col-mobile-detail', responsivePriority: 100, render: (d) => esc(d) },
+        { data: 'role_label', responsivePriority: 3, render: (d) => `<span class="badge text-bg-secondary">${esc(d)}</span>` },
+        { data: 'member_html', className: 'col-wrap', responsivePriority: 4, render: raw },
+        { data: 'org_name', className: 'col-wrap', responsivePriority: 5, render: raw },
+        { data: 'province_name', className: 'col-mobile-detail', responsivePriority: 100, render: (d) => esc(d) },
+        { data: 'status_html', responsivePriority: 2, render: raw },
+        { data: 'actions', orderable: false, searchable: false, className: 'col-actions', responsivePriority: 1, render: raw }
       ]
     });
+    bindListLayout(table);
+    bindRegistrationFilters('users-filter');
     bindFilter('users-filter', table);
   }
 
@@ -64,23 +142,23 @@
     if (!el) return;
     const table = AbDataTable.initAjax(el, {
       ajaxUrl: el.dataset.ajaxUrl,
-      order: [[2, 'asc']],
+      order: [[1, 'asc']],
       getParams: function () {
-        return {
-          q: val('#personnel-filter [name="q"]'),
-          department_id: val('#personnel-filter [name="department_id"]')
-        };
+        return registrationFilterParams('#personnel-filter');
       },
       columns: [
-        { data: 'code_html', className: 'col-nowrap', render: raw },
-        { data: 'name_html', className: 'col-primary', render: raw },
-        { data: 'position', className: 'col-wrap', render: (d) => esc(d) },
-        { data: 'rank', render: (d) => esc(d) },
-        { data: 'department_name', render: (d) => esc(d) },
-        { data: 'phone', className: 'col-nowrap', render: (d) => esc(d) },
-        { data: 'actions', orderable: false, searchable: false, className: 'col-actions', render: raw }
+        { data: 'code_html', className: 'col-nowrap col-mobile-detail', responsivePriority: 100, render: raw },
+        { data: 'name_html', className: 'col-primary', responsivePriority: 1, render: raw },
+        { data: 'member_label', className: 'col-wrap', responsivePriority: 4, render: (d) => esc(d) },
+        { data: 'position', className: 'col-wrap', responsivePriority: 3, render: (d) => esc(d) },
+        { data: 'org_html', className: 'col-wrap', responsivePriority: 5, render: raw },
+        { data: 'province_name', className: 'col-mobile-detail', responsivePriority: 100, render: (d) => esc(d) },
+        { data: 'phone', className: 'col-nowrap', responsivePriority: 2, render: (d) => esc(d) },
+        { data: 'actions', orderable: false, searchable: false, className: 'col-actions', responsivePriority: 1, render: raw }
       ]
     });
+    bindListLayout(table);
+    bindRegistrationFilters('personnel-filter');
     bindFilter('personnel-filter', table);
   }
 
@@ -181,6 +259,25 @@
         { data: 'updated_at', className: 'col-nowrap', render: (d) => esc(d) },
         { data: 'actions', orderable: false, searchable: false, className: 'col-actions', render: raw }
       ]
+    });
+  }
+
+  function initCatalog() {
+    const el = document.getElementById('catalog-datatable');
+    if (!el) return;
+    let cols = [];
+    try { cols = JSON.parse(el.dataset.colKeys || '[]'); } catch (e) { cols = []; }
+    AbDataTable.initAjax(el, {
+      ajaxUrl: el.dataset.ajaxUrl,
+      order: [[1, 'asc']],
+      columns: cols.map(function (c) {
+        return {
+          data: c.key,
+          render: c.raw ? raw : function (d) { return esc(d == null ? '' : d); }
+        };
+      }).concat([
+        { data: 'actions', orderable: false, searchable: false, className: 'col-actions', render: raw }
+      ])
     });
   }
 
@@ -413,6 +510,7 @@
     initTickets();
     initForms();
     initDepartments();
+    initCatalog();
     initActivityLogs();
     initLoginLogs();
     initNotifications();

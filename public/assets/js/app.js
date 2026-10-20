@@ -481,7 +481,11 @@
           pageLength: 15,
           order: [[0, 'desc']],
           language: {
-            url: 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/th.json'
+            emptyTable: 'ไม่พบข้อมูล',
+            zeroRecords: 'ไม่พบข้อมูลที่ค้นหา',
+            info: 'แสดง _START_ ถึง _END_ จาก _TOTAL_ แถว',
+            infoEmpty: 'แสดง 0 ถึง 0 จาก 0 แถว',
+            paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' }
           }
         });
       }

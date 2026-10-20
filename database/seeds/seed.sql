@@ -1,20 +1,11 @@
 USE `tavis`;
 
-INSERT INTO `positions` (`id`,`name`,`name_en`,`standard`,`role_key`,`sort_order`,`status`) VALUES
-(1,'ผู้อำนวยการสถานศึกษา','School Director','w10','director',1,1),
-(2,'รองผู้อำนวยการสถานศึกษา','Deputy School Director','w10','deputy',2,1),
-(3,'ครู','Teacher','w9','teacher',3,1),
-(4,'ครูผู้ช่วย','Assistant Teacher','w9','teacher',4,1);
-
 INSERT INTO `academic_ranks` (`id`,`name`,`name_en`,`sort_order`,`status`) VALUES
 (1,'ไม่มีวิทยฐานะ','No Academic Rank',1,1),
 (2,'ชำนาญการ','Professional',2,1),
 (3,'ชำนาญการพิเศษ','Senior Professional',3,1),
 (4,'เชี่ยวชาญ','Expert',4,1),
 (5,'เชี่ยวชาญพิเศษ','Senior Expert',5,1);
-
-INSERT INTO `prefixes` (`title`,`sort_order`) VALUES
-('นาย',1),('นาง',2),('นางสาว',3),('ว่าที่ร้อยตรี',4),('ว่าที่ร้อยโท',5),('ว่าที่ร้อยเอก',6);
 
 INSERT INTO `academic_years` (`year_be`,`name`,`is_current`,`status`) VALUES
 (2567,'2567',0,1),(2568,'2568',0,1),(2569,'2569',1,1),(2570,'2570',0,1);

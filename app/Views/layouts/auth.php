@@ -25,7 +25,7 @@ $fav = setting('favicon');
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="<?= asset('vendor/fontawesome/css/all.min.css') ?>?v=6.5.2">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css">
-  <link rel="stylesheet" href="<?= asset('css/auth-frontend.css') ?>?v=11">
+  <link rel="stylesheet" href="<?= asset('css/auth-frontend.css') ?>?v=12">
   <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 </head>
 <body class="auth-page auth-light">
@@ -55,7 +55,7 @@ $fav = setting('favicon');
 <?= $content ?>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="<?= asset('js/app.js') ?>?v=7"></script>
+<script src="<?= asset('js/app.js') ?>?v=8"></script>
 <script>
 (function () {
   var KEY = 'tavis-web-theme';

@@ -1,9 +1,9 @@
 <?php
 
 /**
- * Backend sidebar structure.
- * Each item: label, icon, path, module (for can_perm), optional action, optional roles (restrict further).
- * Groups are shown only if at least one child is visible.
+ * Sidebar follows the job of each role.
+ * User learns, Trainer runs a course, Admin governs people, content, and the system.
+ * A label is shown only when a later item in that section is visible.
  */
 return [
     [
@@ -15,7 +15,13 @@ return [
         'module' => 'dashboard',
     ],
 
-    // —— Learner / shared learning ——
+    [
+        'type' => 'label',
+        'label' => 'ผู้ใช้งาน',
+        'audience' => 'user',
+        'icon' => 'fa-user',
+        'roles' => ['user'],
+    ],
     [
         'type' => 'label',
         'label' => 'การเรียนของฉัน',
@@ -25,8 +31,9 @@ return [
         'type' => 'link',
         'label' => 'บทเรียนของฉัน',
         'icon' => 'fa-graduation-cap',
-        'path' => '/learn',
+        'path' => '/admin/learn',
         'module' => 'learn',
+        'roles' => ['user'],
     ],
     [
         'type' => 'link',
@@ -44,11 +51,58 @@ return [
         'module' => 'certificates',
         'roles' => ['user'],
     ],
+    [
+        'type' => 'label',
+        'label' => 'ผลงานของฉัน',
+        'roles' => ['user'],
+        'module' => 'portfolio',
+    ],
+    [
+        'type' => 'portfolio',
+        'roles' => ['user'],
+        'module' => 'portfolio',
+    ],
+    [
+        'type' => 'label',
+        'label' => 'ทั่วไป',
+        'roles' => ['user'],
+    ],
+    [
+        'type' => 'link',
+        'label' => 'ระบบบันทึก',
+        'icon' => 'fa-inbox',
+        'path' => '/admin/tickets',
+        'module' => 'tickets',
+        'roles' => ['user'],
+    ],
+    [
+        'type' => 'link',
+        'label' => 'แจ้งเตือน',
+        'icon' => 'fa-bell',
+        'path' => '/admin/notifications',
+        'module' => 'notifications',
+        'badge' => 'notifications',
+        'roles' => ['user'],
+    ],
 
-    // —— Trainer / Admin training ops ——
+    [
+        'type' => 'label',
+        'label' => 'วิทยากร',
+        'audience' => 'trainer',
+        'icon' => 'fa-chalkboard-user',
+        'roles' => ['admin', 'trainer'],
+    ],
     [
         'type' => 'label',
         'label' => 'จัดการอบรม',
+        'roles' => ['admin', 'trainer'],
+    ],
+    [
+        'type' => 'link',
+        'label' => 'โมดูลการอบรม',
+        'icon' => 'fa-book-open-reader',
+        'path' => '/admin/curriculum',
+        'module' => 'curriculum',
         'roles' => ['admin', 'trainer'],
     ],
     [
@@ -62,11 +116,11 @@ return [
     ],
     [
         'type' => 'link',
-        'label' => 'โมดูลการอบรม',
-        'icon' => 'fa-book-open-reader',
-        'path' => '/admin/curriculum',
-        'module' => 'curriculum',
-        'roles' => ['admin', 'trainer'],
+        'label' => 'สมัครเป็นวิทยากร',
+        'icon' => 'fa-user-plus',
+        'path' => '/admin/trainer-apply',
+        'roles' => ['trainer'],
+        'portal_only' => true,
     ],
     [
         'type' => 'link',
@@ -74,14 +128,6 @@ return [
         'icon' => 'fa-clipboard-list',
         'path' => '/admin/enrollments',
         'module' => 'enrollments',
-        'roles' => ['admin', 'trainer'],
-    ],
-    [
-        'type' => 'link',
-        'label' => 'เกียรติบัตรออนไลน์',
-        'icon' => 'fa-certificate',
-        'path' => '/admin/certificates',
-        'module' => 'certificates',
         'roles' => ['admin', 'trainer'],
     ],
     [
@@ -94,22 +140,14 @@ return [
     ],
     [
         'type' => 'link',
-        'label' => 'โครงสร้างหน่วยงาน',
-        'icon' => 'fa-sitemap',
-        'path' => '/admin/org-units',
-        'module' => 'org_units',
-        'roles' => ['admin', 'trainer'],
-    ],
-    [
-        'type' => 'link',
-        'label' => 'AI ผู้ช่วย',
-        'icon' => 'fa-robot',
-        'path' => '/admin/ai',
-        'module' => 'ai',
+        'label' => 'เกียรติบัตรออนไลน์',
+        'icon' => 'fa-certificate',
+        'path' => '/admin/certificates',
+        'module' => 'certificates',
         'roles' => ['admin', 'trainer'],
     ],
 
-    // —— Portfolio (staff) ——
+    // —— Evidence of the course ——
     [
         'type' => 'label',
         'label' => 'กิจกรรม / ผลงาน',
@@ -129,31 +167,18 @@ return [
         'module' => 'portfolio',
         'roles' => ['admin', 'trainer'],
     ],
-
-    // —— Learner own portfolio (simple) ——
-    [
-        'type' => 'label',
-        'label' => 'ผลงานของฉัน',
-        'roles' => ['user'],
-        'module' => 'portfolio',
-    ],
-    [
-        'type' => 'portfolio',
-        'roles' => ['user'],
-        'module' => 'portfolio',
-    ],
-
-    // —— Reports / org (staff) ——
-    [
-        'type' => 'label',
-        'label' => 'ระบบ',
-        'roles' => ['admin', 'trainer'],
-    ],
     [
         'type' => 'reports',
         'label' => 'รายงาน',
         'icon' => 'fa-file-lines',
         'module' => 'reports',
+        'roles' => ['admin', 'trainer'],
+    ],
+
+    // —— People and org. User accounts stay with Admin. ——
+    [
+        'type' => 'label',
+        'label' => 'บุคคลและหน่วยงาน',
         'roles' => ['admin', 'trainer'],
     ],
     [
@@ -166,14 +191,6 @@ return [
     ],
     [
         'type' => 'link',
-        'label' => 'จัดการผู้ใช้งาน',
-        'icon' => 'fa-users',
-        'path' => '/admin/users',
-        'module' => 'users',
-        'roles' => ['admin'],
-    ],
-    [
-        'type' => 'link',
         'label' => 'หน่วยงาน',
         'icon' => 'fa-building',
         'path' => '/admin/departments',
@@ -182,16 +199,92 @@ return [
     ],
     [
         'type' => 'link',
-        'label' => 'แบบฟอร์ม',
-        'icon' => 'fa-wpforms',
-        'path' => '/admin/forms',
-        'module' => 'forms',
+        'label' => 'โครงสร้างหน่วยงาน',
+        'icon' => 'fa-sitemap',
+        'path' => '/admin/org-units',
+        'module' => 'org_units',
         'roles' => ['admin', 'trainer'],
+    ],
+
+    [
+        'type' => 'label',
+        'label' => 'ผู้ดูแลระบบ',
+        'audience' => 'admin',
+        'icon' => 'fa-user-shield',
+        'roles' => ['admin'],
+    ],
+    [
+        'type' => 'link',
+        'label' => 'จัดการผู้ใช้งาน',
+        'icon' => 'fa-users',
+        'path' => '/admin/users',
+        'module' => 'users',
+        'roles' => ['admin'],
+    ],
+    [
+        'type' => 'link',
+        'label' => 'จัดการวิทยากร',
+        'icon' => 'fa-user-tie',
+        'path' => '/admin/trainers',
+        'roles' => ['admin'],
+    ],
+    [
+        'type' => 'link',
+        'label' => 'อนุมัติเจ้าของหลักสูตร',
+        'icon' => 'fa-user-check',
+        'path' => '/admin/plan-owners',
+        'roles' => ['admin'],
+    ],
+    [
+        'type' => 'link',
+        'label' => 'แบบประเมินความพึงพอใจ',
+        'icon' => 'fa-star',
+        'path' => '/admin/satisfaction',
+        'module' => 'satisfaction',
+        'roles' => ['admin'],
     ],
     [
         'type' => 'label',
-        'label' => 'อื่นๆ',
-        'roles' => ['user'],
+        'label' => 'เนื้อหาเว็บ',
+        'roles' => ['admin'],
+    ],
+    [
+        'type' => 'catalog',
+        'group' => 'content',
+        'roles' => ['admin'],
+    ],
+    [
+        'type' => 'label',
+        'label' => 'ข้อมูลอ้างอิง',
+        'roles' => ['admin'],
+    ],
+    [
+        'type' => 'catalog',
+        'group' => 'master',
+        'roles' => ['admin'],
+    ],
+
+    // —— Shared tools. Forms and records stay off the Admin menu. ——
+    [
+        'type' => 'label',
+        'label' => 'เครื่องมือ',
+        'roles' => ['admin', 'trainer'],
+    ],
+    [
+        'type' => 'link',
+        'label' => 'AI ผู้ช่วย',
+        'icon' => 'fa-robot',
+        'path' => '/admin/ai',
+        'module' => 'ai',
+        'roles' => ['admin', 'trainer'],
+    ],
+    [
+        'type' => 'link',
+        'label' => 'แบบฟอร์ม',
+        'icon' => 'fa-rectangle-list',
+        'path' => '/admin/forms',
+        'module' => 'forms',
+        'roles' => ['trainer'],
     ],
     [
         'type' => 'link',
@@ -199,6 +292,7 @@ return [
         'icon' => 'fa-inbox',
         'path' => '/admin/tickets',
         'module' => 'tickets',
+        'roles' => ['trainer'],
     ],
     [
         'type' => 'link',
@@ -207,6 +301,13 @@ return [
         'path' => '/admin/notifications',
         'module' => 'notifications',
         'badge' => 'notifications',
+        'roles' => ['admin', 'trainer'],
+    ],
+
+    [
+        'type' => 'label',
+        'label' => 'ระบบ',
+        'roles' => ['admin'],
     ],
     [
         'type' => 'link',

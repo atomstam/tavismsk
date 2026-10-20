@@ -43,6 +43,7 @@ $loggedIn = auth()->check();
               <div class="ws-plan-cover-fallback"><i class="fa fa-shield-halved"></i></div>
             <?php endif; ?>
             <span class="ws-plan-cover-badge">แผนที่ <?= $no ?></span>
+            <span class="learn-plan-track <?= $no <= 12 ? 'is-required' : 'is-elective' ?>"><?= $no <= 12 ? 'บังคับ' : 'ทั่วไป' ?></span>
             <?php if ($pr): ?>
               <span class="ws-plan-cover-progress"><?= number_format($pct, 0) ?>%</span>
             <?php endif; ?>

@@ -10,6 +10,7 @@ use App\Controllers\Admin\DashboardController;
 use App\Controllers\Admin\UserController;
 use App\Controllers\Admin\PersonnelController;
 use App\Controllers\Admin\DepartmentController;
+use App\Controllers\Admin\CatalogController;
 use App\Controllers\Admin\PortfolioController;
 use App\Controllers\Admin\ReportController;
 use App\Controllers\Admin\SettingController;
@@ -28,6 +29,10 @@ use App\Controllers\Admin\CertificateController;
 use App\Controllers\Admin\OrgUnitController;
 use App\Controllers\Admin\OrgStatsController;
 use App\Controllers\Admin\TrainingManageController;
+use App\Controllers\Admin\SatisfactionController;
+use App\Controllers\Admin\TrainerApplyController;
+use App\Controllers\Admin\TrainerManageController;
+use App\Controllers\Admin\PlanOwnerController;
 use App\Controllers\Admin\LearnController;
 use App\Controllers\Admin\ProfileController;
 use App\Controllers\Web\LearnController as WebLearnController;
@@ -60,7 +65,9 @@ $router->get('/certificate/verify', [CertificatePublicController::class, 'verify
 // Frontend LMS — เรียนแผน (auth) ลำดับเดียวกับ backend
 $router->group(['middleware' => ['auth']], function (Router $r) {
     $r->get('/learn', [WebLearnController::class, 'index']);
+    $r->post('/learn/diploma', [WebLearnController::class, 'diploma'], ['csrf']);
     $r->get('/learn/{planId}', [WebLearnController::class, 'show']);
+    $r->post('/learn/{planId}/certificate', [WebLearnController::class, 'planCertificate'], ['csrf']);
     $r->get('/learn/{planId}/quiz/{type}', [WebLearnController::class, 'quiz']);
     $r->post('/learn/{planId}/quiz/{type}', [WebLearnController::class, 'submitQuiz'], ['csrf']);
     $r->get('/learn/{planId}/content/{contentId}', [WebLearnController::class, 'content']);
@@ -119,6 +126,7 @@ $router->group(['prefix' => '/admin', 'middleware' => ['auth', 'admin']], functi
     $r->get('/users/create', [UserController::class, 'create']);
     $r->post('/users', [UserController::class, 'store'], ['csrf']);
     $r->get('/users/export', [UserController::class, 'export']);
+    $r->get('/users/{id}', [UserController::class, 'show']);
     $r->get('/users/{id}/edit', [UserController::class, 'edit']);
     $r->post('/users/{id}', [UserController::class, 'update'], ['csrf']);
     $r->post('/users/{id}/delete', [UserController::class, 'destroy'], ['csrf']);
@@ -153,6 +161,14 @@ $router->group(['prefix' => '/admin', 'middleware' => ['auth', 'admin']], functi
     $r->get('/departments/{id}/edit', [DepartmentController::class, 'edit']);
     $r->post('/departments/{id}', [DepartmentController::class, 'update'], ['csrf']);
     $r->post('/departments/{id}/delete', [DepartmentController::class, 'destroy'], ['csrf']);
+
+    $r->get('/catalog/{key}', [CatalogController::class, 'index']);
+    $r->get('/catalog/{key}/datatable', [CatalogController::class, 'datatable']);
+    $r->get('/catalog/{key}/create', [CatalogController::class, 'create']);
+    $r->post('/catalog/{key}', [CatalogController::class, 'store'], ['csrf']);
+    $r->get('/catalog/{key}/{id}/edit', [CatalogController::class, 'edit']);
+    $r->post('/catalog/{key}/{id}', [CatalogController::class, 'update'], ['csrf']);
+    $r->post('/catalog/{key}/{id}/delete', [CatalogController::class, 'destroy'], ['csrf']);
 
     $r->get('/portfolio/{type}', [PortfolioController::class, 'index']);
     $r->get('/portfolio/{type}/datatable', [PortfolioController::class, 'datatable']);
@@ -212,6 +228,7 @@ $router->group(['prefix' => '/admin', 'middleware' => ['auth', 'admin']], functi
     $r->get('/training/{planId}', [TrainingManageController::class, 'show']);
     $r->post('/training/{planId}/settings', [TrainingManageController::class, 'saveSettings'], ['csrf']);
     $r->post('/training/{planId}/content', [TrainingManageController::class, 'storeContent'], ['csrf']);
+    $r->get('/training/{planId}/content/{id}/view', [TrainingManageController::class, 'viewContent']);
     $r->post('/training/{planId}/content/{id}/delete', [TrainingManageController::class, 'deleteContent'], ['csrf']);
     $r->post('/training/{planId}/task', [TrainingManageController::class, 'storeTask'], ['csrf']);
     $r->post('/training/{planId}/task/{id}/delete', [TrainingManageController::class, 'deleteTask'], ['csrf']);
@@ -220,9 +237,26 @@ $router->group(['prefix' => '/admin', 'middleware' => ['auth', 'admin']], functi
     $r->post('/training/{planId}/question/{id}/delete', [TrainingManageController::class, 'deleteQuestion'], ['csrf']);
     $r->post('/training/{planId}/quiz-meta', [TrainingManageController::class, 'saveQuizMeta'], ['csrf']);
 
+    $r->get('/trainer-apply', [TrainerApplyController::class, 'index']);
+    $r->post('/trainer-apply', [TrainerApplyController::class, 'store'], ['csrf']);
+    $r->get('/trainers', [TrainerManageController::class, 'index']);
+    $r->post('/trainers/grant', [TrainerManageController::class, 'grant'], ['csrf']);
+    $r->post('/trainers/revoke', [TrainerManageController::class, 'revoke'], ['csrf']);
+    $r->get('/plan-owners', [PlanOwnerController::class, 'index']);
+    $r->post('/plan-owners/review', [PlanOwnerController::class, 'review'], ['csrf']);
+    $r->post('/plan-owners/assign', [PlanOwnerController::class, 'assign'], ['csrf']);
+    $r->post('/plan-owners/remove', [PlanOwnerController::class, 'remove'], ['csrf']);
+
+    $r->get('/satisfaction', [SatisfactionController::class, 'index']);
+    $r->post('/satisfaction/meta', [SatisfactionController::class, 'saveMeta'], ['csrf']);
+    $r->post('/satisfaction/question', [SatisfactionController::class, 'storeQuestion'], ['csrf']);
+    $r->post('/satisfaction/question/{id}/delete', [SatisfactionController::class, 'deleteQuestion'], ['csrf']);
+
     // LMS — ผู้เรียน
     $r->get('/learn', [LearnController::class, 'index']);
+    $r->post('/learn/diploma', [LearnController::class, 'diploma'], ['csrf']);
     $r->get('/learn/{planId}', [LearnController::class, 'show']);
+    $r->post('/learn/{planId}/certificate', [LearnController::class, 'planCertificate'], ['csrf']);
     $r->get('/learn/{planId}/quiz/{type}', [LearnController::class, 'quiz']);
     $r->post('/learn/{planId}/quiz/{type}', [LearnController::class, 'submitQuiz'], ['csrf']);
     $r->get('/learn/{planId}/content/{contentId}', [LearnController::class, 'content']);

@@ -333,12 +333,12 @@ class PortfolioPublicController extends Controller
     {
         return db()->fetchAll(
             "SELECT u.id, u.title, u.first_name, u.last_name, u.avatar, u.role,
-                    p.photo, pos.name AS position_name, ar.name AS rank_name,
+                    p.photo, COALESCE(pt.title, p.position_text) AS position_name, ar.name AS rank_name,
                     (SELECT COUNT(*) FROM portfolio_items pi
                       WHERE pi.user_id = u.id AND pi.deleted_at IS NULL AND pi.is_public = 1) AS works_count
              FROM users u
              LEFT JOIN personnel p ON p.user_id = u.id AND p.deleted_at IS NULL
-             LEFT JOIN positions pos ON pos.id = p.position_id
+             LEFT JOIN sc_personal_types pt ON pt.id = p.personal_type_id
              LEFT JOIN academic_ranks ar ON ar.id = p.academic_rank_id
              WHERE u.deleted_at IS NULL AND u.status = 1 AND u.role IN ('teacher','director','deputy')
              ORDER BY u.first_name, u.last_name
@@ -350,11 +350,11 @@ class PortfolioPublicController extends Controller
     {
         return db()->fetch(
             "SELECT u.*, p.photo, p.phone AS p_phone, p.email AS p_email, p.education, p.work_history,
-                    p.line_id, p.facebook, pos.name AS position_name, ar.name AS rank_name,
+                    p.line_id, p.facebook, COALESCE(pt.title, p.position_text) AS position_name, ar.name AS rank_name,
                     d.name AS department_name
              FROM users u
              LEFT JOIN personnel p ON p.user_id = u.id AND p.deleted_at IS NULL
-             LEFT JOIN positions pos ON pos.id = p.position_id
+             LEFT JOIN sc_personal_types pt ON pt.id = p.personal_type_id
              LEFT JOIN academic_ranks ar ON ar.id = p.academic_rank_id
              LEFT JOIN departments d ON d.id = COALESCE(p.department_id, u.department_id)
              WHERE u.id = ? AND u.deleted_at IS NULL AND u.status = 1",

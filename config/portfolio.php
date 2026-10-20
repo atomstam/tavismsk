@@ -80,7 +80,7 @@ return [
         'key' => 'outreach',
         'title' => 'กิจกรรมช่วยเหลือสังคม',
         'short' => 'ช่วยเหลือ',
-        'icon' => 'fa-hands-holding-heart',
+        'icon' => 'fa-hand-holding-heart',
         'gradient' => 'grad-emerald',
         'color' => '#10b981',
         'table_mode' => 'hours',

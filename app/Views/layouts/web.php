@@ -46,13 +46,13 @@ $authAvatar = $authUser ? avatar_url($authUser['avatar'] ?? null) : '';
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="<?= asset('vendor/fontawesome/css/all.min.css') ?>?v=6.5.2">
-  <link rel="stylesheet" href="<?= asset('css/app.css') ?>?v=26">
-  <link rel="stylesheet" href="<?= asset('css/web-site.css') ?>?v=38">
+  <link rel="stylesheet" href="<?= asset('css/app.css') ?>?v=37">
+  <link rel="stylesheet" href="<?= asset('css/web-site.css') ?>?v=39">
   <link rel="stylesheet" href="<?= asset('css/portfolio-clean.css') ?>?v=4">
   <link rel="stylesheet" href="<?= asset('css/portfolio-dark.css') ?>?v=9">
   <link rel="stylesheet" href="<?= asset('css/web-dark-home.css') ?>?v=27">
   <link rel="stylesheet" href="<?= asset('css/web-theme.css') ?>?v=20">
-  <link rel="stylesheet" href="<?= asset('css/learn.css') ?>?v=6">
+  <link rel="stylesheet" href="<?= asset('css/learn.css') ?>?v=7">
   <script>
     tailwind.config = {
       corePlugins: { preflight: false },
@@ -263,7 +263,7 @@ $authAvatar = $authUser ? avatar_url($authUser['avatar'] ?? null) : '';
 
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="<?= asset('js/app.js') ?>?v=7"></script>
+<script src="<?= asset('js/app.js') ?>?v=8"></script>
 <script>
 (function () {
   const KEY = 'tavis-web-theme';

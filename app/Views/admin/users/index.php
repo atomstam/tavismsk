@@ -1,6 +1,3 @@
-<?php
-$clusters = $clusters ?? (new \App\Services\OrgMasterService())->clusters();
-?>
 <div class="page-head">
   <div>
     <h1>จัดการผู้ใช้งาน</h1>
@@ -12,59 +9,17 @@ $clusters = $clusters ?? (new \App\Services\OrgMasterService())->clusters();
 </div>
 <div class="card-soft"><div class="card-body">
   <form id="users-filter" class="dt-filter-bar flex-wrap">
-    <input name="q" class="form-control" placeholder="ค้นหาชื่อ / อีเมล / ผู้ใช้ / เลขบัตร">
-    <select name="role" class="form-select">
-      <option value="">ทุกบทบาท</option>
-      <?php foreach (($roles ?? []) as $k => $label): ?>
-        <option value="<?= e(is_array($label)?($label['key']??$k):$k) ?>"><?= e(is_array($label)?($label['label']??$k):(string)$label) ?></option>
-      <?php endforeach; ?>
-    </select>
-    <select name="cluster" class="form-select" id="users-flt-cluster">
-      <option value="">ทุกเขตตรวจ (ผู้ใช้งาน)</option>
-      <?php foreach ($clusters as $c): ?>
-        <option value="<?= (int)$c['id'] ?>"><?= e($c['name']) ?></option>
-      <?php endforeach; ?>
-    </select>
-    <select name="area_id" class="form-select" id="users-flt-area">
-      <option value="">ทุก สพม.</option>
-    </select>
-    <select name="school_id" class="form-select" id="users-flt-school">
-      <option value="">ทุกโรงเรียน</option>
-    </select>
+    <?php partial('partials/registration_list_filters', [
+      'showRole' => true,
+      'roles' => $roles ?? [],
+      'memberTypes' => $memberTypes ?? [],
+      'personalTypes' => $personalTypes ?? [],
+      'schools' => $schools ?? [],
+    ]); ?>
   </form>
-  <table id="users-datatable" class="table ab-datatable w-100" data-ajax-url="<?= e(url('/admin/users/datatable')) ?>">
+  <table id="users-datatable" class="table ab-datatable dt-list-fit w-100" data-ajax-url="<?= e(url('/admin/users/datatable')) ?>">
     <thead><tr>
-      <th>ผู้ใช้</th><th>อีเมล</th><th>บทบาท</th><th>สพม.</th><th>โรงเรียน</th><th>สถานะ</th><th class="col-actions">จัดการ</th>
+      <th>ผู้ใช้</th><th>อีเมล</th><th>บทบาท</th><th>ประเภท / ตำแหน่ง</th><th>โรงเรียน / หน่วยงาน</th><th>จังหวัด</th><th>สถานะ</th><th class="col-actions">จัดการ</th>
     </tr></thead>
   </table>
 </div></div>
-<script>
-(function () {
-  const areaUrl = <?= json_encode(url('/api/org/areas')) ?>;
-  const schoolUrl = <?= json_encode(url('/api/org/schools')) ?>;
-  const cluster = document.getElementById('users-flt-cluster');
-  const area = document.getElementById('users-flt-area');
-  const school = document.getElementById('users-flt-school');
-  cluster?.addEventListener('change', async () => {
-    area.innerHTML = '<option value="">ทุก สพม.</option>';
-    school.innerHTML = '<option value="">ทุกโรงเรียน</option>';
-    if (!cluster.value) return;
-    const res = await fetch(areaUrl + '?cluster=' + encodeURIComponent(cluster.value));
-    const json = await res.json();
-    (json.data || []).forEach((a) => {
-      const o = document.createElement('option');
-      o.value = a.id; o.textContent = a.name; area.appendChild(o);
-    });
-  });
-  area?.addEventListener('change', async () => {
-    school.innerHTML = '<option value="">ทุกโรงเรียน</option>';
-    if (!area.value) return;
-    const res = await fetch(schoolUrl + '?area_id=' + encodeURIComponent(area.value));
-    const json = await res.json();
-    (json.data || []).forEach((s) => {
-      const o = document.createElement('option');
-      o.value = s.id; o.textContent = s.name; school.appendChild(o);
-    });
-  });
-})();
-</script>

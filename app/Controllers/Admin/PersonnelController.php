@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 
 use App\Core\Controller;
-use App\Models\Department;
 use App\Models\Personnel;
 use App\Services\DataTableService;
 use App\Services\ExportService;
@@ -22,18 +21,20 @@ class PersonnelController extends Controller
     public function index(): void
     {
         $this->requirePerm('personnel');
+        $sources = \App\Services\RegistrationProfile::formSources(null);
         $this->view('admin/personnel/index', [
             'title' => 'บุคลากร',
             'breadcrumb' => 'หน้าหลัก / บุคลากร',
-            'departments' => (new Department())->active(),
+            'memberTypes' => $sources['memberTypes'],
+            'personalTypes' => $sources['personalTypes'],
+            'schools' => $sources['schools'],
         ]);
     }
 
     public function datatable(): void
     {
         $this->requirePerm('personnel');
-        $dept = (int) $this->input('department_id', 0);
-        $this->json(DataTableService::personnel(dt_params(), $dept ?: null));
+        $this->json(DataTableService::personnel(dt_params()));
     }
 
     public function lookup(): void
@@ -88,6 +89,10 @@ class PersonnelController extends Controller
         }
 
         $payload = $this->payload(null);
+        if ($payload === null) {
+            set_old_input($_POST);
+            $this->redirect('/admin/personnel/create');
+        }
         $payload['code'] = $this->suggestCode();
         $id = $this->model->create($payload);
         $this->syncUserLink($id, (int) ($payload['user_id'] ?? 0) ?: null, null);
@@ -113,6 +118,7 @@ class PersonnelController extends Controller
             'title' => $this->model->fullName($row),
             'breadcrumb' => 'หน้าหลัก / บุคลากร',
             'row' => $row,
+            'profileView' => \App\Services\RegistrationProfile::present($row),
         ]);
     }
 
@@ -138,6 +144,10 @@ class PersonnelController extends Controller
             $this->redirect('/admin/personnel');
         }
         $payload = $this->payload($row);
+        if ($payload === null) {
+            set_old_input($_POST);
+            $this->redirect('/admin/personnel/' . (int) $id . '/edit');
+        }
         // รหัสไม่ให้แก้จากฟอร์ม
         unset($payload['code']);
         $this->model->update((int) $id, $payload);
@@ -177,9 +187,9 @@ class PersonnelController extends Controller
     {
         $this->requirePerm('personnel', 'export');
         $rows = db()->fetchAll(
-            "SELECT p.*, pos.name AS position_name, r.name AS rank_name, d.name AS department_name
+            "SELECT p.*, COALESCE(pt.title, p.position_text) AS position_name, r.name AS rank_name, d.name AS department_name
              FROM personnel p
-             LEFT JOIN positions pos ON pos.id = p.position_id
+             LEFT JOIN sc_personal_types pt ON pt.id = p.personal_type_id
              LEFT JOIN academic_ranks r ON r.id = p.academic_rank_id
              LEFT JOIN departments d ON d.id = p.department_id
              WHERE p.deleted_at IS NULL ORDER BY p.id"
@@ -239,8 +249,8 @@ class PersonnelController extends Controller
         }
 
         $positions = [];
-        foreach (db()->fetchAll('SELECT id, name FROM positions WHERE status = 1') as $p) {
-            $positions[mb_strtolower(trim((string) $p['name']))] = (int) $p['id'];
+        foreach (db()->fetchAll("SELECT id, title FROM sc_personal_types WHERE kind = 'staff'") as $p) {
+            $positions[mb_strtolower(trim((string) $p['title']))] = (int) $p['id'];
         }
         $ranks = [];
         foreach (db()->fetchAll('SELECT id, name FROM academic_ranks WHERE status = 1') as $p) {
@@ -292,7 +302,9 @@ class PersonnelController extends Controller
                 'last_name' => $last,
                 'gender' => $gender,
                 'birth_date' => $birth !== '' ? $birth : null,
-                'position_id' => $positions[$posName] ?? null,
+                'member_type' => 'staff',
+                'personal_type_id' => $positions[$posName] ?? null,
+                'position_text' => $positions[$posName] ?? null ? null : (trim((string) ($row[6] ?? '')) ?: null),
                 'academic_rank_id' => $ranks[$rankName] ?? null,
                 'department_id' => $depts[$deptName] ?? null,
                 'phone' => trim((string) ($row[9] ?? '')) ?: null,
@@ -334,16 +346,21 @@ class PersonnelController extends Controller
              WHERE deleted_at IS NULL AND status = 1
              ORDER BY first_name, last_name"
         );
+        $sources = \App\Services\RegistrationProfile::formSources($row);
         $this->view('admin/personnel/form', [
             'title' => $row ? 'แก้ไขบุคลากร' : 'เพิ่มบุคลากร',
             'breadcrumb' => 'หน้าหลัก / บุคลากร',
             'row' => $row,
             'nextCode' => $row['code'] ?? $this->suggestCode(),
             'users' => $users,
-            'departments' => (new Department())->active(),
-            'positions' => db()->fetchAll('SELECT * FROM positions WHERE status = 1 ORDER BY sort_order'),
-            'ranks' => db()->fetchAll('SELECT * FROM academic_ranks WHERE status = 1 ORDER BY sort_order'),
-            'prefixes' => db()->fetchAll('SELECT * FROM prefixes ORDER BY sort_order'),
+            'prefixes' => $sources['prefixes'],
+            'memberTypes' => $sources['memberTypes'],
+            'personalTypes' => $sources['personalTypes'],
+            'schools' => $sources['schools'],
+            'provinces' => $sources['provinces'],
+            'amphurs' => $sources['amphurs'],
+            'tumbons' => $sources['tumbons'],
+            'profile' => $sources['profile'],
             'lookupUrl' => url('/admin/personnel/lookup'),
         ]);
     }
@@ -354,24 +371,29 @@ class PersonnelController extends Controller
         return 'P' . str_pad((string) $nextId, 4, '0', STR_PAD_LEFT);
     }
 
-    private function payload(?array $old): array
+    private function payload(?array $old): ?array
     {
+        $profile = (new \App\Services\RegistrationProfile())->collect(true);
+        if (!$profile['ok']) {
+            $this->flash('error', $profile['error'] ?? 'กรุณากรอกข้อมูลให้ครบถ้วน');
+            return null;
+        }
         $userId = (int) $this->input('user_id', 0);
-        return [
+        $first = trim((string) $this->input('first_name', ''));
+        $last = trim((string) $this->input('last_name', ''));
+        if ($first === '' || $last === '') {
+            $this->flash('error', 'กรุณากรอกชื่อ และนามสกุลให้ครบ');
+            return null;
+        }
+        return array_merge($profile['data'], [
             'user_id' => $userId > 0 ? $userId : null,
             'code' => $old['code'] ?? $this->suggestCode(),
             'id_card' => preg_replace('/\D/', '', (string) $this->input('id_card', '')) ?: null,
             'title' => trim((string) $this->input('title', '')) ?: null,
-            'first_name' => trim((string) $this->input('first_name', '')),
-            'last_name' => trim((string) $this->input('last_name', '')),
+            'first_name' => $first,
+            'last_name' => $last,
             'gender' => $this->input('gender') ?: null,
             'birth_date' => $this->input('birth_date') ?: null,
-            'position_id' => (int) $this->input('position_id') ?: null,
-            'academic_rank_id' => (int) $this->input('academic_rank_id') ?: null,
-            'salary_step' => trim((string) $this->input('salary_step', '')) ?: null,
-            'level_name' => trim((string) $this->input('level_name', '')) ?: null,
-            'department_id' => (int) $this->input('department_id') ?: null,
-            'work_group' => trim((string) $this->input('work_group', '')) ?: null,
             'phone' => trim((string) $this->input('phone', '')) ?: null,
             'email' => trim((string) $this->input('email', '')) ?: null,
             'line_id' => trim((string) $this->input('line_id', '')) ?: null,
@@ -381,7 +403,7 @@ class PersonnelController extends Controller
             'work_history' => trim((string) $this->input('work_history', '')) ?: null,
             'training_history' => trim((string) $this->input('training_history', '')) ?: null,
             'status' => (int) $this->input('status', 1),
-        ];
+        ]);
     }
 
     private function syncUserLink(int $personnelId, ?int $userId, ?int $oldUserId): void

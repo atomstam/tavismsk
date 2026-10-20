@@ -6,7 +6,7 @@
   <a class="btn btn-outline-primary" href="<?= url('/admin/learn') ?>"><i class="fa fa-graduation-cap"></i> มุมมองผู้เรียน</a>
 </div>
 
-<p class="text-muted mb-3">วิทยากรเพิ่มข้อสอบ Pretest/Posttest เนื้อหา (PDF/Word/Excel, Google Drive, YouTube) และภาระงาน — ระบบจะรวมเป็นความก้าวหน้า 100% ของผู้เรียน</p>
+<p class="text-muted mb-3">วิทยากรเพิ่มข้อสอบในคลังเดียวสำหรับทดสอบก่อนและสอบหลัง ระบบสุ่มคนละชุดให้แต่ละคน และสลับลำดับตอนสอบหลัง รวมกับเนื้อหาและภาระงานเป็นความก้าวหน้า 100%</p>
 
 <div class="card-soft"><div class="card-body">
   <table id="training-datatable" class="table ab-datatable w-100" data-ajax-url="<?= e(url('/admin/training/datatable')) ?>">

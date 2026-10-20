@@ -71,6 +71,7 @@ $stageLabel = match ($stage) {
     <?php if ($hasCover): ?>
       <div class="ws-page-hero-media">
         <img src="<?= asset($coverRel) ?>?v=4" alt="แผนที่ <?= $no ?> — <?= e($cfg['title'] ?? '') ?>" loading="eager" decoding="async">
+        <span class="learn-plan-track <?= $no <= 12 ? 'is-required' : 'is-elective' ?>"><?= $no <= 12 ? 'บังคับ' : 'ทั่วไป' ?></span>
       </div>
     <?php endif; ?>
   </div>

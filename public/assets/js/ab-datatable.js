@@ -10,7 +10,18 @@
 
   if (!$) return;
 
-  const TH_LANG = 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/th.json';
+  const TH_LANG = {
+    processing: 'กำลังโหลด...',
+    search: 'ค้นหา:',
+    lengthMenu: 'แสดง _MENU_ แถว',
+    info: 'แสดง _START_ ถึง _END_ จาก _TOTAL_ แถว',
+    infoEmpty: 'แสดง 0 ถึง 0 จาก 0 แถว',
+    infoFiltered: '(กรองจากทั้งหมด _MAX_ แถว)',
+    emptyTable: 'ไม่พบข้อมูล',
+    zeroRecords: 'ไม่พบข้อมูลที่ค้นหา',
+    paginate: { first: 'แรก', previous: 'ก่อนหน้า', next: 'ถัดไป', last: 'สุดท้าย' },
+    buttons: { copy: 'คัดลอก', excel: 'Excel', pdf: 'PDF', print: 'พิมพ์', csv: 'CSV' }
+  };
 
   const DOM =
     "<'dt-toolbar'<'dt-buttons-wrap'B><'dt-search-wrap'f>>" +
@@ -135,7 +146,7 @@
     autoWidth: false,
     deferRender: true,
     scrollX: false,
-    language: { url: TH_LANG },
+    language: TH_LANG,
     dom: DOM,
     buttons: BUTTONS,
     responsive: {
@@ -164,9 +175,7 @@
       }
       syncToggleButtons(table);
     };
-    recalc();
-    setTimeout(recalc, 200);
-    setTimeout(recalc, 600);
+    table.one('draw', recalc);
 
     let resizeTimer;
     const resizeNs = 'resize.abdt-' + (tableEl.id || ('t' + Math.random().toString(36).slice(2)));
@@ -247,7 +256,13 @@
     // ต้องมี th.dt-expand-col ให้จำนวนคอลัมน์ตรงกับ columns (กันหัวตารางเลื่อน)
     ensureExpandColumn(tableEl);
 
-    const columns = config.columns || [];
+    const columns = (config.columns || []).map((col) => {
+      const next = $.extend({}, col);
+      if ((next.data === undefined || next.data === null) && next.key) {
+        next.data = next.key;
+      }
+      return next;
+    });
     if (!columns.length || !String(columns[0].className || '').includes('dtr-control')) {
       columns.unshift({
         data: null,
@@ -261,17 +276,28 @@
     } else {
       columns[0].render = columns[0].render || (() => toggleHtml(false));
       columns[0].responsivePriority = columns[0].responsivePriority || 1;
+      columns[0].defaultContent = columns[0].defaultContent || '';
     }
 
     const getExtraParams = typeof config.getParams === 'function' ? config.getParams : () => ({});
+    let inflight = null;
 
     const opts = $.extend(true, {}, baseOptions(), {
       processing: true,
       serverSide: true,
       searching: config.searching !== false,
       order: config.order || parseOrderAttr(tableEl, [[1, 'desc']]),
-      columns,
       ajax: async function (dtParams, callback) {
+        if (inflight) inflight.abort();
+        const ctrl = new AbortController();
+        inflight = ctrl;
+        const timer = setTimeout(() => ctrl.abort(), 12000);
+        const empty = {
+          draw: dtParams.draw || 1,
+          recordsTotal: 0,
+          recordsFiltered: 0,
+          data: []
+        };
         try {
           const url = new URL(ajaxUrl, window.location.origin);
           url.searchParams.set('draw', String(dtParams.draw ?? 1));
@@ -302,14 +328,25 @@
               Accept: 'application/json',
               'X-Requested-With': 'XMLHttpRequest'
             },
-            credentials: 'same-origin'
+            credentials: 'same-origin',
+            signal: ctrl.signal
           });
 
+          if (inflight !== ctrl) return;
           if (!res.ok) throw new Error('HTTP ' + res.status);
           const json = await res.json();
-          callback(json);
+          const rows = Array.isArray(json.data) ? json.data : [];
+          callback({
+            draw: Number(json.draw) || dtParams.draw || 1,
+            recordsTotal: Number(json.recordsTotal) || 0,
+            recordsFiltered: Number(json.recordsFiltered) || 0,
+            data: rows
+          });
         } catch (err) {
-          console.error('AbDataTable AJAX error:', err);
+          if (inflight !== ctrl) return;
+          if (err.name !== 'AbortError') {
+            console.error('AbDataTable AJAX error:', err);
+          }
           if (window.AbNotify) {
             window.AbNotify.error('โหลดข้อมูลไม่สำเร็จ', 'กรุณาลองใหม่อีกครั้ง');
           } else if (window.Swal) {
@@ -321,12 +358,10 @@
               customClass: { confirmButton: 'swal-btn-error' }
             });
           }
-          callback({
-            draw: dtParams.draw || 1,
-            recordsTotal: 0,
-            recordsFiltered: 0,
-            data: []
-          });
+          callback(empty);
+        } finally {
+          clearTimeout(timer);
+          if (inflight === ctrl) inflight = null;
         }
       },
       drawCallback: function () {
@@ -336,6 +371,8 @@
         }
       }
     }, config.extraOptions || {});
+    // Keep column sources intact. A deep copy can turn object fields into column indexes.
+    opts.columns = columns;
 
     const table = $(tableEl).DataTable(opts);
     bindResponsiveUi(table, tableEl);

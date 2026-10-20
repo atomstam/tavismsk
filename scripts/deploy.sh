@@ -18,6 +18,13 @@ fi
 mkdir -p storage/logs storage/cache storage/sessions storage/backups storage/tmp public/uploads
 chmod -R u+rwX storage public/uploads 2>/dev/null || true
 
+php scripts/apply_personnel_profile.php
+php scripts/drop_legacy_masters.php
+php scripts/apply_quiz_bank.php
+php scripts/seed_plan_learning.php
+php scripts/apply_plan_tracks.php
+php scripts/apply_user_roles.php
+
 php -r '
 require "config/bootstrap.php";
 $row = db()->fetch("SELECT DATABASE() AS db, COUNT(*) AS users FROM users");

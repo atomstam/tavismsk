@@ -6,6 +6,8 @@ namespace App\Controllers\Admin;
 
 use App\Core\Controller;
 use App\Services\ModuleLearningService;
+use App\Services\PlanProgress;
+use App\Services\TrainingService;
 
 /**
  * ผู้เรียน (หลังบ้าน) — ใช้ view ร่วมกับ frontend /learn
@@ -27,19 +29,26 @@ class LearnController extends Controller
         $this->requirePerm('learn', 'view');
         $userId = (int) auth()->id();
         $modules = $this->lms->moduleOverviewForUser($userId);
+        $required = array_values(array_filter(
+            $modules,
+            static fn (array $m): bool => PlanProgress::isRequired($m['plan'] ?? [])
+        ));
         $overall = 0.0;
-        if ($modules !== []) {
+        if ($required !== []) {
             $sum = 0.0;
-            foreach ($modules as $m) {
+            foreach ($required as $m) {
                 $sum += (float) ($m['progress']['overall_percent'] ?? 0);
             }
-            $overall = round($sum / count($modules), 2);
+            $overall = round($sum / count($required), 2);
         }
+        $enrollId = (int) ($modules[0]['enrollment']['id'] ?? 0);
+        $standing = $enrollId > 0 ? (new TrainingService())->requiredPlanStanding($enrollId) : ['total' => 0, 'passed' => 0, 'ready' => false];
         $this->view('learn/index', [
             'title' => 'บทเรียนของฉัน',
             'breadcrumb' => 'หน้าหลัก / บทเรียนของฉัน',
             'modules' => $modules,
             'courseOverall' => $overall,
+            'requiredStanding' => $standing,
             'learnBase' => self::BASE,
             'webShell' => false,
         ]);
@@ -94,6 +103,10 @@ class LearnController extends Controller
             'canContent' => $this->lms->canAccessContent((int) $planId, (int) $enroll['id']),
             'canPosttest' => $this->lms->canAccessPosttest((int) $planId, (int) $enroll['id']),
             'canSatisfaction' => $this->lms->canAccessSatisfaction((int) $planId, (int) $enroll['id']),
+            'planCertificate' => db()->fetch(
+                "SELECT id, cert_no FROM certificates WHERE enrollment_id = ? AND plan_id = ? AND status = 'active'",
+                [(int) $enroll['id'], (int) $planId]
+            ),
             'learnBase' => self::BASE,
             'webShell' => false,
         ]);
@@ -148,7 +161,7 @@ class LearnController extends Controller
             'plan' => $ctx['plan'],
             'quiz' => $quiz,
             'type' => $type,
-            'questions' => $this->lms->questions((int) $quiz['id'], true),
+            'questions' => $this->lms->learnerQuestions((int) $planId, $type, $enrollId, (int) auth()->id()),
             'attemptsLeft' => max(0, $max - $used),
             'learnBase' => self::BASE,
             'webShell' => false,
@@ -189,7 +202,10 @@ class LearnController extends Controller
         }
 
         try {
-            $result = $this->lms->submitQuiz((int) $quiz['id'], $enrollId, $userId, $answers);
+            $limitIds = $type === 'satisfaction'
+                ? null
+                : $this->lms->learnerQuestionIds((int) $planId, $type, $enrollId, $userId);
+            $result = $this->lms->submitQuiz((int) $quiz['id'], $enrollId, $userId, $answers, $limitIds);
             activity_log('submit', 'assessments', strtoupper($type) . ' plan#' . $planId . ' ' . $result['percent'] . '%');
             $typeLabel = match ($type) {
                 'pretest' => 'ทดสอบก่อนเรียน',
@@ -232,6 +248,10 @@ class LearnController extends Controller
             flash('error', 'ไม่พบเนื้อหา');
             $this->redirect(self::BASE . '/' . $planId);
         }
+        $outside = trim((string) ($content['external_url'] ?? ''));
+        if (in_array((string) $content['content_type'], ['gdrive', 'link'], true) && preg_match('#^https?://#i', $outside)) {
+            $this->redirect($outside);
+        }
 
         $ex = db()->fetch(
             'SELECT id FROM training_content_views WHERE content_id = ? AND enrollment_id = ?',
@@ -252,8 +272,7 @@ class LearnController extends Controller
             'breadcrumb' => 'หน้าหลัก / บทเรียน / เนื้อหา',
             'plan' => $ctx['plan'],
             'content' => $content,
-            'embedYoutube' => $this->lms->youtubeEmbedUrl($content['external_url'] ?? null),
-            'fileUrl' => !empty($content['file_path']) ? upload_url((string) $content['file_path']) : null,
+            'preview' => (new \App\Services\ContentPreviewService())->present($content),
             'learnBase' => self::BASE,
             'webShell' => false,
         ]);
@@ -293,6 +312,36 @@ class LearnController extends Controller
             flash('error', $e->getMessage());
         }
         $this->redirect(self::BASE . '/' . $planId);
+    }
+
+    public function planCertificate(string $planId): void
+    {
+        $this->requirePerm('learn', 'view');
+        $ctx = $this->context((int) $planId);
+        $cert = (new TrainingService())->issuePlanCertificate(
+            (int) $ctx['enrollment']['id'],
+            (int) $planId,
+            (int) auth()->id()
+        );
+        if (!$cert) {
+            flash('error', 'ยังไม่ผ่านเกณฑ์ของแผนนี้ จึงดาวน์โหลดเกียรติบัตรไม่ได้');
+            $this->redirect(self::BASE . '/' . $planId);
+        }
+        $this->redirect('/admin/certificates/' . (int) $cert['id']);
+    }
+
+    public function diploma(): void
+    {
+        $this->requirePerm('learn', 'view');
+        $enroll = $this->lms->ensureEnrollment((int) auth()->id());
+        $cert = $enroll
+            ? (new TrainingService())->issueCertificate((int) $enroll['id'], (int) auth()->id())
+            : null;
+        if (!$cert) {
+            flash('error', 'ต้องเรียนแผนบังคับให้ครบและผ่านเกณฑ์ก่อน จึงจะดาวน์โหลดวุฒิบัตรได้');
+            $this->redirect(self::BASE);
+        }
+        $this->redirect('/admin/certificates/' . (int) $cert['id']);
     }
 
     /** @return array{plan:array,enrollment:array} */

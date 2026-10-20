@@ -7,7 +7,7 @@ $lookupUrl = $lookupUrl ?? url('/admin/personnel/lookup');
 ?>
 <div class="page-head"><h1><?= e($title) ?></h1></div>
 <div class="card-soft"><div class="card-body">
-<form method="post" enctype="multipart/form-data" id="personnel-form"
+<form method="post" enctype="multipart/form-data" id="personnel-form" class="sheet-form"
       action="<?= $isEdit ? url('/admin/personnel/' . (int)$row['id']) : url('/admin/personnel') ?>">
   <?= csrf_field() ?>
   <div class="row g-3">
@@ -38,31 +38,27 @@ $lookupUrl = $lookupUrl ?? url('/admin/personnel/lookup');
         <?php endforeach; ?>
       </select>
     </div>
-    <div class="col-md-2"><label class="form-label">คำนำหน้า</label>
-      <select name="title" class="form-select"><option value="">-</option>
-        <?php foreach ($prefixes as $p): ?><option value="<?= e($p['title']) ?>" <?= (($r['title']??'')===$p['title'])?'selected':'' ?>><?= e($p['title']) ?></option><?php endforeach; ?>
-      </select></div>
-    <div class="col-md-2"><label class="form-label">ชื่อ *</label><input name="first_name" required class="form-control" value="<?= e($r['first_name']??'') ?>"></div>
-    <div class="col-md-2"><label class="form-label">นามสกุล *</label><input name="last_name" required class="form-control" value="<?= e($r['last_name']??'') ?>"></div>
+    <div class="col-12 form-section"><h2>ข้อมูลสมัครสมาชิก</h2></div>
+    <?php partial('partials/registration_profile_fields', [
+      'idPrefix' => 'pf',
+      'withIdentity' => true,
+      'required' => true,
+      'profile' => $profile ?? [],
+      'memberTypes' => $memberTypes ?? [],
+      'personalTypes' => $personalTypes ?? [],
+      'prefixes' => $prefixes ?? [],
+      'schools' => $schools ?? [],
+      'provinces' => $provinces ?? [],
+      'amphurs' => $amphurs ?? [],
+      'tumbons' => $tumbons ?? [],
+    ]); ?>
+    <div class="col-12 form-section"><h2>ข้อมูลเพิ่มเติม</h2></div>
     <div class="col-md-3"><label class="form-label">เพศ</label>
       <select name="gender" class="form-select"><option value="">-</option>
         <option value="male" <?= (($r['gender']??'')==='male')?'selected':'' ?>>ชาย</option>
         <option value="female" <?= (($r['gender']??'')==='female')?'selected':'' ?>>หญิง</option>
       </select></div>
     <div class="col-md-3"><label class="form-label">วันเกิด</label><input type="date" name="birth_date" class="form-control" value="<?= e($r['birth_date']??'') ?>"></div>
-    <div class="col-md-3"><label class="form-label">ตำแหน่ง</label>
-      <select name="position_id" class="form-select"><option value="">-</option>
-        <?php foreach ($positions as $p): ?><option value="<?= (int)$p['id'] ?>" <?= ((int)($r['position_id']??0)===(int)$p['id'])?'selected':'' ?>><?= e($p['name']) ?></option><?php endforeach; ?>
-      </select></div>
-    <div class="col-md-3"><label class="form-label">วิทยฐานะ</label>
-      <select name="academic_rank_id" class="form-select"><option value="">-</option>
-        <?php foreach ($ranks as $p): ?><option value="<?= (int)$p['id'] ?>" <?= ((int)($r['academic_rank_id']??0)===(int)$p['id'])?'selected':'' ?>><?= e($p['name']) ?></option><?php endforeach; ?>
-      </select></div>
-    <div class="col-md-3"><label class="form-label">กลุ่มงาน</label>
-      <select name="department_id" class="form-select"><option value="">-</option>
-        <?php foreach ($departments as $d): ?><option value="<?= (int)$d['id'] ?>" <?= ((int)($r['department_id']??0)===(int)$d['id'])?'selected':'' ?>><?= e($d['name']) ?></option><?php endforeach; ?>
-      </select></div>
-    <div class="col-md-3"><label class="form-label">โทร</label><input name="phone" class="form-control" value="<?= e($r['phone']??'') ?>"></div>
     <div class="col-md-3"><label class="form-label">Email</label><input name="email" class="form-control" value="<?= e($r['email']??'') ?>"></div>
     <div class="col-md-3"><label class="form-label">Line ID</label><input name="line_id" class="form-control" value="<?= e($r['line_id']??'') ?>"></div>
     <div class="col-md-3"><label class="form-label">Facebook</label><input name="facebook" class="form-control" value="<?= e($r['facebook']??'') ?>"></div>

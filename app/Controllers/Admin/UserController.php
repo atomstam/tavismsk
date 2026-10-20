@@ -21,12 +21,15 @@ class UserController extends Controller
     public function index(): void
     {
         $this->requirePerm('users');
+        $sources = \App\Services\RegistrationProfile::formSources(null);
         $this->view('admin/users/index', [
             'title' => 'จัดการผู้ใช้งาน',
             'breadcrumb' => 'หน้าหลัก / ผู้ใช้งาน',
             'roles' => (new \App\Models\Role())->assignableBy(),
-            'clusters' => (new \App\Services\OrgMasterService())->clusters(),
             'isAdmin' => is_admin_like(),
+            'memberTypes' => $sources['memberTypes'],
+            'personalTypes' => $sources['personalTypes'],
+            'schools' => $sources['schools'],
         ]);
     }
 
@@ -95,6 +98,7 @@ class UserController extends Controller
             $this->redirect('/admin/users/create');
         }
         $id = $this->users->create($payload);
+        (new \App\Services\UserRoleService())->grant((int) $id, (string) $payload['role']);
         $this->syncPersonnelLink($id, (int) $this->input('personnel_id', 0) ?: null, null);
         try {
             $this->saveAvatar($id);
@@ -105,6 +109,35 @@ class UserController extends Controller
         activity_log('create', 'users', 'เพิ่มผู้ใช้', null, ['id' => $id]);
         $this->flash('success', 'เพิ่มผู้ใช้งานสำเร็จ');
         $this->redirect('/admin/users');
+    }
+
+    public function show(string $id): void
+    {
+        $this->requirePerm('users');
+        $user = db()->fetch(
+            "SELECT u.*, sch.name AS school_name, pt.title AS position_name,
+                    pv.name AS province_name, am.name AS amphur_name, tb.name AS tumbon_name
+             FROM users u
+             LEFT JOIN org_units sch ON sch.id = u.org_unit_id
+             LEFT JOIN sc_personal_types pt ON pt.id = u.personal_type_id
+             LEFT JOIN province pv ON pv.id = u.province_id
+             LEFT JOIN amphur am ON am.id = u.amphur_id
+             LEFT JOIN tumbon tb ON tb.id = u.tumbon_id
+             WHERE u.id = ? AND u.deleted_at IS NULL",
+            [(int) $id]
+        );
+        if (!$user) {
+            $this->flash('error', 'ไม่พบผู้ใช้');
+            $this->redirect('/admin/users');
+        }
+        $unbound = in_array((string) ($user['role'] ?? ''), \App\Services\OrgMembershipService::STAFF_ROLES, true);
+        $name = trim((string) ($user['title'] ?? '') . (string) ($user['first_name'] ?? '') . ' ' . (string) ($user['last_name'] ?? ''));
+        $this->view('admin/users/show', [
+            'title' => $name !== '' ? $name : 'ผู้ใช้งาน',
+            'breadcrumb' => 'หน้าหลัก / ผู้ใช้งาน',
+            'user' => $user,
+            'profileView' => \App\Services\RegistrationProfile::present($user, $unbound),
+        ]);
     }
 
     public function edit(string $id): void
@@ -140,6 +173,7 @@ class UserController extends Controller
             $this->redirect('/admin/users/' . (int) $id . '/edit');
         }
         $this->users->update((int) $id, $payload);
+        (new \App\Services\UserRoleService())->grant((int) $id, (string) $payload['role']);
         $this->syncPersonnelLink(
             (int) $id,
             (int) ($payload['personnel_id'] ?? 0) ?: null,
@@ -190,28 +224,34 @@ class UserController extends Controller
     {
         $this->requirePerm('users', 'export');
         $rows = db()->fetchAll(
-            "SELECT u.username, u.email, u.title, u.first_name, u.last_name, u.role, u.org_level, u.phone, u.id_card, u.status,
-                    u.cluster_code, u.school_code,
-                    sch.name AS school_name, area.name AS area_name, c.name AS cluster_name
+            "SELECT u.username, u.email, u.title, u.first_name, u.last_name, u.role, u.phone, u.status,
+                    u.member_type, u.position_text, u.org_name, u.affiliation, u.zipcode,
+                    sch.name AS school_name, pt.title AS position_name, pv.name AS province_name,
+                    a.name AS amphur_name, t.name AS tumbon_name
              FROM users u
              LEFT JOIN org_units sch ON sch.id = u.org_unit_id AND sch.org_type = 'school'
-             LEFT JOIN org_units area ON area.id = u.area_id
-             LEFT JOIN sc_clusters c ON c.id = CAST(NULLIF(u.cluster_code,'') AS UNSIGNED)
+             LEFT JOIN sc_personal_types pt ON pt.id = u.personal_type_id
+             LEFT JOIN province pv ON pv.id = u.province_id
+             LEFT JOIN amphur a ON a.id = u.amphur_id
+             LEFT JOIN tumbon t ON t.id = u.tumbon_id
              WHERE u.deleted_at IS NULL ORDER BY u.id"
         );
+        $labels = (new \App\Services\OrgMasterService())->memberTypeLabels();
         $data = [];
         foreach ($rows as $r) {
+            $org = (string) (($r['school_name'] ?? '') !== '' ? $r['school_name'] : ($r['org_name'] ?? ''));
             $data[] = [
                 $r['username'], $r['email'], trim(($r['title'] ?? '') . $r['first_name'] . ' ' . $r['last_name']),
-                role_name($r['role']), $r['org_level'] ?? '', $r['cluster_name'] ?? $r['cluster_code'] ?? '',
-                $r['area_name'] ?? '', $r['school_name'] ?? '', $r['school_code'] ?? '',
-                $r['id_card'] ?? '', $r['phone'] ?? '',
+                role_name($r['role']), $labels[$r['member_type'] ?? ''] ?? ($r['member_type'] ?? ''),
+                (string) (($r['position_name'] ?? '') !== '' ? $r['position_name'] : ($r['position_text'] ?? '')),
+                $org, $r['affiliation'] ?? '', $r['province_name'] ?? '', $r['amphur_name'] ?? '',
+                $r['tumbon_name'] ?? '', $r['zipcode'] ?? '', $r['phone'] ?? '',
                 ((int) $r['status'] ? 'ใช้งาน' : 'ระงับ'),
             ];
         }
         (new ExportService())->spreadsheet(
             'ผู้ใช้งาน',
-            ['ชื่อผู้ใช้', 'อีเมล', 'ชื่อ-สกุล', 'บทบาท', 'ระดับ', 'เขตตรวจ', 'สพม.', 'โรงเรียน', 'รหัสร.ร.', 'เลขบัตร', 'โทร', 'สถานะ'],
+            ['ชื่อผู้ใช้', 'อีเมล', 'ชื่อ-สกุล', 'บทบาท', 'ประเภท', 'ตำแหน่ง', 'โรงเรียน/หน่วยงาน', 'สังกัด', 'จังหวัด', 'อำเภอ', 'ตำบล', 'รหัสไปรษณีย์', 'โทร', 'สถานะ'],
             $data
         );
     }
@@ -224,58 +264,22 @@ class UserController extends Controller
              WHERE deleted_at IS NULL AND status = 1
              ORDER BY first_name, last_name"
         );
-        $org = new \App\Services\OrgMasterService();
-        $orgUnitId = (int) ($user['org_unit_id'] ?? 0);
-        $areaId = (int) ($user['area_id'] ?? 0);
-        $cluster = (string) ($user['cluster_code'] ?? '');
-        if ($cluster === '' || $areaId <= 0) {
-            $unit = $orgUnitId ? $org->findUnit($orgUnitId) : null;
-            if ($unit) {
-                if (($unit['org_type'] ?? '') === 'school') {
-                    if ($areaId <= 0) {
-                        $areaId = (int) ($unit['parent_id'] ?? 0);
-                    }
-                    if ($cluster === '') {
-                        $cluster = (string) ($unit['cluster_code'] ?? '');
-                    }
-                    $area = $areaId ? $org->findUnit($areaId) : null;
-                    if ($area && $cluster === '') {
-                        $cluster = (string) ($area['cluster_code'] ?? '');
-                    }
-                } elseif (($unit['org_type'] ?? '') === 'area') {
-                    $areaId = (int) $unit['id'];
-                    if ($cluster === '') {
-                        $cluster = (string) ($unit['cluster_code'] ?? '');
-                    }
-                }
-            }
-        }
-        $schoolSelectId = $orgUnitId;
-        if ($user && ($user['org_level'] ?? '') === 'area' && $areaId > 0 && $orgUnitId === $areaId) {
-            $schoolSelectId = 0;
-        }
+        $sources = \App\Services\RegistrationProfile::formSources($user);
         $this->view('admin/users/form', [
             'title' => $user ? 'แก้ไขผู้ใช้งาน' : 'เพิ่มผู้ใช้งาน',
             'breadcrumb' => 'หน้าหลัก / ผู้ใช้งาน',
             'user' => $user,
             'personnelList' => $personnel,
             'roles' => (new \App\Models\Role())->assignableBy(),
-            'departments' => (new \App\Models\Department())->active(),
             'lookupUrl' => url('/admin/users/lookup'),
-            'clusters' => $org->clusters(),
-            'prefixes' => $org->prefixes(),
-            'personalTypes' => $org->personalTypes(),
-            'memberTypes' => $org->memberTypeLabels(),
-            'areas' => $cluster !== '' ? $org->areas($cluster, '', 300) : ($areaId ? $org->areas(null, '', 100) : []),
-            'schools' => $areaId > 0 ? $org->schools($areaId, '', 300) : [],
-            'orgSelected' => [
-                'cluster' => $cluster,
-                'area_id' => $areaId,
-                'org_unit_id' => $schoolSelectId,
-                'member_type' => (string) ($user['member_type'] ?? 'staff'),
-                'personal_type_id' => (int) ($user['personal_type_id'] ?? 0),
-                'position_text' => (string) ($user['position_text'] ?? ''),
-            ],
+            'prefixes' => $sources['prefixes'],
+            'personalTypes' => $sources['personalTypes'],
+            'memberTypes' => $sources['memberTypes'],
+            'schools' => $sources['schools'],
+            'provinces' => $sources['provinces'],
+            'amphurs' => $sources['amphurs'],
+            'tumbons' => $sources['tumbons'],
+            'profile' => $sources['profile'],
         ]);
     }
 
@@ -289,58 +293,43 @@ class UserController extends Controller
             return null;
         }
         // ผู้ใช้งานทั่วไปสมัครเองที่ /register — หลังบ้าน Admin สร้างได้ทั้ง admin / trainer / user
-        $idCard = preg_replace('/\D+/', '', (string) $this->input('id_card', '')) ?: '';
-        if ($idCard !== '' && strlen($idCard) !== 13) {
-            $this->flash('error', 'เลขบัตรประชาชนต้องมี 13 หลัก');
+        $needsProfile = \App\Services\OrgMembershipService::requiresOrg($role);
+        if ($needsProfile) {
+            $profile = (new \App\Services\RegistrationProfile())->collect(true);
+            if (!$profile['ok']) {
+                $this->flash('error', $profile['error'] ?? 'กรุณากรอกข้อมูลให้ครบถ้วน');
+                return null;
+            }
+            $profileData = $profile['data'];
+        } else {
+            $profileData = \App\Services\RegistrationProfile::blank();
+            $profileData['org_level'] = 'admin';
+        }
+        $email = trim((string) $this->input('email', ''));
+        if ($needsProfile && ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL))) {
+            $this->flash('error', 'กรุณากรอกอีเมลให้ถูกต้อง');
             return null;
         }
-        $membership = (new \App\Services\OrgMembershipService())->resolveFromInput(
-            trim((string) $this->input('cluster_code', '')),
-            (int) $this->input('area_id', 0),
-            (int) $this->input('org_unit_id', 0),
-            $role
-        );
-        if (!$membership['ok']) {
-            $this->flash('error', $membership['error'] ?? 'กรุณาเลือกหน่วยงานให้ครบ');
-            return null;
+        $pass = (string) $this->input('password', '');
+        $pass2 = (string) $this->input('password_confirmation', '');
+        if ($pass !== '' || !$old) {
+            if (mb_strlen($pass) < 8 || $pass !== $pass2) {
+                $this->flash('error', 'รหัสผ่านอย่างน้อย 8 ตัวอักษร และต้องตรงกัน');
+                return null;
+            }
         }
-        $data = [
+        $data = array_merge($profileData, [
             'username' => trim((string) $this->input('username', $old['username'] ?? '')),
-            'email' => trim((string) $this->input('email', '')) ?: null,
+            'email' => $email !== '' ? $email : null,
             'title' => trim((string) $this->input('title', '')) ?: null,
             'first_name' => trim((string) $this->input('first_name', '')),
             'last_name' => trim((string) $this->input('last_name', '')),
             'phone' => trim((string) $this->input('phone', '')) ?: null,
-            'id_card' => $idCard !== '' ? $idCard : null,
             'role' => $role,
-            'department_id' => (int) $this->input('department_id') ?: null,
-            'org_unit_id' => $membership['org_unit_id'],
-            'area_id' => $membership['area_id'],
-            'cluster_code' => $membership['cluster_code'],
-            'school_code' => $membership['school_code'],
-            'org_name' => $membership['org_name'] ?? null,
-            'affiliation' => $membership['affiliation'] ?? null,
-            'org_level' => $membership['org_level'],
-            'member_type' => in_array((string) $this->input('member_type', 'staff'), ['staff', 'student', 'general'], true)
-                ? (string) $this->input('member_type', 'staff')
-                : 'staff',
-            'personal_type_id' => null,
-            'position_text' => null,
             'personnel_id' => $personnelId > 0 ? $personnelId : null,
             'status' => (int) $this->input('status', 1),
             'two_factor_enabled' => (int) $this->input('two_factor_enabled', 0),
-        ];
-        if (\App\Services\OrgMembershipService::requiresOrg($role)) {
-            if ($data['member_type'] === 'general') {
-                $positionText = trim((string) $this->input('position_text', ''));
-                $data['position_text'] = $positionText !== '' ? mb_substr($positionText, 0, 120) : null;
-                $data['personal_type_id'] = null;
-            } else {
-                $data['personal_type_id'] = (int) $this->input('personal_type_id') ?: null;
-                $data['position_text'] = null;
-            }
-        }
-        $pass = (string) $this->input('password', '');
+        ]);
         if ($pass !== '') {
             $data['password'] = hash_password($pass);
         } elseif (!$old) {
