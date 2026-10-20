@@ -120,17 +120,23 @@ $tagline = app_brand('tagline');
             $homeCover = sprintf('img/plans/plan-%02d.png', (int) $no);
             $homeCoverFile = PUBLIC_PATH . '/assets/' . $homeCover;
           ?>
+          <?php
+            $planNo = (int) $no;
+            $requiredPlan = $planNo <= 12;
+          ?>
           <div class="thumb">
             <?php if (is_file($homeCoverFile)): ?>
-              <img src="<?= asset($homeCover) ?>?v=4" alt="แผนที่ <?= (int) $no ?>" loading="lazy" decoding="async">
+              <img src="<?= asset($homeCover) ?>?v=4" alt="แผนที่ <?= $planNo ?>" loading="lazy" decoding="async">
             <?php else: ?>
               <div class="d-flex align-items-center justify-content-center h-100" style="background:linear-gradient(135deg,#4c1d95,#7c3aed);color:#fff">
                 <div class="text-center">
                   <div class="small opacity-75">แผนที่</div>
-                  <div style="font-size:2rem;font-weight:700;font-family:var(--w-display)"><?= (int) $no ?></div>
+                  <div style="font-size:2rem;font-weight:700;font-family:var(--w-display)"><?= $planNo ?></div>
                 </div>
               </div>
             <?php endif; ?>
+            <span class="ws-home-plan-badge">แผนที่ <?= $planNo ?></span>
+            <span class="learn-plan-track <?= $requiredPlan ? 'is-required' : 'is-elective' ?>"><?= $requiredPlan ? 'บังคับ' : 'ทั่วไป' ?></span>
           </div>
           <div class="body">
             <div class="meta">
