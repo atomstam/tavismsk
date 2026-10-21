@@ -24,6 +24,7 @@ php scripts/apply_quiz_bank.php
 php scripts/seed_plan_learning.php
 php scripts/apply_plan_tracks.php
 php scripts/apply_user_roles.php
+php scripts/apply_plan_chat.php
 
 php -r '
 require "config/bootstrap.php";

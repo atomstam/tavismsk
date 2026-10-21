@@ -33,6 +33,7 @@ use App\Controllers\Admin\SatisfactionController;
 use App\Controllers\Admin\TrainerApplyController;
 use App\Controllers\Admin\TrainerManageController;
 use App\Controllers\Admin\PlanOwnerController;
+use App\Controllers\Admin\PlanChatController;
 use App\Controllers\Admin\LearnController;
 use App\Controllers\Admin\ProfileController;
 use App\Controllers\Web\LearnController as WebLearnController;
@@ -251,6 +252,14 @@ $router->group(['prefix' => '/admin', 'middleware' => ['auth', 'admin']], functi
     $r->post('/satisfaction/meta', [SatisfactionController::class, 'saveMeta'], ['csrf']);
     $r->post('/satisfaction/question', [SatisfactionController::class, 'storeQuestion'], ['csrf']);
     $r->post('/satisfaction/question/{id}/delete', [SatisfactionController::class, 'deleteQuestion'], ['csrf']);
+
+    // กระดานสนทนาต่อแผน (ผู้เรียน ↔ วิทยากร)
+    $r->get('/plan-chat', [PlanChatController::class, 'index']);
+    $r->post('/plan-chat/start', [PlanChatController::class, 'start'], ['csrf']);
+    $r->get('/plan-chat/plan/{planId}', [PlanChatController::class, 'fromPlan']);
+    $r->get('/plan-chat/{id}', [PlanChatController::class, 'show']);
+    $r->get('/plan-chat/{id}/messages', [PlanChatController::class, 'messages']);
+    $r->post('/plan-chat/{id}/messages', [PlanChatController::class, 'post'], ['csrf']);
 
     // LMS — ผู้เรียน
     $r->get('/learn', [LearnController::class, 'index']);

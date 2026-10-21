@@ -26,7 +26,7 @@ $sidebarItems = (new \App\Services\SidebarMenuService())->items(null, (int) $unr
   <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
   <link rel="stylesheet" href="<?= asset('vendor/overlayScrollbars/css/OverlayScrollbars.min.css') ?>">
-  <link rel="stylesheet" href="<?= asset('css/app.css') ?>?v=37">
+  <link rel="stylesheet" href="<?= asset('css/app.css') ?>?v=39">
   <link rel="stylesheet" href="<?= asset('css/learn.css') ?>?v=9">
   <link rel="stylesheet" href="<?= asset('css/image-crop.css') ?>?v=1">
   <script>

@@ -52,6 +52,14 @@ return [
         'roles' => ['user'],
     ],
     [
+        'type' => 'link',
+        'label' => 'กระดานสนทนา',
+        'icon' => 'fa-comments',
+        'path' => '/admin/plan-chat',
+        'module' => 'plan_chat',
+        'roles' => ['user'],
+    ],
+    [
         'type' => 'label',
         'label' => 'ผลงานของฉัน',
         'roles' => ['user'],
@@ -112,6 +120,14 @@ return [
         'path' => '/admin/training',
         'module' => 'assessments',
         'action' => 'create',
+        'roles' => ['admin', 'trainer'],
+    ],
+    [
+        'type' => 'link',
+        'label' => 'กระดานสนทนา',
+        'icon' => 'fa-comments',
+        'path' => '/admin/plan-chat',
+        'module' => 'plan_chat',
         'roles' => ['admin', 'trainer'],
     ],
     [

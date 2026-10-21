@@ -31,6 +31,9 @@ $activeIdx = $stageOrder[$stage] ?? 0;
     <h1><?= e($plan['title'] ?? '') ?></h1>
   </div>
   <div class="d-flex flex-wrap gap-2">
+    <?php if (!$webShell && can_perm('plan_chat', 'view')): ?>
+      <a class="btn btn-learn-primary" href="<?= url('/admin/plan-chat/plan/' . $pid) ?>"><i class="fa fa-comments"></i> กระดานสนทนา</a>
+    <?php endif; ?>
     <a class="btn <?= $webShell ? 'btn-outline-secondary' : 'btn-learn-outline' ?>" href="<?= url($webShell ? '/curriculum/' . (int)($plan['plan_no'] ?? 0) : '/admin/curriculum/' . $pid) ?>"><i class="fa fa-circle-info"></i> รายละเอียดแผน</a>
     <a class="btn <?= $webShell ? 'btn-outline-secondary' : 'btn-learn-outline' ?>" href="<?= url($learnBase) ?>"><i class="fa fa-arrow-left"></i> กลับ</a>
   </div>
@@ -223,4 +226,14 @@ $activeIdx = $stageOrder[$stage] ?? 0;
     </div>
   </div>
 </div>
+
+<?php if (!$webShell && can_perm('plan_chat', 'view')): ?>
+<div class="card-soft mt-3"><div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
+  <div>
+    <h2 class="h6 mb-1"><i class="fa fa-comments text-primary"></i> กระดานสนทนาของแผนนี้</h2>
+    <p class="small text-muted mb-0">เลือกห้องรวมของแผน หรือคุยตัวต่อตัวกับวิทยากร · เก็บประวัติย้อนหลังได้</p>
+  </div>
+  <a class="btn btn-learn-primary" href="<?= url('/admin/plan-chat/plan/' . $pid) ?>">เลือกห้องสนทนา</a>
+</div></div>
+<?php endif; ?>
 <?php if ($webShell): ?></div><?php endif; ?>
