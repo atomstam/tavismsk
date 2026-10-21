@@ -220,8 +220,13 @@ $router->group(['prefix' => '/admin', 'middleware' => ['auth', 'admin']], functi
 
     $r->get('/enrollments', [EnrollmentController::class, 'index']);
     $r->get('/enrollments/datatable', [EnrollmentController::class, 'datatable']);
+    $r->get('/enrollments/plans/{planId}', [EnrollmentController::class, 'plan']);
     $r->post('/enrollments', [EnrollmentController::class, 'store'], ['csrf']);
     $r->post('/enrollments/{id}/approve', [EnrollmentController::class, 'approve'], ['csrf']);
+
+    // Admin / Trainer — บริหารแผนอบรม (แยกจากเมนูการเรียนของฉัน)
+    $r->get('/plan-enrollments', [EnrollmentController::class, 'manage']);
+    $r->get('/plan-enrollments/plans/{planId}', [EnrollmentController::class, 'plan']);
 
     // LMS — วิทยากรจัดการบทเรียน
     $r->get('/training', [TrainingManageController::class, 'index']);
@@ -282,6 +287,9 @@ $router->group(['prefix' => '/admin', 'middleware' => ['auth', 'admin']], functi
     $r->get('/org-units/datatable', [OrgUnitController::class, 'datatable']);
 
     $r->get('/members', [ClubMemberController::class, 'index']);
+    $r->get('/members/plans/{planId}', [ClubMemberController::class, 'plan']);
+    $r->get('/members/plans/{planId}/datatable', [ClubMemberController::class, 'planDatatable']);
+    $r->get('/members/club', [ClubMemberController::class, 'clubIndex']);
     $r->get('/members/datatable', [ClubMemberController::class, 'datatable']);
     $r->get('/members/create', [ClubMemberController::class, 'create']);
     $r->post('/members', [ClubMemberController::class, 'store'], ['csrf']);

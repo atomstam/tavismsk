@@ -239,22 +239,39 @@
 }
 .learn-plan-cover-hours i { margin-right: .25rem; opacity: .9; }
 .learn-plan-track {
+  display: inline-flex;
+  align-items: center;
+  position: static;
+  z-index: auto;
+  color: #fff;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  line-height: 1;
+  padding: .28rem .55rem;
+  border-radius: 999px;
+  border: 0;
+  box-shadow: none;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.learn-plan-track.is-required { background: #b91c1c; }
+.learn-plan-track.is-elective { background: #0f766e; }
+/* วางทับมุมปกการ์ดเท่านั้น — ไม่ใช้ absolute ในตาราง/หัวข้อ */
+.learn-plan-cover .learn-plan-track,
+.admin-plan-cover-foot .learn-plan-track,
+.ws-work-card .thumb .learn-plan-track {
   position: absolute;
   right: 12px;
   bottom: 12px;
   z-index: 3;
-  color: #fff;
   font-size: .95rem;
   font-weight: 800;
   letter-spacing: .04em;
-  line-height: 1;
   padding: .55rem .9rem;
-  border-radius: 999px;
   border: 2px solid #fff;
   box-shadow: 0 8px 20px rgba(15, 23, 42, .35);
 }
-.learn-plan-track.is-required { background: #b91c1c; }
-.learn-plan-track.is-elective { background: #0f766e; }
 .admin-plan-card {
   display: flex;
   flex-direction: column;
@@ -336,7 +353,6 @@
   padding: .45rem .8rem;
   box-shadow: 0 6px 16px rgba(15, 23, 42, .18);
 }
-.admin-plan-cover .learn-plan-track { position: static; }
 .admin-plan-body { padding: 1rem 1.15rem .85rem; }
 .admin-plan-top {
   display: flex;

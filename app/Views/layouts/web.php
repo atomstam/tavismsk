@@ -52,7 +52,7 @@ $authAvatar = $authUser ? avatar_url($authUser['avatar'] ?? null) : '';
   <link rel="stylesheet" href="<?= asset('css/portfolio-dark.css') ?>?v=9">
   <link rel="stylesheet" href="<?= asset('css/web-dark-home.css') ?>?v=27">
   <link rel="stylesheet" href="<?= asset('css/web-theme.css') ?>?v=20">
-  <link rel="stylesheet" href="<?= asset('css/learn.css') ?>?v=9">
+  <link rel="stylesheet" href="<?= asset('css/learn.css') ?>?v=10">
   <script>
     tailwind.config = {
       corePlugins: { preflight: false },

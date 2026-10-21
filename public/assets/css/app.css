@@ -1397,3 +1397,64 @@ table.ab-datatable thead th { font-weight: 600; white-space: nowrap; }
   border-color: #1d4ed8;
 }
 [data-theme="dark"] .plan-chat-thread-item:hover { background: #1e293b; }
+
+/* Enrollments — plan management by role */
+.enroll-stat-row .enroll-stat { margin-bottom: 0; }
+.enroll-stat .card-body { padding: 1rem 1.1rem; }
+.enroll-stat-label {
+  display: block;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--p-muted);
+  margin-bottom: .25rem;
+}
+.enroll-stat-value {
+  display: block;
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: var(--p-primary);
+  line-height: 1.15;
+}
+.enroll-stat-value--sm { font-size: 1.05rem; word-break: break-word; }
+.enroll-plan-table thead th {
+  font-size: .82rem;
+  color: var(--p-muted);
+  white-space: nowrap;
+  border-bottom-width: 1px;
+}
+.enroll-plan-table tbody td { vertical-align: middle; }
+.enroll-plan-no {
+  display: inline-block;
+  font-weight: 700;
+  color: var(--p-primary);
+  margin-right: .35rem;
+}
+.enroll-plan-table .learn-plan-track,
+.page-head .learn-plan-track {
+  position: static !important;
+  display: inline-flex;
+  margin-left: .25rem;
+  font-size: .7rem;
+  padding: .22rem .5rem;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+.enroll-mini-bar {
+  height: 6px;
+  border-radius: 99px;
+  background: #e2e8f0;
+  overflow: hidden;
+  min-width: 72px;
+  margin: 0 auto .2rem;
+}
+.enroll-mini-bar span {
+  display: block;
+  height: 100%;
+  background: var(--p-gradient-btn);
+  border-radius: inherit;
+}
+.enroll-mini-bar--lg { height: 10px; margin-bottom: 0; }
+.enroll-dl { display: grid; gap: .65rem; }
+.enroll-dl > div { display: flex; justify-content: space-between; gap: 1rem; border-bottom: 1px dashed var(--p-border); padding-bottom: .45rem; }
+.enroll-dl dt { margin: 0; color: var(--p-muted); font-weight: 500; }
+.enroll-dl dd { margin: 0; font-weight: 600; text-align: right; }

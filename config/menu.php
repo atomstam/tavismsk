@@ -21,11 +21,13 @@ return [
         'audience' => 'user',
         'icon' => 'fa-user',
         'roles' => ['user'],
+        'portal_only' => true,
     ],
     [
         'type' => 'label',
         'label' => 'การเรียนของฉัน',
         'roles' => ['user'],
+        'portal_only' => true,
     ],
     [
         'type' => 'link',
@@ -34,6 +36,7 @@ return [
         'path' => '/admin/learn',
         'module' => 'learn',
         'roles' => ['user'],
+        'portal_only' => true,
     ],
     [
         'type' => 'link',
@@ -42,6 +45,7 @@ return [
         'path' => '/admin/enrollments',
         'module' => 'enrollments',
         'roles' => ['user'],
+        'portal_only' => true,
     ],
     [
         'type' => 'link',
@@ -50,6 +54,7 @@ return [
         'path' => '/admin/certificates',
         'module' => 'certificates',
         'roles' => ['user'],
+        'portal_only' => true,
     ],
     [
         'type' => 'link',
@@ -58,22 +63,26 @@ return [
         'path' => '/admin/plan-chat',
         'module' => 'plan_chat',
         'roles' => ['user'],
+        'portal_only' => true,
     ],
     [
         'type' => 'label',
         'label' => 'ผลงานของฉัน',
         'roles' => ['user'],
         'module' => 'portfolio',
+        'portal_only' => true,
     ],
     [
         'type' => 'portfolio',
         'roles' => ['user'],
         'module' => 'portfolio',
+        'portal_only' => true,
     ],
     [
         'type' => 'label',
         'label' => 'ทั่วไป',
         'roles' => ['user'],
+        'portal_only' => true,
     ],
     [
         'type' => 'link',
@@ -82,6 +91,7 @@ return [
         'path' => '/admin/tickets',
         'module' => 'tickets',
         'roles' => ['user'],
+        'portal_only' => true,
     ],
     [
         'type' => 'link',
@@ -91,6 +101,15 @@ return [
         'module' => 'notifications',
         'badge' => 'notifications',
         'roles' => ['user'],
+        'portal_only' => true,
+    ],
+    [
+        'type' => 'link',
+        'label' => 'แก้ไขข้อมูลส่วนตัว',
+        'icon' => 'fa-user-pen',
+        'path' => '/admin/profile',
+        'roles' => ['user'],
+        'portal_only' => true,
     ],
 
     [
@@ -140,9 +159,9 @@ return [
     ],
     [
         'type' => 'link',
-        'label' => 'ลงทะเบียนอบรม',
+        'label' => 'บริหารแผนอบรม',
         'icon' => 'fa-clipboard-list',
-        'path' => '/admin/enrollments',
+        'path' => '/admin/plan-enrollments',
         'module' => 'enrollments',
         'roles' => ['admin', 'trainer'],
     ],
@@ -317,6 +336,13 @@ return [
         'path' => '/admin/notifications',
         'module' => 'notifications',
         'badge' => 'notifications',
+        'roles' => ['admin', 'trainer'],
+    ],
+    [
+        'type' => 'link',
+        'label' => 'แก้ไขข้อมูลส่วนตัว',
+        'icon' => 'fa-user-pen',
+        'path' => '/admin/profile',
         'roles' => ['admin', 'trainer'],
     ],
 

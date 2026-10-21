@@ -624,6 +624,104 @@ class DataTableService
         return dt_response($p['draw'], $total, $filtered, $data);
     }
 
+    /** ผู้เรียนในแผน (training_module_progress) — สำหรับหน้ารายละเอียดผู้เข้ารับการพัฒนา */
+    public static function planLearners(int $planId, array $p): array
+    {
+        $where = 'tmp.plan_id = ?';
+        $params = [$planId];
+
+        if ($p['search'] !== '') {
+            $where .= ' AND (e.enrollment_no LIKE ? OR u.first_name LIKE ? OR u.last_name LIKE ? OR u.username LIKE ? OR o.name LIKE ?)';
+            $s = '%' . $p['search'] . '%';
+            array_push($params, $s, $s, $s, $s, $s);
+        }
+        $stage = trim((string) ($_GET['stage'] ?? ''));
+        if ($stage !== '') {
+            $where .= ' AND tmp.stage = ?';
+            $params[] = $stage;
+        }
+        $passed = trim((string) ($_GET['passed'] ?? ''));
+        if ($passed === '1' || $passed === '0') {
+            $where .= ' AND tmp.is_passed = ?';
+            $params[] = (int) $passed;
+        }
+        $orgId = (int) ($_GET['org_id'] ?? 0);
+        if ($orgId > 0) {
+            $where .= ' AND e.org_unit_id = ?';
+            $params[] = $orgId;
+        }
+
+        $baseFrom = "FROM training_module_progress tmp
+             INNER JOIN course_enrollments e ON e.id = tmp.enrollment_id
+             INNER JOIN users u ON u.id = e.user_id AND u.deleted_at IS NULL
+             LEFT JOIN org_units o ON o.id = e.org_unit_id";
+
+        $total = (int) (db()->fetch(
+            "SELECT COUNT(*) AS c FROM training_module_progress tmp WHERE tmp.plan_id = ?",
+            [$planId]
+        )['c'] ?? 0);
+        $filtered = (int) (db()->fetch(
+            "SELECT COUNT(*) AS c {$baseFrom} WHERE {$where}",
+            $params
+        )['c'] ?? 0);
+
+        $order = dt_order_sql([
+            1 => 'e.enrollment_no',
+            2 => 'u.first_name',
+            3 => 'o.name',
+            4 => 'tmp.stage',
+            5 => 'tmp.overall_percent',
+            6 => 'tmp.pretest_percent',
+            7 => 'tmp.content_percent',
+            8 => 'tmp.task_percent',
+            9 => 'tmp.posttest_percent',
+            10 => 'tmp.is_passed',
+        ], $p['order_column'], $p['order_dir'], 'tmp.overall_percent DESC, u.first_name ASC');
+
+        $rows = db()->fetchAll(
+            "SELECT e.enrollment_no, e.status AS enrollment_status,
+                    u.title, u.first_name, u.last_name, u.username,
+                    o.name AS org_name,
+                    tmp.overall_percent, tmp.stage, tmp.is_passed AS plan_passed,
+                    tmp.pretest_percent, tmp.content_percent, tmp.task_percent,
+                    tmp.posttest_percent, tmp.satisfaction_percent
+             {$baseFrom}
+             WHERE {$where}
+             ORDER BY {$order}
+             LIMIT {$p['length']} OFFSET {$p['start']}",
+            $params
+        );
+
+        $stageLabel = [
+            'pretest' => 'ทดสอบก่อน',
+            'content' => 'เนื้อหา',
+            'task' => 'ภาระงาน',
+            'posttest' => 'สอบหลัง',
+            'satisfaction' => 'ความพึงพอใจ',
+            'completed' => 'ครบแล้ว',
+        ];
+        $data = [];
+        foreach ($rows as $r) {
+            $st = (string) ($r['stage'] ?? '');
+            $data[] = [
+                'enrollment_no_html' => '<code>' . e((string) $r['enrollment_no']) . '</code>',
+                'user_name' => trim(($r['title'] ?? '') . ($r['first_name'] ?? '') . ' ' . ($r['last_name'] ?? '')),
+                'org_name' => (string) ($r['org_name'] ?? '-'),
+                'stage_label' => $stageLabel[$st] ?? $st,
+                'overall' => number_format((float) ($r['overall_percent'] ?? 0), 1) . '%',
+                'pretest' => number_format((float) ($r['pretest_percent'] ?? 0), 0),
+                'content' => number_format((float) ($r['content_percent'] ?? 0), 0),
+                'task' => number_format((float) ($r['task_percent'] ?? 0), 0),
+                'posttest' => number_format((float) ($r['posttest_percent'] ?? 0), 0),
+                'passed_html' => ((int) ($r['plan_passed'] ?? 0) === 1)
+                    ? '<span class="badge text-bg-success">ผ่าน</span>'
+                    : '<span class="badge text-bg-secondary">ยังไม่ผ่าน</span>',
+            ];
+        }
+
+        return dt_response($p['draw'], $total, $filtered, $data);
+    }
+
     public static function clubMembers(array $p): array
     {
         $where = 'deleted_at IS NULL';
@@ -736,7 +834,19 @@ class DataTableService
     {
         $where = '1=1';
         $params = [];
-        if (is_learner()) {
+        // แอดมินเท่านั้นที่ดูรายการลงทะเบียนหลักสูตรทั้งระบบ — วิทยากรใช้หน้ารายแผน
+        if (auth()->role() === 'trainer') {
+            $owned = (new PlanOwnerService())->approvedPlanIds((int) auth()->id());
+            if ($owned === []) {
+                return dt_response($p['draw'], 0, 0, []);
+            }
+            $in = implode(',', array_fill(0, count($owned), '?'));
+            $where .= " AND EXISTS (
+                SELECT 1 FROM training_module_progress tmp
+                WHERE tmp.enrollment_id = e.id AND tmp.plan_id IN ({$in})
+            )";
+            array_push($params, ...$owned);
+        } elseif (is_learner()) {
             $where .= ' AND e.user_id = ?';
             $params[] = (int) auth()->id();
         }
@@ -753,7 +863,18 @@ class DataTableService
 
         $totalSql = 'SELECT COUNT(*) AS c FROM course_enrollments e';
         $totalParams = [];
-        if (is_learner()) {
+        if (auth()->role() === 'trainer') {
+            $owned = (new PlanOwnerService())->approvedPlanIds((int) auth()->id());
+            if ($owned === []) {
+                return dt_response($p['draw'], 0, 0, []);
+            }
+            $in = implode(',', array_fill(0, count($owned), '?'));
+            $totalSql .= " WHERE EXISTS (
+                SELECT 1 FROM training_module_progress tmp
+                WHERE tmp.enrollment_id = e.id AND tmp.plan_id IN ({$in})
+            )";
+            $totalParams = $owned;
+        } elseif (is_learner()) {
             $totalSql .= ' WHERE e.user_id = ?';
             $totalParams[] = (int) auth()->id();
         }

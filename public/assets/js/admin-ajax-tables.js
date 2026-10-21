@@ -408,6 +408,36 @@
     bindFilter('members-filter', table);
   }
 
+  function initPlanLearners() {
+    const el = document.getElementById('plan-learners-datatable');
+    if (!el) return;
+    const table = AbDataTable.initAjax(el, {
+      ajaxUrl: el.dataset.ajaxUrl,
+      order: [[5, 'desc']],
+      getParams: function () {
+        return {
+          q: val('#plan-learners-filter [name="q"]'),
+          stage: val('#plan-learners-filter [name="stage"]'),
+          passed: val('#plan-learners-filter [name="passed"]'),
+          org_id: val('#plan-learners-filter [name="org_id"]')
+        };
+      },
+      columns: [
+        { data: 'enrollment_no_html', className: 'col-nowrap', render: raw },
+        { data: 'user_name', className: 'col-primary', render: (d) => esc(d) },
+        { data: 'org_name', className: 'col-wrap', render: (d) => esc(d) },
+        { data: 'stage_label', render: (d) => esc(d) },
+        { data: 'overall', className: 'col-nowrap text-end', render: (d) => esc(d) },
+        { data: 'pretest', className: 'text-center', render: (d) => esc(d) },
+        { data: 'content', className: 'text-center', render: (d) => esc(d) },
+        { data: 'task', className: 'text-center', render: (d) => esc(d) },
+        { data: 'posttest', className: 'text-center', render: (d) => esc(d) },
+        { data: 'passed_html', className: 'text-center', render: raw }
+      ]
+    });
+    bindFilter('plan-learners-filter', table);
+  }
+
   function initOrgUnits() {
     const el = document.getElementById('org-units-datatable');
     if (!el) return;
@@ -517,6 +547,7 @@
     initGallery();
     initCurriculum();
     initMembers();
+    initPlanLearners();
     initOrgUnits();
     initEnrollments();
     initCertificates();

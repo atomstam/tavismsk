@@ -26,8 +26,8 @@ $sidebarItems = (new \App\Services\SidebarMenuService())->items(null, (int) $unr
   <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
   <link rel="stylesheet" href="<?= asset('vendor/overlayScrollbars/css/OverlayScrollbars.min.css') ?>">
-  <link rel="stylesheet" href="<?= asset('css/app.css') ?>?v=39">
-  <link rel="stylesheet" href="<?= asset('css/learn.css') ?>?v=9">
+  <link rel="stylesheet" href="<?= asset('css/app.css') ?>?v=40">
+  <link rel="stylesheet" href="<?= asset('css/learn.css') ?>?v=10">
   <link rel="stylesheet" href="<?= asset('css/image-crop.css') ?>?v=1">
   <script>
     tailwind.config = { corePlugins: { preflight: false }, blocklist: ['collapse', 'container'] };
@@ -232,7 +232,7 @@ $sidebarItems = (new \App\Services\SidebarMenuService())->items(null, (int) $unr
 <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
 <script src="<?= asset('vendor/overlayScrollbars/js/jquery.overlayScrollbars.min.js') ?>"></script>
 <script src="<?= asset('js/ab-datatable.js') ?>?v=5"></script>
-<script src="<?= asset('js/admin-ajax-tables.js') ?>?v=11"></script>
+<script src="<?= asset('js/admin-ajax-tables.js') ?>?v=12"></script>
   <script src="<?= asset('js/app.js') ?>?v=8"></script>
 <link rel="stylesheet" href="<?= asset('css/image-crop.css') ?>?v=1">
 <script>
