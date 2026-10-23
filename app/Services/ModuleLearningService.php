@@ -130,7 +130,7 @@ class ModuleLearningService
             'plan_id' => $planId,
             'quiz_type' => $type,
             'title' => $title,
-            'pass_score' => 60,
+            'pass_score' => $type === 'posttest' ? 70 : 60,
             'max_attempts' => $type === 'pretest' || $type === 'satisfaction' ? 1 : 3,
             'status' => 1,
             'created_by' => $userId,
@@ -201,29 +201,20 @@ class ModuleLearningService
             db()->query('DELETE FROM training_quiz_papers WHERE id = ?', [(int) $row['id']]);
         }
 
-        $quiz = $this->quiz($planId, 'pretest');
-        $bank = $quiz
-            ? db()->fetchAll(
-                'SELECT id FROM training_quiz_questions WHERE quiz_id = ? AND status = 1 ORDER BY sort_order, id',
-                [(int) $quiz['id']]
-            )
-            : [];
-        $ids = array_map(static fn (array $r): int => (int) $r['id'], $bank);
         $settings = $this->settings($planId);
         $draw = (int) ($settings['quiz_draw_count'] ?? 0);
         if ($draw <= 0) {
             $lms = config('app', 'lms');
             $draw = (int) (is_array($lms) ? ($lms['questions_per_learner'] ?? 10) : 10);
         }
+        if ($draw < 1) {
+            $draw = 10;
+        }
         $shuffle = (int) ($settings['quiz_shuffle'] ?? 1) === 1;
-        if ($shuffle) {
-            shuffle($ids);
-        }
-        if ($draw > 0 && $draw < count($ids)) {
-            $ids = array_slice($ids, 0, $draw);
-        }
-        $pre = array_values($ids);
+        // สุ่มจากคลังแผนก่อน ถ้าไม่ครบจำนวนที่ตั้งไว้ ให้เติมจากคลังรวม (ไม่ซ้ำข้อความ)
+        $pre = $this->drawUniqueQuestionIds($planId, $draw, $shuffle);
         $post = $shuffle ? $this->differentOrder($pre) : $pre;
+        $post = array_values(array_unique(array_map('intval', $post)));
         $choices = ['pre' => [], 'post' => []];
         foreach ($pre as $qid) {
             $cids = array_map(
@@ -290,7 +281,109 @@ class ModuleLearningService
         if (!is_array($data)) {
             return [];
         }
-        return array_values(array_map(static fn ($id): int => (int) $id, $data));
+        // กัน id ซ้ำในชุดข้อสอบ
+        $ids = [];
+        $seen = [];
+        foreach ($data as $id) {
+            $id = (int) $id;
+            if ($id <= 0 || isset($seen[$id])) {
+                continue;
+            }
+            $seen[$id] = true;
+            $ids[] = $id;
+        }
+        return $ids;
+    }
+
+    /**
+     * ดึง id จากคลังแบบไม่ซ้ำข้อความคำถาม (เก็บ id แรกของแต่ละข้อความ)
+     * @return list<int>
+     */
+    private function uniqueBankQuestionIds(int $quizId): array
+    {
+        $rows = db()->fetchAll(
+            'SELECT id, question_text FROM training_quiz_questions WHERE quiz_id = ? AND status = 1 ORDER BY sort_order, id',
+            [$quizId]
+        );
+        $ids = [];
+        $seen = [];
+        foreach ($rows as $row) {
+            $key = $this->questionDedupeKey((string) ($row['question_text'] ?? ''));
+            if ($key === '' || isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $ids[] = (int) $row['id'];
+        }
+        return $ids;
+    }
+
+    /**
+     * สุ่มข้อไม่ซ้ำข้อความ ให้ได้จำนวนตามที่ตั้ง (เติมจากคลังรวมถ้าคลังแผนไม่พอ)
+     * @return list<int>
+     */
+    private function drawUniqueQuestionIds(int $planId, int $draw, bool $shuffle): array
+    {
+        $quiz = $this->quiz($planId, 'pretest');
+        $local = $quiz ? $this->uniqueBankQuestionIds((int) $quiz['id']) : [];
+        if ($shuffle) {
+            shuffle($local);
+        }
+
+        $picked = [];
+        $seenKeys = [];
+        foreach ($local as $id) {
+            if (count($picked) >= $draw) {
+                break;
+            }
+            $row = db()->fetch('SELECT question_text FROM training_quiz_questions WHERE id = ?', [$id]);
+            $key = $this->questionDedupeKey((string) ($row['question_text'] ?? ''));
+            if ($key === '' || isset($seenKeys[$key])) {
+                continue;
+            }
+            $seenKeys[$key] = true;
+            $picked[] = (int) $id;
+        }
+
+        if (count($picked) < $draw) {
+            $pool = db()->fetchAll(
+                "SELECT q.id, q.question_text
+                 FROM training_quiz_questions q
+                 INNER JOIN training_quizzes z ON z.id = q.quiz_id
+                 WHERE q.status = 1 AND z.status = 1 AND z.quiz_type = 'pretest'
+                 ORDER BY q.sort_order, q.id"
+            );
+            $extras = [];
+            foreach ($pool as $row) {
+                $key = $this->questionDedupeKey((string) ($row['question_text'] ?? ''));
+                if ($key === '' || isset($seenKeys[$key])) {
+                    continue;
+                }
+                $seenKeys[$key] = true;
+                $extras[] = (int) $row['id'];
+            }
+            if ($shuffle) {
+                shuffle($extras);
+            }
+            foreach ($extras as $id) {
+                if (count($picked) >= $draw) {
+                    break;
+                }
+                $picked[] = $id;
+            }
+        }
+
+        if ($shuffle) {
+            shuffle($picked);
+        }
+        return array_values(array_unique(array_map('intval', $picked)));
+    }
+
+    private function questionDedupeKey(string $text): string
+    {
+        $normalized = $this->learnerFacingQuestionText($text);
+        $normalized = preg_replace('/\s+/u', ' ', $normalized) ?? $normalized;
+        return mb_strtolower(trim($normalized), 'UTF-8');
     }
 
     /**
@@ -299,7 +392,7 @@ class ModuleLearningService
      */
     private function differentOrder(array $ids): array
     {
-        $ids = array_values($ids);
+        $ids = array_values(array_unique(array_map('intval', $ids)));
         $n = count($ids);
         if ($n < 2) {
             return $ids;
@@ -326,6 +419,7 @@ class ModuleLearningService
         if ($ids === []) {
             return [];
         }
+        $ids = array_values(array_unique(array_map('intval', $ids)));
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
         $rows = db()->fetchAll(
             "SELECT * FROM training_quiz_questions WHERE id IN ({$placeholders}) AND status = 1",
@@ -336,12 +430,22 @@ class ModuleLearningService
             $byId[(int) $row['id']] = $row;
         }
         $out = [];
+        $seenText = [];
         foreach ($ids as $qid) {
             if (!isset($byId[$qid])) {
                 continue;
             }
             $q = $byId[$qid];
             unset($q['explanation']);
+            // ผู้เรียนเห็นเฉพาะคำถาม ไม่โชว์ที่มาจากคลัง (เช่น "แผนที่ 1 ข้อ 8: …")
+            $q['question_text'] = $this->learnerFacingQuestionText((string) ($q['question_text'] ?? ''));
+            $textKey = $this->questionDedupeKey((string) $q['question_text']);
+            if ($textKey !== '' && isset($seenText[$textKey])) {
+                continue; // ข้ามข้อข้อความซ้ำในชุดเดิม
+            }
+            if ($textKey !== '') {
+                $seenText[$textKey] = true;
+            }
             $choiceRows = db()->fetchAll(
                 'SELECT id, choice_text, image_path, sort_order FROM training_quiz_choices WHERE question_id = ?',
                 [$qid]
@@ -366,6 +470,14 @@ class ModuleLearningService
             $out[] = $q;
         }
         return $out;
+    }
+
+    /** ตัดคำนำที่บอกแหล่งสุ่มจากคลัง ออกจากข้อความข้อสอบฝั่งผู้เรียน */
+    private function learnerFacingQuestionText(string $text): string
+    {
+        $clean = preg_replace('/^แผนที่\s*\d+\s*ข้อ\s*\d+\s*:\s*/u', '', trim($text));
+        $clean = is_string($clean) ? trim($clean) : trim($text);
+        return $clean !== '' ? $clean : trim($text);
     }
 
     /** @return list<array> */
@@ -423,6 +535,19 @@ class ModuleLearningService
         return $best !== null;
     }
 
+    /** ภาระงาน: ต้องเรียนเนื้อหาที่บังคับครบก่อน (รอบเรียนซ้ำยังเห็นงานที่ส่งแล้วได้) */
+    public function canAccessTask(int $planId, int $enrollmentId): bool
+    {
+        if (!$this->canAccessContent($planId, $enrollmentId)) {
+            return false;
+        }
+        $p = $this->recalculate($planId, $enrollmentId, false);
+        if ((bool) ($p['content_done'] ?? false)) {
+            return true;
+        }
+        return $this->hasTaskSubmissions($planId, $enrollmentId);
+    }
+
     public function canAccessPosttest(int $planId, int $enrollmentId): bool
     {
         $s = $this->settings($planId);
@@ -430,7 +555,8 @@ class ModuleLearningService
             return true;
         }
         $p = $this->recalculate($planId, $enrollmentId, false);
-        return (bool) ($p['content_done'] ?? false) && (bool) ($p['task_done'] ?? false);
+        // ปลดล็อกสอบหลังเมื่อเปิดเนื้อหาครบ + ส่งภาระงานครบ (คะแนนรอวิทยากรตรวจแยกต่างหาก)
+        return (bool) ($p['content_done'] ?? false) && $this->allRequiredTasksSubmitted($planId, $enrollmentId);
     }
 
     public function canAccessSatisfaction(int $planId, int $enrollmentId): bool
@@ -439,8 +565,12 @@ class ModuleLearningService
         if (!(int) ($s['gate_satisfaction_after_posttest'] ?? 1)) {
             return true;
         }
-        $p = $this->recalculate($planId, $enrollmentId, false);
-        return (bool) ($p['posttest_done'] ?? false);
+        // ส่งสอบหลังแล้วปลดล็อกได้ (ไม่ต้องรอผ่านเกณฑ์)
+        $quiz = $this->quiz($planId, 'posttest');
+        if (!$quiz) {
+            return true;
+        }
+        return $this->bestAttempt((int) $quiz['id'], $enrollmentId) !== null;
     }
 
     /**
@@ -532,26 +662,39 @@ class ModuleLearningService
             $contentDone = $done >= count($requiredContents) ? 1 : 0;
         }
 
-        // —— Tasks ——
+        // —— Tasks —— คะแนนนับหลังวิทยากรตรวจ · ความก้าวหน้านับเมื่อส่งงานแล้ว
         $requiredTasks = array_values(array_filter($tasks, static fn ($t) => (int) ($t['is_required'] ?? 1) === 1));
         $taskPct = 100.0;
         $taskDone = 1;
+        $taskProgressPct = 100.0;
+        $taskScoreEarned = 0.0;
+        $taskScoreMax = 0.0;
         if ($requiredTasks !== []) {
-            $scoreSum = 0.0;
-            $doneCount = 0;
+            $approvedCount = 0;
+            $submittedCount = 0;
             foreach ($requiredTasks as $t) {
+                $max = max(0.01, (float) ($t['max_score'] ?? 100));
+                $taskScoreMax += $max;
                 $sub = db()->fetch(
                     'SELECT * FROM training_task_submissions WHERE task_id = ? AND enrollment_id = ?',
                     [(int) $t['id'], $enrollmentId]
                 );
-                $credit = $this->taskCredit($t, $sub);
-                $scoreSum += $credit;
-                if ($credit >= 1.0) {
-                    $doneCount++;
+                $st = (string) ($sub['status'] ?? '');
+                if (in_array($st, ['submitted', 'approved', 'revision'], true)) {
+                    $submittedCount++;
+                }
+                if ($sub && $st === 'approved') {
+                    $earned = $sub['score'] !== null && $sub['score'] !== ''
+                        ? (float) $sub['score']
+                        : $max;
+                    $earned = max(0.0, min($max, $earned));
+                    $taskScoreEarned += $earned;
+                    $approvedCount++;
                 }
             }
-            $taskPct = round(($scoreSum / count($requiredTasks)) * 100, 2);
-            $taskDone = $doneCount >= count($requiredTasks) ? 1 : 0;
+            $taskPct = round(($taskScoreEarned / $taskScoreMax) * 100, 2);
+            $taskDone = $approvedCount >= count($requiredTasks) ? 1 : 0;
+            $taskProgressPct = round(($submittedCount / count($requiredTasks)) * 100, 2);
         }
 
         // —— Posttest ——
@@ -586,33 +729,46 @@ class ModuleLearningService
             }
         }
 
-        $decision = PlanProgress::decide($s, [
+        $scorePercents = [
             'pretest' => $pretestPct,
             'content' => $contentPct,
             'task' => $taskPct,
             'posttest' => $posttestPct,
             'satisfaction' => $satisfactionPct,
-        ], [
+        ];
+        $doneFlags = [
             'pretest_done' => $pretestDone,
             'content_done' => $contentDone,
             'task_done' => $taskDone,
             'posttest_done' => $posttestDone,
             'satisfaction_done' => $satisfactionDone,
-        ]);
+        ];
+        // ความก้าวหน้า = การดำเนินการครบองค์ประกอบ (ภาระงานนับเมื่อส่งแล้ว)
+        $completionPercents = [
+            'pretest' => $pretestDone ? 100.0 : 0.0,
+            'content' => $contentPct,
+            'task' => $taskProgressPct,
+            'posttest' => $posttestDone ? 100.0 : 0.0,
+            'satisfaction' => $satisfactionDone ? 100.0 : 0.0,
+        ];
+        $decision = PlanProgress::decide($s, $scorePercents, $doneFlags, $completionPercents);
         $overall = (float) $decision['overall_percent'];
+        $scoreOverall = (float) ($decision['score_percent'] ?? 0);
 
+        $tasksSubmitted = $this->allRequiredTasksSubmitted($planId, $enrollmentId);
         $stage = 'pretest';
         if (!$pretestDone) {
             $stage = 'pretest';
         } elseif (!$contentDone) {
             $stage = 'content';
-        } elseif (!$taskDone) {
+        } elseif (!$tasksSubmitted) {
             $stage = 'task';
         } elseif (!$posttestDone) {
             $stage = 'posttest';
         } elseif (!$satisfactionDone) {
             $stage = 'satisfaction';
         } else {
+            // ขั้นเรียนครบ — คะแนนภาระงานอาจยังรอวิทยากรตรวจ (ใช้ is_passed / certificateReady แยก)
             $stage = 'completed';
         }
 
@@ -626,6 +782,7 @@ class ModuleLearningService
             'posttest_percent' => $posttestPct,
             'satisfaction_percent' => $satisfactionPct,
             'overall_percent' => $overall,
+            'score_percent' => $scoreOverall,
             'pretest_done' => $pretestDone,
             'content_done' => $contentDone,
             'task_done' => $taskDone,
@@ -633,8 +790,13 @@ class ModuleLearningService
             'satisfaction_done' => $satisfactionDone,
             'is_passed' => (int) $decision['is_passed'],
             'stage' => $stage,
+            'task_score_earned' => round($taskScoreEarned, 2),
+            'task_score_max' => round($taskScoreMax, 2),
             'updated_at' => date('Y-m-d H:i:s'),
         ];
+        // คอลัมน์พิเศษไม่บันทึกลง DB
+        $persistPayload = $payload;
+        unset($persistPayload['task_score_earned'], $persistPayload['task_score_max'], $persistPayload['score_percent']);
 
         if ($persist) {
             $ex = db()->fetch(
@@ -642,40 +804,42 @@ class ModuleLearningService
                 [$enrollmentId, $planId]
             );
             if ($ex) {
-                db()->update('training_module_progress', $payload, 'id = ?', [(int) $ex['id']]);
+                db()->update('training_module_progress', $persistPayload, 'id = ?', [(int) $ex['id']]);
             } else {
-                $payload['created_at'] = date('Y-m-d H:i:s');
-                db()->insert('training_module_progress', $payload);
+                $persistPayload['created_at'] = date('Y-m-d H:i:s');
+                db()->insert('training_module_progress', $persistPayload);
             }
 
             if ((int) $decision['is_passed'] === 1) {
-                $this->syncModuleAssessment($enrollmentId, $planId, $overall, $userId);
+                // บันทึกคะแนนรวม (ไม่ใช่ความก้าวหน้า) สำหรับประเมิน/เกียรติบัตร
+                $this->syncModuleAssessment($enrollmentId, $planId, $scoreOverall, $userId);
             }
         }
 
         return $payload;
     }
 
-    /** @param array|null $sub */
-    private function taskCredit(array $task, ?array $sub): float
+    /** ส่งภาระงานบังคับครบหรือยัง (ยังไม่ต้องรอตรวจ — ใช้ปลดล็อกสอบหลัง) */
+    public function allRequiredTasksSubmitted(int $planId, int $enrollmentId): bool
     {
-        if (!$sub) {
-            return 0.0;
+        $tasks = array_values(array_filter(
+            $this->tasks($planId),
+            static fn (array $t): bool => (int) ($t['is_required'] ?? 1) === 1
+        ));
+        if ($tasks === []) {
+            return true;
         }
-        $st = (string) ($sub['status'] ?? '');
-        if ($st === 'rejected' || $st === 'draft') {
-            return 0.0;
-        }
-        if ((int) ($task['require_review'] ?? 1) === 1) {
-            if ($st === 'approved') {
-                return 1.0;
+        foreach ($tasks as $t) {
+            $sub = db()->fetch(
+                'SELECT status FROM training_task_submissions WHERE task_id = ? AND enrollment_id = ?',
+                [(int) $t['id'], $enrollmentId]
+            );
+            $st = (string) ($sub['status'] ?? '');
+            if (!in_array($st, ['submitted', 'approved'], true)) {
+                return false;
             }
-            if ($st === 'submitted' || $st === 'revision') {
-                return 0.5; // ส่งแล้วรอตรวจ = ครึ่งหนึ่งของน้ำหนักภาระงาน
-            }
-            return 0.0;
         }
-        return in_array($st, ['submitted', 'approved'], true) ? 1.0 : 0.0;
+        return true;
     }
 
     private function syncModuleAssessment(int $enrollmentId, int $planId, float $overall, int $userId): void
@@ -790,7 +954,20 @@ class ModuleLearningService
             ]);
         }
 
-        $progress = $this->recalculate((int) $quiz['plan_id'], $enrollmentId, true);
+        $planId = (int) $quiz['plan_id'];
+        $contentReset = false;
+        $attemptsUsed = $used + 1;
+
+        // สอบหลัง: ครบจำนวนครั้งแล้วยังไม่ผ่าน → ล้างสถานะเปิดดูเนื้อหา + รีเซ็ตรอบสอบ เพื่อเรียนเนื้อหาใหม่ก่อนสอบใหม่
+        if ((string) ($quiz['quiz_type'] ?? '') === 'posttest'
+            && $passed === 0
+            && $attemptsUsed >= $maxAttempts
+        ) {
+            $this->resetPosttestForRetake($planId, $quizId, $enrollmentId);
+            $contentReset = true;
+        }
+
+        $progress = $this->recalculate($planId, $enrollmentId, true);
 
         return [
             'attempt_id' => $attemptId,
@@ -798,8 +975,51 @@ class ModuleLearningService
             'max_score' => $maxScore,
             'percent' => $percent,
             'is_passed' => $passed,
+            'attempts_used' => $attemptsUsed,
+            'max_attempts' => $maxAttempts,
+            'content_reset' => $contentReset,
             'progress' => $progress,
         ];
+    }
+
+    /** มีการส่งภาระงานอย่างน้อย 1 รายการในแผนนี้หรือไม่ */
+    private function hasTaskSubmissions(int $planId, int $enrollmentId): bool
+    {
+        $row = db()->fetch(
+            "SELECT COUNT(*) AS c
+             FROM training_task_submissions s
+             INNER JOIN training_tasks t ON t.id = s.task_id
+             WHERE t.plan_id = ? AND t.status = 1 AND s.enrollment_id = ?
+               AND s.status IN ('submitted','approved','rejected','revision')",
+            [$planId, $enrollmentId]
+        );
+        return (int) ($row['c'] ?? 0) > 0;
+    }
+
+    /**
+     * หลังสอบหลังครบครั้งแล้วยังไม่ผ่าน:
+     * - ล้างการเปิดดูเนื้อหาของแผนนี้
+     * - ปิดรอบ attempt เดิม (expired) เพื่อให้เริ่มนับใหม่หลังเรียนเนื้อหาครบ
+     */
+    private function resetPosttestForRetake(int $planId, int $quizId, int $enrollmentId): void
+    {
+        $contentIds = db()->fetchAll(
+            'SELECT id FROM training_contents WHERE plan_id = ? AND status = 1',
+            [$planId]
+        );
+        foreach ($contentIds as $c) {
+            db()->query(
+                'DELETE FROM training_content_views WHERE content_id = ? AND enrollment_id = ?',
+                [(int) $c['id'], $enrollmentId]
+            );
+        }
+
+        db()->query(
+            "UPDATE training_quiz_attempts
+             SET status = 'expired'
+             WHERE quiz_id = ? AND enrollment_id = ? AND status = 'submitted'",
+            [$quizId, $enrollmentId]
+        );
     }
 
     public function markContentComplete(int $contentId, int $enrollmentId, int $userId): array
@@ -845,8 +1065,8 @@ class ModuleLearningService
             throw new \RuntimeException('ไม่พบภาระงาน');
         }
         $planId = (int) $task['plan_id'];
-        if (!$this->canAccessContent($planId, $enrollmentId)) {
-            throw new \RuntimeException('กรุณาทำ Pretest ให้เสร็จก่อน');
+        if (!$this->canAccessTask($planId, $enrollmentId)) {
+            throw new \RuntimeException('กรุณาเปิดดูเนื้อหาให้ครบก่อนส่งภาระงาน');
         }
 
         $filePath = $data['file_path'] ?? null;
@@ -857,7 +1077,8 @@ class ModuleLearningService
             throw new \RuntimeException('กรุณาแนบไฟล์หรือลิงก์');
         }
 
-        $status = (int) ($task['require_review'] ?? 1) === 1 ? 'submitted' : 'approved';
+        // ภาระงานต้องรอวิทยากรตรวจให้คะแนนก่อนจึงนับร้อยละ
+        $status = 'submitted';
         $now = date('Y-m-d H:i:s');
         $payload = [
             'answer_text' => $text !== '' ? $text : null,
@@ -866,9 +1087,9 @@ class ModuleLearningService
             'status' => $status,
             'submitted_at' => $now,
             'updated_at' => $now,
-            'score' => $status === 'approved' ? (float) $task['max_score'] : null,
-            'reviewed_at' => $status === 'approved' ? $now : null,
-            'reviewed_by' => $status === 'approved' ? $userId : null,
+            'score' => null,
+            'reviewed_at' => null,
+            'reviewed_by' => null,
         ];
 
         $ex = db()->fetch(
@@ -888,6 +1109,12 @@ class ModuleLearningService
             db()->insert('training_task_submissions', $payload);
         }
 
+        try {
+            (new NotificationService())->taskSubmitted($planId, $taskId, $userId);
+        } catch (\Throwable $e) {
+            // ไม่บล็อกการส่งงานหากแจ้งเตือนล้มเหลว
+        }
+
         return $this->recalculate($planId, $enrollmentId, true);
     }
 
@@ -901,6 +1128,22 @@ class ModuleLearningService
             throw new \RuntimeException('สถานะไม่ถูกต้อง');
         }
         $task = db()->fetch('SELECT * FROM training_tasks WHERE id = ?', [(int) $sub['task_id']]);
+        if (!$task) {
+            throw new \RuntimeException('ไม่พบภาระงาน');
+        }
+        $max = max(0.0, (float) ($task['max_score'] ?? 100));
+        // ค่าเริ่มต้น = คะแนนเต็มของภาระงานนั้น
+        if ($status === 'approved') {
+            if ($score === null) {
+                $score = $max;
+            }
+            $score = max(0.0, min($max, $score));
+        } elseif ($status === 'rejected') {
+            $score = $score !== null ? max(0.0, min($max, $score)) : 0.0;
+        } else {
+            $score = null;
+        }
+
         db()->update('training_task_submissions', [
             'status' => $status,
             'score' => $score,
@@ -910,7 +1153,53 @@ class ModuleLearningService
             'updated_at' => date('Y-m-d H:i:s'),
         ], 'id = ?', [$submissionId]);
 
+        try {
+            (new NotificationService())->taskReviewed($submissionId, $status);
+        } catch (\Throwable $e) {
+            // ไม่บล็อกการตรวจงานหากแจ้งเตือนล้มเหลว
+        }
+
         return $this->recalculate((int) $task['plan_id'], (int) $sub['enrollment_id'], true);
+    }
+
+    /**
+     * ตรวจผ่านหลายรายการพร้อมกัน (ค่าเริ่มต้น = คะแนนเต็มของแต่ละภาระงาน)
+     * @param list<int>|null $submissionIds ถ้าว่าง = ทุกงานที่รอตรวจในแผน
+     * @return int จำนวนที่ตรวจ
+     */
+    public function bulkApproveSubmissions(int $planId, int $reviewerId, ?array $submissionIds = null, ?int $enrollmentId = null): int
+    {
+        $params = [$planId];
+        $sql = "SELECT s.id, s.enrollment_id, t.max_score
+                FROM training_task_submissions s
+                INNER JOIN training_tasks t ON t.id = s.task_id
+                WHERE t.plan_id = ? AND t.status = 1
+                  AND s.status IN ('submitted','revision')";
+        if ($enrollmentId !== null && $enrollmentId > 0) {
+            $sql .= ' AND s.enrollment_id = ?';
+            $params[] = $enrollmentId;
+        }
+        if ($submissionIds !== null) {
+            $submissionIds = array_values(array_filter(array_map('intval', $submissionIds)));
+            if ($submissionIds === []) {
+                return 0;
+            }
+            $ph = implode(',', array_fill(0, count($submissionIds), '?'));
+            $sql .= " AND s.id IN ({$ph})";
+            foreach ($submissionIds as $sid) {
+                $params[] = $sid;
+            }
+        }
+        $rows = db()->fetchAll($sql, $params);
+        $touchedEnroll = [];
+        foreach ($rows as $row) {
+            $this->reviewTask((int) $row['id'], 'approved', (float) ($row['max_score'] ?? 100), null, $reviewerId);
+            $touchedEnroll[(int) $row['enrollment_id']] = true;
+        }
+        foreach (array_keys($touchedEnroll) as $eid) {
+            $this->recalculate($planId, (int) $eid, true);
+        }
+        return count($rows);
     }
 
     /** @return list<array> */

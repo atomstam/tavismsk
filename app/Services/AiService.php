@@ -211,7 +211,7 @@ class AiService
     private function systemPrompt(string $mode): string
     {
         $name = function_exists('app_brand') ? app_brand('name') : 'TAVIS – วัคซีนจราจร';
-        $full = function_exists('app_brand') ? app_brand('full_name') : 'วัคซีนจราจร เพื่อพัฒนาความรู้และทักษะด้านจราจรและความปลอดภัยทางถนน';
+        $full = function_exists('app_brand') ? app_brand('full_name') : 'วัคซีนจราจร เพื่อพัฒนาสมรรถนะด้านจราจรและความปลอดภัยทางถนน';
         $en = function_exists('app_brand') ? app_brand('name_en') : 'Traffic Awareness Vaccine Intelligent System';
         $org = (string) (function_exists('setting') ? setting('org_name') : 'สำนักงานเขตพื้นที่การศึกษามัธยมศึกษามหาสารคาม');
         $base = <<<TXT

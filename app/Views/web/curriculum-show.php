@@ -4,8 +4,14 @@ $no = (int) ($cfg['plan_no'] ?? 0);
 $row = $row ?? null;
 $planId = (int) ($row['id'] ?? 0);
 $progress = $progress ?? null;
-$lmsContents = $lmsContents ?? [];
-$lmsTasks = $lmsTasks ?? [];
+$sections = $sections ?? [
+  'contents' => [],
+  'tasks' => [],
+  'knowledge' => [],
+  'worksheets' => [],
+  'worksheets_covered_by_tasks' => false,
+  'media' => [],
+];
 $pct = (float) ($progress['overall_percent'] ?? 0);
 $stage = (string) ($progress['stage'] ?? '');
 $typeLabel = [
@@ -17,9 +23,6 @@ $typeLabel = [
 ];
 $itype = (string) ($cfg['instructor_type'] ?? '');
 $instructor = $cfg['instructor_label'] ?? ($typeLabel[$itype] ?? $itype);
-$knowledge = $cfg['knowledge_sheets'] ?? [];
-$worksheetsCfg = $cfg['worksheets'] ?? [];
-$media = $cfg['resources'] ?? [];
 $coverRel = sprintf('img/plans/plan-%02d.png', $no);
 $coverFile = PUBLIC_PATH . '/assets/' . $coverRel;
 $hasCover = is_file($coverFile);
@@ -103,32 +106,37 @@ $stageLabel = match ($stage) {
           </div>
         </div>
 
-        <?php if ($lmsContents || $lmsTasks): ?>
-          <section class="ws-plan-section">
-            <h2><i class="fa fa-graduation-cap"></i> เนื้อหาในระบบเรียน (LMS)</h2>
-            <?php if ($lmsContents): ?>
-              <ul class="ws-plan-list">
-                <?php foreach ($lmsContents as $c): ?>
-                  <li><i class="fa fa-book-open me-1 text-primary"></i><?= e($c['title']) ?></li>
-                <?php endforeach; ?>
-              </ul>
-            <?php endif; ?>
-            <?php if ($lmsTasks): ?>
-              <h3 class="h6 mt-3">ภาระงาน</h3>
-              <ul class="ws-plan-list">
-                <?php foreach ($lmsTasks as $t): ?>
-                  <li><i class="fa fa-list-check me-1 text-primary"></i><?= e($t['title']) ?></li>
-                <?php endforeach; ?>
-              </ul>
-            <?php endif; ?>
-          </section>
-        <?php endif; ?>
+        <section class="ws-plan-section">
+          <h2><i class="fa fa-graduation-cap"></i> เนื้อหาในระบบเรียน (LMS)</h2>
+          <?php if ($sections['contents']): ?>
+            <ul class="ws-plan-list">
+              <?php foreach ($sections['contents'] as $c): ?>
+                <li><i class="fa fa-book-open me-1 text-primary"></i><?= e($c['title']) ?></li>
+              <?php endforeach; ?>
+            </ul>
+          <?php else: ?>
+            <p class="ws-plan-empty">ยังไม่มีเนื้อหาในระบบสำหรับแผนนี้</p>
+          <?php endif; ?>
+        </section>
 
         <section class="ws-plan-section">
-          <h2><i class="fa fa-book-open"></i> ใบความรู้</h2>
-          <?php if ($knowledge): ?>
+          <h2><i class="fa fa-list-check"></i> ภาระงานในระบบเรียน (LMS)</h2>
+          <?php if ($sections['tasks']): ?>
             <ul class="ws-plan-list">
-              <?php foreach ($knowledge as $ks): ?><li><?= e($ks) ?></li><?php endforeach; ?>
+              <?php foreach ($sections['tasks'] as $t): ?>
+                <li><i class="fa fa-pen me-1 text-primary"></i><?= e($t['title']) ?></li>
+              <?php endforeach; ?>
+            </ul>
+          <?php else: ?>
+            <p class="ws-plan-empty">ยังไม่มีภาระงานในระบบสำหรับแผนนี้</p>
+          <?php endif; ?>
+        </section>
+
+        <section class="ws-plan-section">
+          <h2><i class="fa fa-book"></i> ใบความรู้</h2>
+          <?php if ($sections['knowledge']): ?>
+            <ul class="ws-plan-list">
+              <?php foreach ($sections['knowledge'] as $ks): ?><li><?= e($ks) ?></li><?php endforeach; ?>
             </ul>
           <?php else: ?>
             <p class="ws-plan-empty">ยังไม่มีใบความรู้ในแผนนี้</p>
@@ -137,24 +145,26 @@ $stageLabel = match ($stage) {
 
         <section class="ws-plan-section">
           <h2><i class="fa fa-pen-to-square"></i> ใบงาน</h2>
-          <?php if ($worksheetsCfg): ?>
+          <?php if ($sections['worksheets']): ?>
             <ul class="ws-plan-list">
-              <?php foreach ($worksheetsCfg as $ws): ?><li><?= e($ws) ?></li><?php endforeach; ?>
+              <?php foreach ($sections['worksheets'] as $ws): ?><li><?= e($ws) ?></li><?php endforeach; ?>
             </ul>
+          <?php elseif (!empty($sections['worksheets_covered_by_tasks'])): ?>
+            <p class="ws-plan-empty mb-0">ใบงานของแผนนี้ดำเนินการผ่าน <strong>ภาระงานในระบบเรียน</strong> ด้านบนแล้ว ไม่แสดงซ้ำ</p>
           <?php else: ?>
-            <p class="ws-plan-empty">ยังไม่มีใบงานในแผนนี้</p>
+            <p class="ws-plan-empty">ยังไม่มีใบงานแยกต่างหากในแผนนี้</p>
           <?php endif; ?>
         </section>
 
         <section class="ws-plan-section">
           <h2><i class="fa fa-link"></i> สื่อ / แหล่งเรียนรู้</h2>
-          <?php if ($media): ?>
+          <?php if ($sections['media']): ?>
             <ul class="ws-plan-list ws-plan-links">
-              <?php foreach ($media as $res): ?>
+              <?php foreach ($sections['media'] as $res): ?>
                 <li>
                   <?php if (!empty($res['url'])): ?>
                     <a href="<?= e($res['url']) ?>" target="_blank" rel="noopener">
-                      <?= e($res['title'] ?? 'ลิงก์') ?>
+                      <?= e($res['title'] ?: 'ลิงก์') ?>
                       <i class="fa fa-arrow-up-right-from-square"></i>
                     </a>
                   <?php else: ?>
@@ -164,34 +174,9 @@ $stageLabel = match ($stage) {
               <?php endforeach; ?>
             </ul>
           <?php else: ?>
-            <p class="ws-plan-empty">ยังไม่มีสื่อในแผนนี้</p>
+            <p class="ws-plan-empty">ยังไม่มีสื่อเพิ่มเติมในแผนนี้ (เนื้อหาหลักอยู่ในระบบเรียนด้านบน)</p>
           <?php endif; ?>
         </section>
-
-        <?php if (!empty($resources)): ?>
-          <section class="ws-plan-section">
-            <h2><i class="fa fa-folder-open"></i> ทรัพยากรเพิ่มเติม</h2>
-            <ul class="ws-plan-list ws-plan-links">
-              <?php foreach ($resources as $r): ?>
-                <li>
-                  <?= e($r['title']) ?>
-                  <?php if (!empty($r['url'])): ?>
-                    — <a href="<?= e($r['url']) ?>" target="_blank" rel="noopener">เปิด <i class="fa fa-arrow-up-right-from-square"></i></a>
-                  <?php endif; ?>
-                </li>
-              <?php endforeach; ?>
-            </ul>
-          </section>
-        <?php endif; ?>
-
-        <?php if (!empty($worksheets)): ?>
-          <section class="ws-plan-section">
-            <h2><i class="fa fa-file-lines"></i> ใบงานในระบบ</h2>
-            <ul class="ws-plan-list">
-              <?php foreach ($worksheets as $w): ?><li><?= e($w['title']) ?></li><?php endforeach; ?>
-            </ul>
-          </section>
-        <?php endif; ?>
       </article>
     </div>
 

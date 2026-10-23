@@ -55,30 +55,42 @@ if ($learners !== []) {
 </div>
 
 <?php if ($isManager): ?>
-<div class="row g-3 mb-4 enroll-stat-row">
-  <div class="col-6 col-md-3">
-    <div class="card-soft enroll-stat"><div class="card-body">
-      <span class="enroll-stat-label">ผู้เรียนในแผน</span>
-      <strong class="enroll-stat-value"><?= count($learners) ?></strong>
-    </div></div>
+<div class="row g-3 mb-4 metric-stat-row">
+  <div class="col-6 col-lg-3">
+    <div class="metric-stat metric-stat--blue">
+      <div class="metric-stat-icon"><i class="fa fa-user-graduate"></i></div>
+      <div class="metric-stat-body">
+        <span class="metric-stat-label">ผู้เรียนในแผน</span>
+        <strong class="metric-stat-value"><?= count($learners) ?></strong>
+      </div>
+    </div>
   </div>
-  <div class="col-6 col-md-3">
-    <div class="card-soft enroll-stat"><div class="card-body">
-      <span class="enroll-stat-label">ผ่านแผนแล้ว</span>
-      <strong class="enroll-stat-value"><?= $passed ?></strong>
-    </div></div>
+  <div class="col-6 col-lg-3">
+    <div class="metric-stat metric-stat--emerald">
+      <div class="metric-stat-icon"><i class="fa fa-award"></i></div>
+      <div class="metric-stat-body">
+        <span class="metric-stat-label">ผ่านแผนแล้ว</span>
+        <strong class="metric-stat-value"><?= $passed ?></strong>
+      </div>
+    </div>
   </div>
-  <div class="col-6 col-md-3">
-    <div class="card-soft enroll-stat"><div class="card-body">
-      <span class="enroll-stat-label">เฉลี่ยความก้าวหน้า</span>
-      <strong class="enroll-stat-value"><?= $learners === [] ? '-' : $avg . '%' ?></strong>
-    </div></div>
+  <div class="col-6 col-lg-3">
+    <div class="metric-stat metric-stat--teal">
+      <div class="metric-stat-icon"><i class="fa fa-chart-line"></i></div>
+      <div class="metric-stat-body">
+        <span class="metric-stat-label">เฉลี่ยความก้าวหน้า</span>
+        <strong class="metric-stat-value"><?= $learners === [] ? '-' : $avg . '%' ?></strong>
+      </div>
+    </div>
   </div>
-  <div class="col-6 col-md-3">
-    <div class="card-soft enroll-stat"><div class="card-body">
-      <span class="enroll-stat-label">กลุ่มหัวข้อ</span>
-      <strong class="enroll-stat-value enroll-stat-value--sm"><?= e($plan['topic_group'] ?: '-') ?></strong>
-    </div></div>
+  <div class="col-6 col-lg-3">
+    <div class="metric-stat metric-stat--slate">
+      <div class="metric-stat-icon"><i class="fa fa-tags"></i></div>
+      <div class="metric-stat-body">
+        <span class="metric-stat-label">กลุ่มหัวข้อ</span>
+        <strong class="metric-stat-value metric-stat-value--sm"><?= e($plan['topic_group'] ?: '-') ?></strong>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -88,51 +100,49 @@ if ($learners !== []) {
     <?php if ($learners === []): ?>
       <p class="text-muted mb-0 text-center py-4">ยังไม่มีผู้เรียนที่มีความก้าวหน้าในแผนนี้</p>
     <?php else: ?>
-      <div class="table-responsive">
-        <table class="table enroll-plan-table align-middle mb-0" id="enroll-plan-learners">
-          <thead>
-            <tr>
-              <th>เลขที่</th>
-              <th>ผู้เข้ารับการพัฒนา</th>
-              <th>หน่วยงาน</th>
-              <th>ขั้น</th>
-              <th class="text-center">ก่อน</th>
-              <th class="text-center">เนื้อหา</th>
-              <th class="text-center">งาน</th>
-              <th class="text-center">หลัง</th>
-              <th class="text-center">รวม</th>
-              <th class="text-center">ผล</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php foreach ($learners as $L): ?>
-            <tr>
-              <td><code><?= e($L['enrollment_no']) ?></code></td>
-              <td>
-                <strong><?= e(trim(($L['title'] ?? '') . ($L['first_name'] ?? '') . ' ' . ($L['last_name'] ?? ''))) ?></strong>
-                <span class="small text-muted d-block">@<?= e($L['username'] ?? '') ?></span>
-              </td>
-              <td><?= e($L['org_name'] ?: '-') ?></td>
-              <td><?= e($stageLabel[(string) ($L['stage'] ?? '')] ?? (string) ($L['stage'] ?? '-')) ?></td>
-              <td class="text-center"><?= number_format((float) ($L['pretest_percent'] ?? 0), 0) ?></td>
-              <td class="text-center"><?= number_format((float) ($L['content_percent'] ?? 0), 0) ?></td>
-              <td class="text-center"><?= number_format((float) ($L['task_percent'] ?? 0), 0) ?></td>
-              <td class="text-center"><?= number_format((float) ($L['posttest_percent'] ?? 0), 0) ?></td>
-              <td class="text-center">
-                <strong><?= number_format((float) ($L['overall_percent'] ?? 0), 1) ?>%</strong>
-              </td>
-              <td class="text-center">
-                <?php if ((int) ($L['plan_passed'] ?? 0) === 1): ?>
-                  <span class="badge text-bg-success">ผ่าน</span>
-                <?php else: ?>
-                  <span class="badge text-bg-secondary">ยังไม่ผ่าน</span>
-                <?php endif; ?>
-              </td>
-            </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
-      </div>
+      <table class="table datatable w-100" id="enroll-plan-learners" data-order='[[1,"asc"]]'>
+        <thead>
+          <tr>
+            <th class="col-primary">เลขที่</th>
+            <th class="col-wrap">ผู้เข้ารับการพัฒนา</th>
+            <th class="col-wrap">หน่วยงาน</th>
+            <th>ขั้น</th>
+            <th class="text-center">ก่อน</th>
+            <th class="text-center">เนื้อหา</th>
+            <th class="text-center">งาน</th>
+            <th class="text-center">หลัง</th>
+            <th class="text-center">รวม</th>
+            <th class="text-center">ผล</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($learners as $L): ?>
+          <tr>
+            <td><code><?= e($L['enrollment_no']) ?></code></td>
+            <td class="col-wrap">
+              <strong><?= e(trim(($L['title'] ?? '') . ($L['first_name'] ?? '') . ' ' . ($L['last_name'] ?? ''))) ?></strong>
+              <span class="small text-muted d-block">@<?= e($L['username'] ?? '') ?></span>
+            </td>
+            <td class="col-wrap"><?= e($L['org_name'] ?: '-') ?></td>
+            <td><?= e($stageLabel[(string) ($L['stage'] ?? '')] ?? (string) ($L['stage'] ?? '-')) ?></td>
+            <td class="text-center" data-order="<?= (float) ($L['pretest_percent'] ?? 0) ?>"><?= number_format((float) ($L['pretest_percent'] ?? 0), 0) ?></td>
+            <td class="text-center" data-order="<?= (float) ($L['content_percent'] ?? 0) ?>"><?= number_format((float) ($L['content_percent'] ?? 0), 0) ?></td>
+            <td class="text-center" data-order="<?= (float) ($L['task_percent'] ?? 0) ?>"><?= number_format((float) ($L['task_percent'] ?? 0), 0) ?></td>
+            <td class="text-center" data-order="<?= (float) ($L['posttest_percent'] ?? 0) ?>"><?= number_format((float) ($L['posttest_percent'] ?? 0), 0) ?></td>
+            <td class="text-center" data-order="<?= (float) ($L['overall_percent'] ?? 0) ?>">
+              <strong><?= number_format((float) ($L['overall_percent'] ?? 0), 1) ?>%</strong>
+            </td>
+            <td class="text-center" data-order="<?= (int) ($L['plan_passed'] ?? 0) ?>">
+              <?php if ((int) ($L['plan_passed'] ?? 0) === 1): ?>
+                <span class="badge text-bg-success">ผ่าน</span>
+              <?php else: ?>
+                <span class="badge text-bg-secondary">ยังไม่ผ่าน</span>
+              <?php endif; ?>
+            </td>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
     <?php endif; ?>
   </div>
 </div>
@@ -163,12 +173,15 @@ if ($learners !== []) {
       <?php else: ?>
         <div class="mb-3">
           <div class="d-flex justify-content-between small mb-1">
-            <span>ความก้าวหน้าโดยรวม</span>
+            <span>ความก้าวหน้า (ครบองค์ประกอบ)</span>
             <strong><?= number_format((float) $progress['overall_percent'], 1) ?>%</strong>
           </div>
           <div class="enroll-mini-bar enroll-mini-bar--lg">
             <span style="width:<?= min(100, max(0, (float) $progress['overall_percent'])) ?>%"></span>
           </div>
+          <?php if (isset($progress['score_percent'])): ?>
+            <div class="small text-muted mt-1">คะแนนรวม <?= number_format((float) $progress['score_percent'], 1) ?>% (ใช้ตัดสินผ่าน / เกียรติบัตร)</div>
+          <?php endif; ?>
         </div>
         <div class="table-responsive">
           <table class="table table-sm enroll-plan-table mb-3">
@@ -184,7 +197,7 @@ if ($learners !== []) {
               foreach ($parts as $key => $label):
               ?>
               <tr>
-                <td><?= e($label) ?></td>
+                <td><?= e($label) ?> <span class="text-muted small">(คะแนน)</span></td>
                 <td class="text-end"><?= number_format((float) ($progress[$key] ?? 0), 1) ?>%</td>
               </tr>
               <?php endforeach; ?>

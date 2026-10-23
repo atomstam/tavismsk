@@ -46,13 +46,13 @@ $authAvatar = $authUser ? avatar_url($authUser['avatar'] ?? null) : '';
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="<?= asset('vendor/fontawesome/css/all.min.css') ?>?v=6.5.2">
-  <link rel="stylesheet" href="<?= asset('css/app.css') ?>?v=37">
-  <link rel="stylesheet" href="<?= asset('css/web-site.css') ?>?v=40">
+  <link rel="stylesheet" href="<?= asset('css/app.css') ?>?v=48">
+  <link rel="stylesheet" href="<?= asset('css/web-site.css') ?>?v=41">
   <link rel="stylesheet" href="<?= asset('css/portfolio-clean.css') ?>?v=4">
   <link rel="stylesheet" href="<?= asset('css/portfolio-dark.css') ?>?v=9">
   <link rel="stylesheet" href="<?= asset('css/web-dark-home.css') ?>?v=27">
   <link rel="stylesheet" href="<?= asset('css/web-theme.css') ?>?v=20">
-  <link rel="stylesheet" href="<?= asset('css/learn.css') ?>?v=10">
+  <link rel="stylesheet" href="<?= asset('css/learn.css') ?>?v=11">
   <script>
     tailwind.config = {
       corePlugins: { preflight: false },

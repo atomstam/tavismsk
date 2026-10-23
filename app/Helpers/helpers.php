@@ -624,12 +624,12 @@ if (!function_exists('setting_defaults')) {
         return [
             'site_name' => (string) config('app', 'name', 'TAVIS – วัคซีนจราจร'),
             'site_short_name' => (string) config('app', 'short_name', 'TAVIS'),
-            'site_full_name' => (string) config('app', 'full_name', 'วัคซีนจราจร เพื่อพัฒนาความรู้และทักษะด้านจราจรและความปลอดภัยทางถนน'),
-            'site_tagline' => (string) config('app', 'tagline', 'เพื่อพัฒนาความรู้และทักษะด้านจราจรและความปลอดภัยทางถนน'),
+            'site_full_name' => (string) config('app', 'full_name', 'วัคซีนจราจร เพื่อพัฒนาสมรรถนะด้านจราจรและความปลอดภัยทางถนน'),
+            'site_tagline' => (string) config('app', 'tagline', 'เพื่อพัฒนาสมรรถนะด้านจราจรและความปลอดภัยทางถนน'),
             'site_name_en' => (string) config('app', 'name_en', 'Traffic Awareness Vaccine Intelligent System'),
             'site_nav_title' => (string) config('app', 'nav_title', 'TAVIS วัคซีนจราจร'),
-            'site_nav_tag' => (string) config('app', 'nav_tag', 'เพื่อพัฒนาความรู้และทักษะด้านจราจร'),
-            'system_purpose' => (string) config('app', 'description', 'วัคซีนจราจร เพื่อพัฒนาความรู้และทักษะด้านจราจรและความปลอดภัยทางถนน'),
+            'site_nav_tag' => (string) config('app', 'nav_tag', 'เพื่อพัฒนาสมรรถนะด้านจราจร'),
+            'system_purpose' => (string) config('app', 'description', 'วัคซีนจราจร เพื่อพัฒนาสมรรถนะด้านจราจรและความปลอดภัยทางถนน'),
             'org_name' => (string) ($org['name'] ?? 'สำนักงานเขตพื้นที่การศึกษามัธยมศึกษามหาสารคาม'),
             'org_name_en' => (string) ($org['name_en'] ?? 'Secondary Educational Service Area Office Maha Sarakham'),
             'org_affiliation' => (string) ($org['affiliation'] ?? 'สำนักงานคณะกรรมการการศึกษาขั้นพื้นฐาน'),
@@ -642,6 +642,12 @@ if (!function_exists('setting_defaults')) {
             'developer_name' => $devName,
             'footer_credit' => (string) ($dev['credit'] ?? 'จัดทำโดย สำนักงานเขตพื้นที่การศึกษามัธยมศึกษามหาสารคาม'),
             'certificate_prefix' => (string) config('app', 'training.certificate_prefix', 'TAVIS'),
+            'director_name' => (string) config('app', 'certificate.director_name', 'นายอดุลย์ ภูปลื้ม'),
+            'director_position' => (string) config(
+                'app',
+                'certificate.director_position',
+                'ผู้อำนวยการสำนักงานเขตพื้นที่การศึกษามัธยมศึกษามหาสารคาม'
+            ),
         ];
     }
 }
@@ -915,6 +921,160 @@ if (!function_exists('curriculum_plan')) {
     {
         $plans = curriculum_plans();
         return $plans[$no] ?? null;
+    }
+}
+
+if (!function_exists('curriculum_title_key')) {
+    /** คีย์เปรียบเทียบชื่อรายการเพื่อตัดซ้ำ */
+    function curriculum_title_key(string $title): string
+    {
+        $t = mb_strtolower(trim($title), 'UTF-8');
+        $t = preg_replace('/\s+/u', '', $t) ?? $t;
+        return $t;
+    }
+}
+
+if (!function_exists('curriculum_plan_sections')) {
+    /**
+     * รวมรายการแสดงผลต่อแผน โดยแยกหมวดและตัดรายการซ้ำข้ามแหล่ง
+     * - เนื้อหา/ภาระงาน = จาก LMS เท่านั้น
+     * - ใบความรู้ = จาก config
+     * - ใบงาน = config+DB ที่ยังไม่ซ้ำกับภาระงาน LMS
+     * - สื่อ = config+DB ที่ยังไม่ซ้ำกันเอง และไม่ซ้ำชื่อกับเนื้อหา LMS
+     *
+     * @param array<string,mixed> $cfg
+     * @param list<array<string,mixed>> $lmsContents
+     * @param list<array<string,mixed>> $lmsTasks
+     * @param list<array<string,mixed>> $dbResources
+     * @param list<array<string,mixed>> $dbWorksheets
+     * @return array{
+     *   contents:list<array{title:string}>,
+     *   tasks:list<array{title:string}>,
+     *   knowledge:list<string>,
+     *   worksheets:list<string>,
+     *   worksheets_covered_by_tasks:bool,
+     *   media:list<array{title:string,url:?string,type?:string}>
+     * }
+     */
+    function curriculum_plan_sections(
+        array $cfg,
+        array $lmsContents = [],
+        array $lmsTasks = [],
+        array $dbResources = [],
+        array $dbWorksheets = []
+    ): array {
+        $contents = [];
+        $contentKeys = [];
+        foreach ($lmsContents as $c) {
+            $title = trim((string) ($c['title'] ?? ''));
+            if ($title === '') {
+                continue;
+            }
+            $key = curriculum_title_key($title);
+            if (isset($contentKeys[$key])) {
+                continue;
+            }
+            $contentKeys[$key] = true;
+            $contents[] = ['title' => $title];
+        }
+
+        $tasks = [];
+        $taskKeys = [];
+        foreach ($lmsTasks as $t) {
+            $title = trim((string) ($t['title'] ?? ''));
+            if ($title === '') {
+                continue;
+            }
+            $key = curriculum_title_key($title);
+            if (isset($taskKeys[$key])) {
+                continue;
+            }
+            $taskKeys[$key] = true;
+            $tasks[] = ['title' => $title];
+        }
+
+        $knowledge = [];
+        $knowKeys = [];
+        foreach (($cfg['knowledge_sheets'] ?? []) as $ks) {
+            $title = trim((string) $ks);
+            if ($title === '') {
+                continue;
+            }
+            $key = curriculum_title_key($title);
+            if (isset($knowKeys[$key])) {
+                continue;
+            }
+            $knowKeys[$key] = true;
+            $knowledge[] = $title;
+        }
+
+        $worksheetCandidates = [];
+        foreach (($cfg['worksheets'] ?? []) as $ws) {
+            $worksheetCandidates[] = trim((string) $ws);
+        }
+        foreach ($dbWorksheets as $w) {
+            $worksheetCandidates[] = trim((string) ($w['title'] ?? ''));
+        }
+        $worksheets = [];
+        $wsKeys = [];
+        $hadWorksheetSource = false;
+        foreach ($worksheetCandidates as $title) {
+            if ($title === '') {
+                continue;
+            }
+            $hadWorksheetSource = true;
+            $key = curriculum_title_key($title);
+            if (isset($wsKeys[$key]) || isset($taskKeys[$key])) {
+                continue;
+            }
+            $wsKeys[$key] = true;
+            $worksheets[] = $title;
+        }
+
+        $mediaCandidates = [];
+        foreach (($cfg['resources'] ?? []) as $res) {
+            if (!is_array($res)) {
+                continue;
+            }
+            $mediaCandidates[] = [
+                'title' => trim((string) ($res['title'] ?? '')),
+                'url' => trim((string) ($res['url'] ?? '')) ?: null,
+                'type' => (string) ($res['type'] ?? ''),
+            ];
+        }
+        foreach ($dbResources as $r) {
+            $mediaCandidates[] = [
+                'title' => trim((string) ($r['title'] ?? '')),
+                'url' => trim((string) ($r['url'] ?? '')) ?: null,
+                'type' => (string) ($r['type'] ?? 'link'),
+            ];
+        }
+        $media = [];
+        $mediaKeys = [];
+        foreach ($mediaCandidates as $m) {
+            $title = $m['title'];
+            if ($title === '') {
+                continue;
+            }
+            $key = curriculum_title_key($title);
+            $urlKey = $m['url'] ? ('u:' . mb_strtolower($m['url'], 'UTF-8')) : ('t:' . $key);
+            // ซ้ำกับรายการสื่ออื่น หรือชื่อซ้ำกับเนื้อหา LMS → ไม่แสดงซ้ำ
+            if (isset($mediaKeys[$urlKey]) || isset($mediaKeys['t:' . $key]) || isset($contentKeys[$key])) {
+                continue;
+            }
+            $mediaKeys[$urlKey] = true;
+            $mediaKeys['t:' . $key] = true;
+            $media[] = $m;
+        }
+
+        return [
+            'contents' => $contents,
+            'tasks' => $tasks,
+            'knowledge' => $knowledge,
+            'worksheets' => $worksheets,
+            'worksheets_covered_by_tasks' => $hadWorksheetSource && $worksheets === [] && $taskKeys !== [],
+            'media' => $media,
+        ];
     }
 }
 

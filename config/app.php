@@ -2,26 +2,26 @@
 /**
  * Application Configuration
  * TAVIS – Traffic Awareness Vaccine Intelligent System
- * วัคซีนจราจร เพื่อพัฒนาความรู้และทักษะด้านจราจรและความปลอดภัยทางถนน
+ * วัคซีนจราจร เพื่อพัฒนาสมรรถนะด้านจราจรและความปลอดภัยทางถนน
  * จัดทำโดย สำนักงานเขตพื้นที่การศึกษามัธยมศึกษามหาสารคาม
  */
 
 return [
     'name' => env('APP_NAME', 'TAVIS - วัคซีนจราจร'),
     'short_name' => env('APP_SHORT_NAME', 'TAVIS'),
-    'full_name' => env('APP_FULL_NAME', 'วัคซีนจราจร เพื่อพัฒนาความรู้และทักษะด้านจราจรและความปลอดภัยทางถนน'),
-    'tagline' => env('APP_TAGLINE', 'เพื่อพัฒนาความรู้และทักษะด้านจราจรและความปลอดภัยทางถนน'),
+    'full_name' => env('APP_FULL_NAME', 'วัคซีนจราจร เพื่อพัฒนาสมรรถนะด้านจราจรและความปลอดภัยทางถนน'),
+    'tagline' => env('APP_TAGLINE', 'เพื่อพัฒนาสมรรถนะด้านจราจรและความปลอดภัยทางถนน'),
     'name_en' => env('APP_NAME_EN', 'Traffic Awareness Vaccine Intelligent System'),
     'nav_title' => env('APP_NAV_TITLE', 'TAVIS วัคซีนจราจร'),
-    'nav_tag' => env('APP_NAV_TAG', 'เพื่อพัฒนาความรู้และทักษะด้านจราจร'),
+    'nav_tag' => env('APP_NAV_TAG', 'เพื่อพัฒนาสมรรถนะด้านจราจร'),
     'description' => env(
         'APP_DESCRIPTION',
-        'วัคซีนจราจร เพื่อพัฒนาความรู้และทักษะด้านจราจรและความปลอดภัยทางถนน ตามโมดูล มีวัดประเมินผล ผ่านหลักสูตร ออกเกียรติบัตรออนไลน์ และนับชั่วโมง — ใช้งานได้ทั่วประเทศ'
+        'วัคซีนจราจร เพื่อพัฒนาสมรรถนะด้านจราจรและความปลอดภัยทางถนน ตามโมดูล มีวัดประเมินผล ผ่านหลักสูตร ออกเกียรติบัตรออนไลน์ และนับชั่วโมง — ใช้งานได้ทั่วประเทศ'
     ),
     'dashboard' => [
         'kicker' => 'OVERVIEW',
         'title' => 'ภาพรวมระบบ',
-        'subtitle_admin' => 'ภาพรวมวัคซีนจราจร เพื่อพัฒนาความรู้และทักษะด้านจราจรและความปลอดภัยทางถนน',
+        'subtitle_admin' => 'ภาพรวมวัคซีนจราจร เพื่อพัฒนาสมรรถนะด้านจราจรและความปลอดภัยทางถนน',
         'subtitle_trainer' => 'ภาพรวมการจัดอบรมและติดตามผู้เรียนในหน่วยงาน',
         'subtitle_user' => 'ภาพรวมการอบรมของคุณ — Pretest · เนื้อหา · ภาระงาน · Posttest',
     ],
@@ -64,7 +64,22 @@ return [
         'pass_score' => 60,
         'attendance_percent' => 80,
         'certificate_prefix' => 'TAVIS',
-        'course_title' => 'หลักสูตรวัคซีนจราจร เพื่อพัฒนาความรู้และทักษะด้านจราจรและความปลอดภัยทางถนน',
+        'course_title' => 'หลักสูตรวัคซีนจราจร เพื่อพัฒนาสมรรถนะด้านจราจรและความปลอดภัยทางถนน',
+        'task_pass_percent' => 70,
+        'posttest_pass_percent' => 70,
+    ],
+    /** ค่าเริ่มต้นเกียรติบัตร (ชื่อ/ตำแหน่ง/ลายเซ็น ดึงจาก settings ได้ก่อน) */
+    'certificate' => [
+        'title' => 'เกียรติบัตร',
+        'subtitle' => 'หนังสือรับรองการผ่านการอบรม',
+        'director_name' => env('CERT_DIRECTOR_NAME', 'นายอดุลย์ ภูปลื้ม'),
+        'director_position' => env(
+            'CERT_DIRECTOR_POSITION',
+            'ผู้อำนวยการสำนักงานเขตพื้นที่การศึกษามัธยมศึกษามหาสารคาม'
+        ),
+        'signature_path' => env('CERT_SIGNATURE_PATH', 'assets/img/signature-director.png'),
+        'logo_path' => env('CERT_LOGO_PATH', 'assets/img/logo.svg'),
+        'org_name' => 'สำนักงานเขตพื้นที่การศึกษามัธยมศึกษามหาสารคาม',
     ],
     'session_lifetime' => (int) env('SESSION_LIFETIME', 120),
     'session_timeout' => (int) env('SESSION_TIMEOUT', 3600),

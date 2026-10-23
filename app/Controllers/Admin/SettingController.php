@@ -37,7 +37,7 @@ class SettingController extends Controller
             'site_nav_title', 'site_nav_tag', 'system_purpose',
             'org_name', 'org_name_en', 'org_affiliation',
             'org_address', 'org_phone', 'org_email', 'org_website',
-            'org_facebook', 'org_line', 'director_name', 'director_position', 'academic_year',
+            'org_facebook', 'org_line', 'director_name', 'director_position', 'director_signature', 'academic_year',
             'smtp_host', 'smtp_port', 'smtp_user', 'smtp_from', 'theme_default',
             'maintenance_mode', 'maps_embed', 'developer_name', 'footer_credit',
             'certificate_prefix',

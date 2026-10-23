@@ -153,7 +153,7 @@ INSERT INTO `org_units` (`id`,`code`,`name`,`name_en`,`org_type`,`parent_id`,`pr
 ON DUPLICATE KEY UPDATE `name`=VALUES(`name`);
 
 UPDATE `settings` SET `setting_value` = 'TAVIS – ระบบอบรมวัคซีนจราจร' WHERE `setting_key` = 'site_name';
-UPDATE `settings` SET `setting_value` = 'TAVIS ระบบอบรมพัฒนาความรู้และทักษะ' WHERE `setting_key` = 'site_nav_title';
+UPDATE `settings` SET `setting_value` = 'TAVIS ระบบอบรมพัฒนาสมรรถนะ' WHERE `setting_key` = 'site_nav_title';
 UPDATE `settings` SET `setting_value` = 'สำนักงานเขตพื้นที่การศึกษามัธยมศึกษามหาสารคาม' WHERE `setting_key` = 'org_name';
 UPDATE `settings` SET `setting_value` = 'Secondary Educational Service Area Office Maha Sarakham' WHERE `setting_key` = 'org_name_en';
 UPDATE `settings` SET `setting_value` = 'สำนักงานคณะกรรมการการศึกษาขั้นพื้นฐาน' WHERE `setting_key` = 'org_affiliation';

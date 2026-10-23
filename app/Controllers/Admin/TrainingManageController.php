@@ -67,16 +67,24 @@ class TrainingManageController extends Controller
             [(int) $planId]
         );
         $submissions = db()->fetchAll(
-            "SELECT s.*, t.title AS task_title, u.first_name, u.last_name, u.username, e.enrollment_no
+            "SELECT s.*, t.title AS task_title, t.max_score AS task_max_score,
+                    u.first_name, u.last_name, u.username, e.enrollment_no
              FROM training_task_submissions s
              INNER JOIN training_tasks t ON t.id = s.task_id
              INNER JOIN users u ON u.id = s.user_id
              INNER JOIN course_enrollments e ON e.id = s.enrollment_id
              WHERE t.plan_id = ?
              ORDER BY FIELD(s.status,'submitted','revision','approved','rejected','draft'), s.id DESC
-             LIMIT 100",
+             LIMIT 300",
             [(int) $planId]
         );
+        $pendingCount = (int) (db()->fetch(
+            "SELECT COUNT(*) AS c
+             FROM training_task_submissions s
+             INNER JOIN training_tasks t ON t.id = s.task_id
+             WHERE t.plan_id = ? AND t.status = 1 AND s.status IN ('submitted','revision')",
+            [(int) $planId]
+        )['c'] ?? 0);
 
         $satId = $this->lms->centralSatisfactionId((int) auth()->id());
         $satCount = $satId > 0
@@ -108,6 +116,7 @@ class TrainingManageController extends Controller
             'contents' => $contents,
             'tasks' => $tasks,
             'submissions' => $submissions,
+            'pendingCount' => $pendingCount,
             'shares' => $shares,
             'tab' => (string) ($this->input('tab') ?: 'content'),
         ]);
@@ -229,12 +238,22 @@ class TrainingManageController extends Controller
         if (in_array((string) $content['content_type'], ['gdrive', 'link'], true) && preg_match('#^https?://#i', $outside)) {
             $this->redirect($outside);
         }
+        $preview = (new \App\Services\ContentPreviewService())->present($content);
+        $preview['title'] = (string) ($content['title'] ?? '');
+        $preview['back_url'] = url('/admin/training/' . (int) $planId . '?tab=content');
+        if (($preview['kind'] ?? '') === 'pdf' && ($preview['frame_src'] ?? '') !== '') {
+            $path = (string) (parse_url((string) $preview['frame_src'], PHP_URL_PATH) ?: '');
+            $preview['file_name'] = basename($path) ?: 'content.pdf';
+            $preview['info_text'] = 'ไฟล์เนื้อหา: ' . (string) ($content['title'] ?? '')
+                . ' — แผนที่ ' . (int) ($plan['plan_no'] ?? 0)
+                . ' — ' . $preview['file_name'];
+        }
         $this->view('admin/training/content_view', [
             'title' => (string) $content['title'],
             'breadcrumb' => 'หน้าหลัก / บทเรียน LMS / เนื้อหา',
             'plan' => $plan,
             'content' => $content,
-            'preview' => (new \App\Services\ContentPreviewService())->present($content),
+            'preview' => $preview,
         ]);
     }
 
@@ -257,7 +276,7 @@ class TrainingManageController extends Controller
             'instructions' => trim((string) $this->input('instructions', '')) ?: null,
             'require_file' => $this->input('require_file') ? 1 : 0,
             'allow_link' => $this->input('allow_link') ? 1 : 0,
-            'require_review' => $this->input('require_review') ? 1 : 0,
+            'require_review' => 1, // ภาระงานต้องรอวิทยากรตรวจให้คะแนนเสมอ
             'max_score' => (float) $this->input('max_score', 100),
             'pass_score' => (float) $this->input('pass_score', 60),
             'is_required' => $this->input('is_required') ? 1 : 0,
@@ -298,6 +317,7 @@ class TrainingManageController extends Controller
     public function reviewSubmission(string $planId, string $id): void
     {
         $this->requirePerm('assessments', 'edit');
+        $this->findPlan((int) $planId);
         try {
             $this->lms->reviewTask(
                 (int) $id,
@@ -307,6 +327,31 @@ class TrainingManageController extends Controller
                 (int) auth()->id()
             );
             flash('success', 'ตรวจภาระงานแล้ว');
+        } catch (\Throwable $e) {
+            flash('error', $e->getMessage());
+        }
+        $this->redirect('/admin/training/' . $planId . '?tab=submissions');
+    }
+
+    /** ตรวจผ่านหลายรายการ / ทั้งแผน / รายผู้เรียน — คะแนนเริ่มต้น = คะแนนเต็ม */
+    public function bulkReview(string $planId): void
+    {
+        $this->requirePerm('assessments', 'edit');
+        $this->findPlan((int) $planId);
+        $scope = (string) $this->input('scope', 'selected');
+        $enrollmentId = (int) $this->input('enrollment_id', 0);
+        $ids = $this->input('submission_ids');
+        $idList = is_array($ids) ? array_map('intval', $ids) : [];
+
+        try {
+            if ($scope === 'all') {
+                $n = $this->lms->bulkApproveSubmissions((int) $planId, (int) auth()->id(), null, null);
+            } elseif ($scope === 'enrollment' && $enrollmentId > 0) {
+                $n = $this->lms->bulkApproveSubmissions((int) $planId, (int) auth()->id(), null, $enrollmentId);
+            } else {
+                $n = $this->lms->bulkApproveSubmissions((int) $planId, (int) auth()->id(), $idList, null);
+            }
+            flash('success', 'ตรวจผ่านแล้ว ' . $n . ' รายการ (คะแนนเริ่มต้น = คะแนนเต็มของแต่ละภาระงาน)');
         } catch (\Throwable $e) {
             flash('error', $e->getMessage());
         }
@@ -525,8 +570,8 @@ class TrainingManageController extends Controller
         db()->update('training_quizzes', [
             'title' => trim((string) $this->input('title', ucfirst($type))),
             'description' => trim((string) $this->input('description', '')) ?: null,
-            'pass_score' => (float) $this->input('pass_score', 60),
-            'max_attempts' => max(1, (int) $this->input('max_attempts', 3)),
+            'pass_score' => (float) $this->input('pass_score', $type === 'posttest' ? 70 : 60),
+            'max_attempts' => max(1, (int) $this->input('max_attempts', $type === 'posttest' ? 3 : 1)),
             'time_limit_minutes' => ($v = (int) $this->input('time_limit_minutes', 0)) > 0 ? $v : null,
             'updated_at' => date('Y-m-d H:i:s'),
         ], 'id = ?', [$quizId]);

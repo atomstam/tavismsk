@@ -57,6 +57,10 @@ if ($isLearner) {
         <?php endif; ?>
         <?php if (can_perm('certificates', 'view')): ?>
           <a href="<?= url('/admin/certificates') ?>"><i class="fa fa-certificate"></i> เกียรติบัตร</a>
+          <a href="<?= url('/admin/certificates') ?>"><i class="fa fa-award"></i> วุฒิบัตร</a>
+        <?php endif; ?>
+        <?php if (can_perm('assessments', 'edit') && $isTrainer): ?>
+          <a href="<?= url('/admin/task-reviews') ?>"><i class="fa fa-clipboard-check"></i> ตรวจภาระงาน</a>
         <?php endif; ?>
         <?php if (can_perm('curriculum', 'view')): ?>
           <a href="<?= url('/admin/curriculum') ?>"><i class="fa fa-book-open"></i> โมดูล</a>

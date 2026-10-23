@@ -25,6 +25,19 @@ class PlanOwnerService
         return (bool) $row;
     }
 
+    /** @return list<int> วิทยากรเจ้าของแผนที่อนุมัติแล้ว */
+    public function approvedOwnerUserIds(int $planId): array
+    {
+        $rows = db()->fetchAll(
+            "SELECT o.user_id
+             FROM learning_plan_owners o
+             INNER JOIN users u ON u.id = o.user_id AND u.deleted_at IS NULL AND u.status = 1
+             WHERE o.plan_id = ? AND o.status = 'approved'",
+            [$planId]
+        );
+        return array_values(array_unique(array_map(static fn (array $r): int => (int) $r['user_id'], $rows)));
+    }
+
     public function canManage(int $planId): bool
     {
         $role = auth()->role();

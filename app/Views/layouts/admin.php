@@ -3,7 +3,13 @@ $user = auth()->user();
 $unread = 0;
 try {
     if ($user) {
-        $unread = db()->count('notifications', 'user_id = ? AND is_read = 0', [(int) $user['id']]);
+        $uid = (int) $user['id'];
+        $role = (string) ($user['role'] ?? '');
+        // ซิงก์ภาระงานรอตรวจ → แจ้งเตือน (แอดมิน/วิทยากร)
+        if (in_array($role, ['admin', 'trainer'], true)) {
+            (new \App\Services\NotificationService())->syncPendingTaskReviewsForUser($uid, $role);
+        }
+        $unread = (int) db()->count('notifications', 'user_id = ? AND is_read = 0', [$uid]);
     }
 } catch (Throwable $e) {}
 $flashData = $flash ?? null;
@@ -26,8 +32,8 @@ $sidebarItems = (new \App\Services\SidebarMenuService())->items(null, (int) $unr
   <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
   <link rel="stylesheet" href="<?= asset('vendor/overlayScrollbars/css/OverlayScrollbars.min.css') ?>">
-  <link rel="stylesheet" href="<?= asset('css/app.css') ?>?v=40">
-  <link rel="stylesheet" href="<?= asset('css/learn.css') ?>?v=10">
+  <link rel="stylesheet" href="<?= asset('css/app.css') ?>?v=48">
+  <link rel="stylesheet" href="<?= asset('css/learn.css') ?>?v=12">
   <link rel="stylesheet" href="<?= asset('css/image-crop.css') ?>?v=1">
   <script>
     tailwind.config = { corePlugins: { preflight: false }, blocklist: ['collapse', 'container'] };
@@ -99,7 +105,7 @@ $sidebarItems = (new \App\Services\SidebarMenuService())->items(null, (int) $unr
             echo '<i class="fa-solid ' . e((string) ($item['icon'] ?? 'fa-circle')) . '"></i>';
             echo e((string) ($item['label'] ?? ''));
             if (!empty($item['badge'])) {
-                echo '<span class="badge bg-danger ms-auto">' . (int) $item['badge'] . '</span>';
+                echo '<span class="badge notif-menu-badge ms-auto">' . ((int) $item['badge'] > 99 ? '99+' : (int) $item['badge']) . '</span>';
             }
             echo '</a>';
         };
@@ -150,9 +156,11 @@ $sidebarItems = (new \App\Services\SidebarMenuService())->items(null, (int) $unr
       </div>
       <div class="d-flex align-items-center gap-2">
         <button class="icon-btn" data-toggle-theme type="button" title="สลับธีม"><i class="fa fa-moon"></i></button>
-        <a href="<?= url('/admin/notifications') ?>" class="icon-btn position-relative" title="การแจ้งเตือน">
+        <a href="<?= url('/admin/notifications') ?>" class="icon-btn position-relative notif-bell" title="การแจ้งเตือน<?= $unread ? ' (' . (int) $unread . ')' : '' ?>">
           <i class="fa fa-bell"></i>
-          <?php if ($unread): ?><span class="notif-dot"></span><?php endif; ?>
+          <?php if ($unread > 0): ?>
+            <span class="notif-count"><?= (int) $unread > 99 ? '99+' : (int) $unread ?></span>
+          <?php endif; ?>
         </a>
         <div class="dropdown user-menu">
           <button class="user-chip user-menu-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="เมนูผู้ใช้">

@@ -117,7 +117,7 @@ class EnrollmentManageService
             }
         }
 
-        // ความก้าวหน้าของผู้เรียนเอง
+        // ความก้าวหน้าของผู้เรียนเอง (+ คะแนนรวมสำหรับคอลัมน์ผล)
         $myProgress = [];
         if ($role === 'user') {
             $en = db()->fetch(
@@ -125,11 +125,18 @@ class EnrollmentManageService
                 [$userId]
             );
             if ($en) {
+                $lms = new ModuleLearningService();
                 foreach (db()->fetchAll(
-                    'SELECT plan_id, overall_percent, stage, is_passed FROM training_module_progress WHERE enrollment_id = ?',
+                    'SELECT plan_id, overall_percent, stage, is_passed,
+                            pretest_percent, content_percent, task_percent,
+                            posttest_percent, satisfaction_percent,
+                            pretest_done, content_done, task_done, posttest_done, satisfaction_done
+                     FROM training_module_progress WHERE enrollment_id = ?',
                     [(int) $en['id']]
                 ) as $pr) {
-                    $myProgress[(int) $pr['plan_id']] = $pr;
+                    $pid = (int) $pr['plan_id'];
+                    $pr['score_percent'] = PlanProgress::scorePercent($lms->settings($pid), $pr);
+                    $myProgress[$pid] = $pr;
                 }
             }
         }
@@ -188,6 +195,10 @@ class EnrollmentManageService
             'SELECT * FROM training_module_progress WHERE enrollment_id = ? AND plan_id = ?',
             [(int) $en['id'], $planId]
         );
+        if ($tmp) {
+            $settings = (new ModuleLearningService())->settings($planId);
+            $tmp['score_percent'] = PlanProgress::scorePercent($settings, $tmp);
+        }
         return [
             'enrollment' => $en,
             'progress' => $tmp ?: null,

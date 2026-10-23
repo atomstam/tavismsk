@@ -22,6 +22,9 @@ $avg = $summary['avg_percent'] ?? null;
     <?php if (can_perm('assessments', 'create')): ?>
       <a class="btn btn-learn-outline" href="<?= url('/admin/training/' . $pid) ?>"><i class="fa fa-chalkboard-user"></i> จัดการบทเรียน</a>
     <?php endif; ?>
+    <?php if (can_perm('assessments', 'edit')): ?>
+      <a class="btn btn-learn-outline" href="<?= url('/admin/training/' . $pid . '?tab=submissions') ?>"><i class="fa fa-clipboard-check"></i> ตรวจภาระงาน</a>
+    <?php endif; ?>
     <?php if (can_perm('plan_chat', 'view')): ?>
       <a class="btn btn-learn-outline" href="<?= url('/admin/plan-chat/plan/' . $pid) ?>"><i class="fa fa-comments"></i> กระดานสนทนา</a>
     <?php endif; ?>
@@ -29,30 +32,42 @@ $avg = $summary['avg_percent'] ?? null;
   </div>
 </div>
 
-<div class="row g-3 mb-4 enroll-stat-row">
-  <div class="col-6 col-md-3">
-    <div class="card-soft enroll-stat"><div class="card-body">
-      <span class="enroll-stat-label">ผู้เรียนในแผน</span>
-      <strong class="enroll-stat-value"><?= $learners ?></strong>
-    </div></div>
+<div class="row g-3 mb-4 metric-stat-row">
+  <div class="col-6 col-lg-3">
+    <div class="metric-stat metric-stat--blue">
+      <div class="metric-stat-icon"><i class="fa fa-user-graduate"></i></div>
+      <div class="metric-stat-body">
+        <span class="metric-stat-label">ผู้เรียนในแผน</span>
+        <strong class="metric-stat-value"><?= $learners ?></strong>
+      </div>
+    </div>
   </div>
-  <div class="col-6 col-md-3">
-    <div class="card-soft enroll-stat"><div class="card-body">
-      <span class="enroll-stat-label">ผ่านแผนแล้ว</span>
-      <strong class="enroll-stat-value"><?= $passed ?></strong>
-    </div></div>
+  <div class="col-6 col-lg-3">
+    <div class="metric-stat metric-stat--emerald">
+      <div class="metric-stat-icon"><i class="fa fa-award"></i></div>
+      <div class="metric-stat-body">
+        <span class="metric-stat-label">ผ่านแผนแล้ว</span>
+        <strong class="metric-stat-value"><?= $passed ?></strong>
+      </div>
+    </div>
   </div>
-  <div class="col-6 col-md-3">
-    <div class="card-soft enroll-stat"><div class="card-body">
-      <span class="enroll-stat-label">เฉลี่ยความก้าวหน้า</span>
-      <strong class="enroll-stat-value"><?= $learners > 0 && $avg !== null ? number_format((float) $avg, 1) . '%' : '-' ?></strong>
-    </div></div>
+  <div class="col-6 col-lg-3">
+    <div class="metric-stat metric-stat--teal">
+      <div class="metric-stat-icon"><i class="fa fa-chart-line"></i></div>
+      <div class="metric-stat-body">
+        <span class="metric-stat-label">เฉลี่ยความก้าวหน้า</span>
+        <strong class="metric-stat-value"><?= $learners > 0 && $avg !== null ? number_format((float) $avg, 1) . '%' : '-' ?></strong>
+      </div>
+    </div>
   </div>
-  <div class="col-6 col-md-3">
-    <div class="card-soft enroll-stat"><div class="card-body">
-      <span class="enroll-stat-label">กลุ่มหัวข้อ</span>
-      <strong class="enroll-stat-value enroll-stat-value--sm"><?= e($plan['topic_group'] ?: '-') ?></strong>
-    </div></div>
+  <div class="col-6 col-lg-3">
+    <div class="metric-stat metric-stat--slate">
+      <div class="metric-stat-icon"><i class="fa fa-tags"></i></div>
+      <div class="metric-stat-body">
+        <span class="metric-stat-label">กลุ่มหัวข้อ</span>
+        <strong class="metric-stat-value metric-stat-value--sm"><?= e($plan['topic_group'] ?: '-') ?></strong>
+      </div>
+    </div>
   </div>
 </div>
 

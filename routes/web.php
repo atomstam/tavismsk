@@ -29,6 +29,7 @@ use App\Controllers\Admin\CertificateController;
 use App\Controllers\Admin\OrgUnitController;
 use App\Controllers\Admin\OrgStatsController;
 use App\Controllers\Admin\TrainingManageController;
+use App\Controllers\Admin\TaskReviewController;
 use App\Controllers\Admin\SatisfactionController;
 use App\Controllers\Admin\TrainerApplyController;
 use App\Controllers\Admin\TrainerManageController;
@@ -231,6 +232,7 @@ $router->group(['prefix' => '/admin', 'middleware' => ['auth', 'admin']], functi
     // LMS — วิทยากรจัดการบทเรียน
     $r->get('/training', [TrainingManageController::class, 'index']);
     $r->get('/training/datatable', [TrainingManageController::class, 'datatable']);
+    $r->get('/task-reviews', [TaskReviewController::class, 'index']);
     $r->get('/training/{planId}', [TrainingManageController::class, 'show']);
     $r->post('/training/{planId}/settings', [TrainingManageController::class, 'saveSettings'], ['csrf']);
     $r->post('/training/{planId}/content', [TrainingManageController::class, 'storeContent'], ['csrf']);
@@ -239,6 +241,7 @@ $router->group(['prefix' => '/admin', 'middleware' => ['auth', 'admin']], functi
     $r->post('/training/{planId}/task', [TrainingManageController::class, 'storeTask'], ['csrf']);
     $r->post('/training/{planId}/task/{id}/delete', [TrainingManageController::class, 'deleteTask'], ['csrf']);
     $r->post('/training/{planId}/submission/{id}/review', [TrainingManageController::class, 'reviewSubmission'], ['csrf']);
+    $r->post('/training/{planId}/submissions/bulk-review', [TrainingManageController::class, 'bulkReview'], ['csrf']);
     $r->post('/training/{planId}/question', [TrainingManageController::class, 'storeQuestion'], ['csrf']);
     $r->post('/training/{planId}/question/{id}/delete', [TrainingManageController::class, 'deleteQuestion'], ['csrf']);
     $r->post('/training/{planId}/quiz-meta', [TrainingManageController::class, 'saveQuizMeta'], ['csrf']);
@@ -281,6 +284,16 @@ $router->group(['prefix' => '/admin', 'middleware' => ['auth', 'admin']], functi
     $r->get('/certificates/datatable', [CertificateController::class, 'datatable']);
     $r->get('/certificates/ready-datatable', [CertificateController::class, 'readyDatatable']);
     $r->post('/certificates/issue/{enrollmentId}', [CertificateController::class, 'issue'], ['csrf']);
+    $r->get('/certificates/plans/{planId}', [CertificateController::class, 'plan']);
+    $r->post('/certificates/plans/{planId}/issue-ready', [CertificateController::class, 'issuePlanReady'], ['csrf']);
+    $r->get('/certificates/enrollments/{enrollmentId}/plan/{planId}/view', [CertificateController::class, 'learnerPlanView']);
+    $r->get('/certificates/enrollments/{enrollmentId}/plan/{planId}/pdf', [CertificateController::class, 'learnerPlanPdf']);
+    $r->get('/certificates/enrollments/{enrollmentId}/diploma/view', [CertificateController::class, 'learnerDiplomaView']);
+    $r->get('/certificates/enrollments/{enrollmentId}/diploma/pdf', [CertificateController::class, 'learnerDiplomaPdf']);
+    $r->get('/certificates/plan/{planId}/view', [CertificateController::class, 'planView']);
+    $r->get('/certificates/plan/{planId}/pdf', [CertificateController::class, 'planPdf']);
+    $r->get('/certificates/diploma/view', [CertificateController::class, 'diplomaView']);
+    $r->get('/certificates/diploma/pdf', [CertificateController::class, 'diplomaPdf']);
     $r->get('/certificates/{id}', [CertificateController::class, 'show']);
 
     $r->get('/org-units', [OrgUnitController::class, 'index']);

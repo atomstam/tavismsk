@@ -30,8 +30,8 @@ class EnrollmentController extends Controller
 
         $uid = (int) auth()->id();
         $this->view('admin/enrollments/index_user', [
-            'title' => 'ลงทะเบียนอบรม',
-            'breadcrumb' => 'หน้าหลัก / ลงทะเบียนอบรม',
+            'title' => 'ลงทะเบียน/เข้าเรียน',
+            'breadcrumb' => 'หน้าหลัก / ลงทะเบียน/เข้าเรียน',
             'role' => 'user',
             'plans' => $this->manage->planSummaries('user', $uid),
             'stats' => $this->manage->dashboardStats('user', $uid),
@@ -86,7 +86,7 @@ class EnrollmentController extends Controller
             'title' => 'แผนที่ ' . (int) ($plan['plan_no'] ?? 0),
             'breadcrumb' => ($role === 'admin' || $role === 'trainer')
                 ? 'หน้าหลัก / บริหารแผนอบรม / รายละเอียดแผน'
-                : 'หน้าหลัก / ลงทะเบียนอบรม / รายละเอียดแผน',
+                : 'หน้าหลัก / ลงทะเบียน/เข้าเรียน / รายละเอียดแผน',
             'role' => $role,
             'plan' => $plan,
             'learners' => $learners,

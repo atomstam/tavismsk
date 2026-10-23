@@ -79,14 +79,13 @@ class CurriculumPublicController extends Controller
         } catch (\Throwable $e) {
         }
 
+        $sections = curriculum_plan_sections($cfg, $lmsContents, $lmsTasks, $resources, $worksheets);
+
         $this->webView('web/curriculum-show', [
             'title' => 'แผนที่ ' . $no . ' — ' . $cfg['title'],
             'cfg' => $cfg,
             'row' => $row,
-            'resources' => $resources,
-            'worksheets' => $worksheets,
-            'lmsContents' => $lmsContents,
-            'lmsTasks' => $lmsTasks,
+            'sections' => $sections,
             'progress' => $progress,
             'plans' => curriculum_plans(),
             'visitorStats' => $this->visitorStats(),

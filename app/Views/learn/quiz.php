@@ -7,23 +7,35 @@ $pid = (int)($plan['id'] ?? 0);
 $learnBase = rtrim((string)($learnBase ?? '/learn'), '/') ?: '/learn';
 $webShell = !empty($webShell);
 $typeLabel = match ($type) {
-  'pretest' => 'PRETEST',
-  'posttest' => 'POSTTEST',
-  default => 'ความพึงพอใจ',
+  'pretest' => 'ทดสอบก่อนเรียน',
+  'posttest' => 'สอบหลังเรียน',
+  default => 'แบบประเมินความพึงพอใจ',
 };
+$planNo = (int) ($plan['plan_no'] ?? 0);
+$planTitle = trim((string) ($plan['title'] ?? ''));
 ?>
 <?php if ($webShell): ?><div class="container py-4 ws-page-stack learn-web"><?php endif; ?>
 <div class="page-head">
   <div>
-    <p class="page-kicker"><?= e($typeLabel) ?></p>
-    <h1><?= e($quiz['title'] ?? '') ?></h1>
+    <p class="page-kicker">แผนที่ <?= $planNo ?><?= $planTitle !== '' ? ' · ' . e($planTitle) : '' ?></p>
+    <h1><?= e($typeLabel) ?></h1>
   </div>
   <a class="btn <?= $webShell ? 'btn-outline-secondary' : 'btn-learn-outline' ?>" href="<?= url($learnBase . '/' . $pid) ?>">ยกเลิก</a>
 </div>
 
 <div class="card-soft mb-3"><div class="card-body small">
-  <div>เกณฑ์ผ่าน <?= number_format((float)($quiz['pass_score']??60),0) ?>% · เหลือ <?= (int)($attemptsLeft ?? 0) ?> ครั้ง</div>
-  <?php if (!empty($quiz['description'])): ?><div class="text-muted mt-1"><?= nl2br(e($quiz['description'])) ?></div><?php endif; ?>
+  <div>เกณฑ์ผ่าน <?= number_format((float)($quiz['pass_score']??($type==='posttest'?70:60)),0) ?>% · เหลือ <?= (int)($attemptsLeft ?? 0) ?> ครั้ง</div>
+  <?php
+    $quizDesc = trim((string) ($quiz['description'] ?? ''));
+    // ไม่โชว์คำอธิบายที่เป็นชื่อเดโม่เก่า
+    if ($quizDesc !== '' && !str_contains($quizDesc, 'โมดูลนำร่อง')):
+  ?>
+    <div class="text-muted mt-1"><?= nl2br(e($quizDesc)) ?></div>
+  <?php elseif ($type === 'pretest'): ?>
+    <div class="text-muted mt-1">ทดสอบความรู้ก่อนเรียน</div>
+  <?php elseif ($type === 'posttest'): ?>
+    <div class="text-muted mt-1">ทดสอบความรู้หลังเรียน</div>
+  <?php endif; ?>
 </div></div>
 
 <form method="post" action="<?= url($learnBase . '/' . $pid . '/quiz/' . $type) ?>" id="quiz-form">

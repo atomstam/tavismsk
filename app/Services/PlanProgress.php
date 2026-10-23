@@ -5,10 +5,40 @@ declare(strict_types=1);
 namespace App\Services;
 
 /**
- * เกณฑ์ผ่านของทุกแผน: รวมร้อยละความก้าวหน้าตามน้ำหนัก แล้วเทียบกับเกณฑ์ผ่านของแผนนั้น
+ * ความก้าวหน้า (overall) = ดำเนินการครบองค์ประกอบ
+ * คะแนนรวม (score_percent) = คะแนนถ่วงน้ำหนัก ใช้ตัดสินผ่านและแสดงในเกียรติบัตร
  */
 final class PlanProgress
 {
+    /**
+     * คำนวณคะแนนรวมจากแถว progress / คะแนนรายขั้น
+     *
+     * @param array<string, mixed> $settings
+     * @param array<string, mixed> $progress
+     */
+    public static function scorePercent(array $settings, array $progress): float
+    {
+        if (isset($progress['score_percent']) && $progress['score_percent'] !== '' && $progress['score_percent'] !== null) {
+            return round((float) $progress['score_percent'], 2);
+        }
+        $scores = [
+            'pretest' => (float) ($progress['pretest'] ?? $progress['pretest_percent'] ?? 0),
+            'content' => (float) ($progress['content'] ?? $progress['content_percent'] ?? 0),
+            'task' => (float) ($progress['task'] ?? $progress['task_percent'] ?? 0),
+            'posttest' => (float) ($progress['posttest'] ?? $progress['posttest_percent'] ?? 0),
+            'satisfaction' => (float) ($progress['satisfaction'] ?? $progress['satisfaction_percent'] ?? 0),
+        ];
+        $decision = self::decide($settings, $scores, [
+            'pretest_done' => (int) ($progress['pretest_done'] ?? 0),
+            'content_done' => (int) ($progress['content_done'] ?? 0),
+            'task_done' => (int) ($progress['task_done'] ?? 0),
+            'posttest_done' => (int) ($progress['posttest_done'] ?? 0),
+            'satisfaction_done' => (int) ($progress['satisfaction_done'] ?? 0),
+        ]);
+
+        return (float) $decision['score_percent'];
+    }
+
     /** แผนที่ 1–12 บังคับ แผนที่ 13 เป็นต้นไปเลือกเรียนตามความสนใจ */
     public static function isRequired(array $plan): bool
     {
@@ -24,12 +54,16 @@ final class PlanProgress
     }
 
     /**
+     * ความก้าวหน้า (overall) = การดำเนินการครบองค์ประกอบ ตามน้ำหนักขั้น
+     * คะแนนรวม (score_percent) = คะแนนจริงถ่วงน้ำหนัก ใช้ตัดสินผ่าน/แสดงในเกียรติบัตร
+     *
      * @param array<string, mixed> $settings
-     * @param array<string, float|int> $percents pretest|content|task|posttest|satisfaction เป็น 0–100
+     * @param array<string, float|int> $scorePercents pretest|content|task|posttest|satisfaction เป็น 0–100 (คะแนน)
      * @param array<string, int> $done คีย์ *_done
-     * @return array{overall_percent:float,pass_percent:float,weight_total:float,is_passed:int,weights:array<string,float>}
+     * @param array<string, float|int>|null $completionPercents ร้อยละความครบของแต่ละขั้น (ถ้า null จะใช้จาก done)
+     * @return array{overall_percent:float,score_percent:float,pass_percent:float,weight_total:float,is_passed:int,weights:array<string,float>}
      */
-    public static function decide(array $settings, array $percents, array $done): array
+    public static function decide(array $settings, array $scorePercents, array $done, ?array $completionPercents = null): array
     {
         $weights = [
             'pretest' => max(0.0, (float) ($settings['weight_pretest'] ?? ModuleLearningService::WEIGHT_PRETEST)),
@@ -42,38 +76,101 @@ final class PlanProgress
         if ($total <= 0) {
             $total = 0.01;
         }
+
+        $completion = $completionPercents ?? [
+            'pretest' => (int) ($done['pretest_done'] ?? 0) === 1 ? 100.0 : 0.0,
+            'content' => (int) ($done['content_done'] ?? 0) === 1 ? 100.0 : 0.0,
+            'task' => (int) ($done['task_done'] ?? 0) === 1 ? 100.0 : 0.0,
+            'posttest' => (int) ($done['posttest_done'] ?? 0) === 1 ? 100.0 : 0.0,
+            'satisfaction' => (int) ($done['satisfaction_done'] ?? 0) === 1 ? 100.0 : 0.0,
+        ];
+
+        // ความก้าวหน้า: ตามการดำเนินการของแต่ละองค์ประกอบ (ไม่ใช้คะแนนสอบ)
         $overall = 0.0;
         foreach ($weights as $key => $weight) {
             if ($weight <= 0) {
                 continue;
             }
-            $overall += ((float) ($percents[$key] ?? 0) / 100) * $weight;
+            $overall += (max(0.0, min(100.0, (float) ($completion[$key] ?? 0))) / 100) * $weight;
         }
         $overall = round($overall / $total * 100, 2);
+
+        // คะแนนรวม: ใช้ตัดสินผ่านแผนและแสดงในเกียรติบัตร
+        $scoreOverall = 0.0;
+        foreach ($weights as $key => $weight) {
+            if ($weight <= 0) {
+                continue;
+            }
+            $scoreOverall += (max(0.0, min(100.0, (float) ($scorePercents[$key] ?? 0))) / 100) * $weight;
+        }
+        $scoreOverall = round($scoreOverall / $total * 100, 2);
+
         $passPercent = (float) ($settings['pass_percent'] ?? 80);
         if ($passPercent <= 0) {
             $passPercent = 80.0;
         }
-        $gates = (int) ($done['content_done'] ?? 0) === 1
-            && (int) ($done['task_done'] ?? 0) === 1;
-        if ((int) ($settings['require_pretest'] ?? 1) === 1 && (int) ($done['pretest_done'] ?? 0) !== 1) {
-            $gates = false;
+
+        // เกณฑ์พิมพ์เกียรติบัตร: ครบทุกขั้น + ภาระงาน ≥70% + สอบหลัง ≥70%
+        $passed = self::certificateReady($done, $scorePercents, $settings) ? 1 : 0;
+
+        // ผ่านสมบูรณ์ตามเงื่อนไข → ความก้าวหน้า 100%
+        if ($passed === 1) {
+            $overall = 100.0;
         }
-        if ((int) ($settings['require_pass_posttest'] ?? 1) === 1 && (int) ($done['posttest_done'] ?? 0) !== 1) {
-            $gates = false;
-        }
-        if ((int) ($settings['require_satisfaction'] ?? 1) === 1 && (int) ($done['satisfaction_done'] ?? 0) !== 1) {
-            $gates = false;
-        }
-        $passed = $overall + 0.001 >= $passPercent && $gates;
 
         return [
             'overall_percent' => $overall,
+            'score_percent' => $scoreOverall,
             'pass_percent' => $passPercent,
             'weight_total' => round($total, 2),
-            'is_passed' => $passed ? 1 : 0,
+            'is_passed' => $passed,
             'weights' => $weights,
         ];
+    }
+
+    /**
+     * เงื่อนไขพิมพ์เกียรติบัตรรายแผน
+     * @param array<string, int|float|bool> $done
+     * @param array<string, float|int> $percents
+     * @param array<string, mixed> $settings
+     */
+    public static function certificateReady(array $done, array $percents = [], array $settings = []): bool
+    {
+        // รองรับส่ง progress ทั้งก้อนจาก training_module_progress
+        if ($percents === [] && isset($done['pretest_percent'])) {
+            $percents = [
+                'pretest' => (float) ($done['pretest_percent'] ?? 0),
+                'content' => (float) ($done['content_percent'] ?? 0),
+                'task' => (float) ($done['task_percent'] ?? 0),
+                'posttest' => (float) ($done['posttest_percent'] ?? 0),
+                'satisfaction' => (float) ($done['satisfaction_percent'] ?? 0),
+            ];
+        }
+
+        if ((int) ($settings['require_pretest'] ?? 1) === 1 && (int) ($done['pretest_done'] ?? 0) !== 1) {
+            return false;
+        }
+        if ((int) ($done['content_done'] ?? 0) !== 1) {
+            return false;
+        }
+        if ((int) ($done['task_done'] ?? 0) !== 1) {
+            return false;
+        }
+        if ((float) ($percents['task'] ?? $done['task_percent'] ?? 0) + 0.001 < 70.0) {
+            return false;
+        }
+        if ((int) ($settings['require_pass_posttest'] ?? 1) === 1) {
+            if ((int) ($done['posttest_done'] ?? 0) !== 1) {
+                return false;
+            }
+            if ((float) ($percents['posttest'] ?? $done['posttest_percent'] ?? 0) + 0.001 < 70.0) {
+                return false;
+            }
+        }
+        if ((int) ($settings['require_satisfaction'] ?? 1) === 1 && (int) ($done['satisfaction_done'] ?? 0) !== 1) {
+            return false;
+        }
+        return true;
     }
 
     /**

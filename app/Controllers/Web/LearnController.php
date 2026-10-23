@@ -100,6 +100,7 @@ class LearnController extends Controller
             'contentViews' => $contentViews,
             'taskSubs' => $taskSubs,
             'canContent' => $this->lms->canAccessContent((int) $planId, (int) $enroll['id']),
+            'canTask' => $this->lms->canAccessTask((int) $planId, (int) $enroll['id']),
             'canPosttest' => $this->lms->canAccessPosttest((int) $planId, (int) $enroll['id']),
             'canSatisfaction' => $this->lms->canAccessSatisfaction((int) $planId, (int) $enroll['id']),
             'planCertificate' => db()->fetch(
@@ -214,6 +215,17 @@ class LearnController extends Controller
             };
             if ($type === 'satisfaction') {
                 flash('success', 'ส่ง' . $typeLabel . 'เรียบร้อยแล้ว ขอบคุณสำหรับความคิดเห็น');
+            } elseif (!empty($result['content_reset'])) {
+                flash(
+                    'warning',
+                    sprintf(
+                        'ส่ง%s แล้ว คะแนน %.0f%% — ยังไม่ผ่าน (ใช้ครบ %d/%d ครั้ง) กรุณาเปิดดูเนื้อหาให้ครบทุกรายการอีกครั้ง แล้วจึงสอบหลังใหม่ได้ 3 ครั้ง',
+                        $typeLabel,
+                        (float) $result['percent'],
+                        (int) ($result['attempts_used'] ?? 3),
+                        (int) ($result['max_attempts'] ?? 3)
+                    )
+                );
             } else {
                 $msg = sprintf(
                     'ส่ง%s แล้ว คะแนน %.1f/%.1f (%.0f%%) — %s',
@@ -248,33 +260,38 @@ class LearnController extends Controller
             flash('error', 'ไม่พบเนื้อหา');
             $this->redirect(self::BASE . '/' . $planId);
         }
+        // เปิดดู = นับว่าอ่านแล้วอัตโนมัติ
+        try {
+            $this->lms->markContentComplete((int) $contentId, $enrollId, (int) auth()->id());
+        } catch (\Throwable $e) {
+            // ยังให้เปิดดูได้แม้บันทึกสถานะไม่สำเร็จ
+        }
+
         $outside = trim((string) ($content['external_url'] ?? ''));
         if (in_array((string) $content['content_type'], ['gdrive', 'link'], true) && preg_match('#^https?://#i', $outside)) {
             $this->redirect($outside);
         }
 
-        $ex = db()->fetch(
-            'SELECT id FROM training_content_views WHERE content_id = ? AND enrollment_id = ?',
-            [(int) $contentId, $enrollId]
-        );
-        if (!$ex) {
-            db()->insert('training_content_views', [
-                'content_id' => (int) $contentId,
-                'enrollment_id' => $enrollId,
-                'user_id' => (int) auth()->id(),
-                'viewed_at' => date('Y-m-d H:i:s'),
-                'is_completed' => 0,
-            ]);
+        $preview = (new \App\Services\ContentPreviewService())->present($content);
+        $preview['title'] = (string) ($content['title'] ?? '');
+        $preview['back_url'] = url(self::BASE . '/' . (int) $planId);
+        if (($preview['kind'] ?? '') === 'pdf' && ($preview['frame_src'] ?? '') !== '') {
+            $path = (string) (parse_url((string) $preview['frame_src'], PHP_URL_PATH) ?: '');
+            $preview['file_name'] = basename($path) ?: 'content.pdf';
+            $preview['info_text'] = 'ไฟล์เนื้อหา: ' . (string) ($content['title'] ?? '')
+                . ' — แผนที่ ' . (int) ($ctx['plan']['plan_no'] ?? 0)
+                . ' — ' . $preview['file_name'];
         }
 
         $this->webView('learn/content', [
             'title' => $content['title'],
             'plan' => $ctx['plan'],
             'content' => $content,
-            'preview' => (new \App\Services\ContentPreviewService())->present($content),
+            'preview' => $preview,
             'learnBase' => self::BASE,
             'webShell' => true,
             'darkUi' => false,
+            'markedComplete' => true,
         ]);
     }
 
@@ -282,10 +299,27 @@ class LearnController extends Controller
     {
         $this->requirePerm('learn', 'view');
         $ctx = $this->context((int) $planId);
+        $wantsJson = strcasecmp((string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? ''), 'XMLHttpRequest') === 0
+            || str_contains((string) ($_SERVER['HTTP_ACCEPT'] ?? ''), 'application/json');
         try {
-            $this->lms->markContentComplete((int) $contentId, (int) $ctx['enrollment']['id'], (int) auth()->id());
+            $enrollId = (int) $ctx['enrollment']['id'];
+            $progress = $this->lms->markContentComplete((int) $contentId, $enrollId, (int) auth()->id());
+            if ($wantsJson) {
+                $this->json([
+                    'ok' => true,
+                    'content_id' => (int) $contentId,
+                    'content_done' => (int) ($progress['content_done'] ?? 0),
+                    'task_done' => (int) ($progress['task_done'] ?? 0),
+                    'can_task' => $this->lms->canAccessTask((int) $planId, $enrollId) ? 1 : 0,
+                    'can_posttest' => $this->lms->canAccessPosttest((int) $planId, $enrollId) ? 1 : 0,
+                    'overall_percent' => (float) ($progress['overall_percent'] ?? 0),
+                ]);
+            }
             flash('success', 'บันทึกว่าเรียนเนื้อหาแล้ว');
         } catch (\Throwable $e) {
+            if ($wantsJson) {
+                $this->json(['ok' => false, 'error' => $e->getMessage()], 422);
+            }
             flash('error', $e->getMessage());
         }
         $this->redirect(self::BASE . '/' . $planId);
@@ -295,6 +329,9 @@ class LearnController extends Controller
     {
         $this->requirePerm('learn', 'view');
         $ctx = $this->context((int) $planId);
+        $enrollId = (int) $ctx['enrollment']['id'];
+        $wantsJson = strcasecmp((string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? ''), 'XMLHttpRequest') === 0
+            || str_contains((string) ($_SERVER['HTTP_ACCEPT'] ?? ''), 'application/json');
         $filePath = null;
         if (!empty($_FILES['file']['name'])) {
             $filePath = upload_file($_FILES['file'], 'training-tasks', [
@@ -302,13 +339,28 @@ class LearnController extends Controller
             ]);
         }
         try {
-            $this->lms->submitTask((int) $taskId, (int) $ctx['enrollment']['id'], (int) auth()->id(), [
+            $progress = $this->lms->submitTask((int) $taskId, $enrollId, (int) auth()->id(), [
                 'answer_text' => (string) $this->input('answer_text', ''),
                 'link_url' => (string) $this->input('link_url', ''),
                 'file_path' => $filePath,
             ]);
+            if ($wantsJson) {
+                $this->json([
+                    'ok' => true,
+                    'task_id' => (int) $taskId,
+                    'task_done' => (int) ($progress['task_done'] ?? 0),
+                    'content_done' => (int) ($progress['content_done'] ?? 0),
+                    'can_posttest' => $this->lms->canAccessPosttest((int) $planId, $enrollId) ? 1 : 0,
+                    'can_satisfaction' => $this->lms->canAccessSatisfaction((int) $planId, $enrollId) ? 1 : 0,
+                    'overall_percent' => (float) ($progress['overall_percent'] ?? 0),
+                    'stage' => (string) ($progress['stage'] ?? ''),
+                ]);
+            }
             flash('success', 'ส่งภาระงานแล้ว');
         } catch (\Throwable $e) {
+            if ($wantsJson) {
+                $this->json(['ok' => false, 'error' => $e->getMessage()], 422);
+            }
             flash('error', $e->getMessage());
         }
         $this->redirect(self::BASE . '/' . $planId);

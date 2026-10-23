@@ -20,24 +20,33 @@ $stats = $stats ?? ['plans' => 0, 'learners' => 0, 'passed' => 0];
   <?php endif; ?>
 </div>
 
-<div class="row g-3 mb-4 enroll-stat-row">
-  <div class="col-6 col-md-4">
-    <div class="card-soft enroll-stat"><div class="card-body">
-      <span class="enroll-stat-label">แผนที่แสดง</span>
-      <strong class="enroll-stat-value" id="members-stat-plans"><?= (int) $stats['plans'] ?></strong>
-    </div></div>
+<div class="row g-3 mb-4 metric-stat-row">
+  <div class="col-6 col-lg-4">
+    <div class="metric-stat metric-stat--blue">
+      <div class="metric-stat-icon"><i class="fa fa-layer-group"></i></div>
+      <div class="metric-stat-body">
+        <span class="metric-stat-label">แผนที่แสดง</span>
+        <strong class="metric-stat-value" id="members-stat-plans"><?= (int) $stats['plans'] ?></strong>
+      </div>
+    </div>
   </div>
-  <div class="col-6 col-md-4">
-    <div class="card-soft enroll-stat"><div class="card-body">
-      <span class="enroll-stat-label">ผู้เรียนรวม (แถวความก้าวหน้า)</span>
-      <strong class="enroll-stat-value" id="members-stat-learners"><?= (int) $stats['learners'] ?></strong>
-    </div></div>
+  <div class="col-6 col-lg-4">
+    <div class="metric-stat metric-stat--teal">
+      <div class="metric-stat-icon"><i class="fa fa-user-graduate"></i></div>
+      <div class="metric-stat-body">
+        <span class="metric-stat-label">ผู้เรียนรวม</span>
+        <strong class="metric-stat-value" id="members-stat-learners"><?= (int) $stats['learners'] ?></strong>
+      </div>
+    </div>
   </div>
-  <div class="col-6 col-md-4">
-    <div class="card-soft enroll-stat"><div class="card-body">
-      <span class="enroll-stat-label">ผ่านแผนแล้ว</span>
-      <strong class="enroll-stat-value" id="members-stat-passed"><?= (int) $stats['passed'] ?></strong>
-    </div></div>
+  <div class="col-6 col-lg-4">
+    <div class="metric-stat metric-stat--emerald">
+      <div class="metric-stat-icon"><i class="fa fa-award"></i></div>
+      <div class="metric-stat-body">
+        <span class="metric-stat-label">ผ่านแผนแล้ว</span>
+        <strong class="metric-stat-value" id="members-stat-passed"><?= (int) $stats['passed'] ?></strong>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -46,7 +55,7 @@ $stats = $stats ?? ['plans' => 0, 'learners' => 0, 'passed' => 0];
     <form id="members-plans-filter" class="row g-2 mb-3 align-items-end">
       <div class="col-md-4">
         <label class="form-label small mb-0">ค้นหาแผน</label>
-        <input type="search" name="q" class="form-control form-control-sm" placeholder="เลขแผน / หัวข้อ / กลุ่มหัวข้อ / วิทยากร">
+        <input type="search" name="q" class="form-control form-control-sm" placeholder="เลขแผน / หัวข้อ / กลุ่มหัวข้อ / วิทยากร" autocomplete="off">
       </div>
       <div class="col-md-2">
         <label class="form-label small mb-0">ประเภท</label>
@@ -87,106 +96,113 @@ $stats = $stats ?? ['plans' => 0, 'learners' => 0, 'passed' => 0];
           : 'ยังไม่มีแผนการเรียนรู้ในระบบ' ?>
       </div>
     <?php else: ?>
-      <div class="table-responsive">
-        <table class="table enroll-plan-table align-middle mb-0" id="members-plans-table">
-          <thead>
-            <tr>
-              <th>แผน</th>
-              <th>หัวข้อ</th>
-              <th class="text-center">จำนวนผู้เรียน</th>
-              <th class="text-center">ผ่าน</th>
-              <th class="text-center">กำลังเรียน</th>
-              <th class="text-center">เฉลี่ย %</th>
-              <th>วิทยากร</th>
-              <th class="text-end">จัดการ</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php foreach ($plans as $p):
-              $pid = (int) $p['id'];
-              $required = (int) ($p['is_required'] ?? 0) === 1 || (int) $p['plan_no'] <= 12;
-              $learners = (int) ($p['learner_count'] ?? 0);
-              $passed = (int) ($p['passed_count'] ?? 0);
-              $active = (int) ($p['active_count'] ?? 0);
-              $avg = $p['avg_percent'] !== null ? (float) $p['avg_percent'] : 0.0;
-              $trainers = implode(', ', $p['trainers'] ?? []);
-              $hay = mb_strtolower(
-                (string) $p['plan_no'] . ' ' . ($p['title'] ?? '') . ' ' . ($p['topic_group'] ?? '') . ' ' . $trainers,
-                'UTF-8'
-              );
-            ?>
-            <tr
-              data-track="<?= $required ? 'required' : 'elective' ?>"
-              data-learners="<?= $learners ?>"
-              data-passed="<?= $passed ?>"
-              data-avg="<?= $avg ?>"
-              data-search="<?= e($hay) ?>"
-            >
-              <td>
-                <span class="enroll-plan-no">แผนที่ <?= (int) $p['plan_no'] ?></span>
-                <span class="learn-plan-track <?= $required ? 'is-required' : 'is-elective' ?>"><?= $required ? 'บังคับ' : 'ทั่วไป' ?></span>
-              </td>
-              <td>
-                <strong class="d-block"><?= e($p['title']) ?></strong>
-                <span class="small text-muted"><?= e($p['topic_group'] ?: '') ?> · <?= number_format((float) $p['hours'], 1) ?> ชม.</span>
-              </td>
-              <td class="text-center"><strong><?= $learners ?></strong></td>
-              <td class="text-center"><?= $passed ?></td>
-              <td class="text-center"><?= $active ?></td>
-              <td class="text-center">
-                <div class="enroll-mini-bar" title="<?= number_format($avg, 1) ?>%">
-                  <span style="width:<?= min(100, max(0, $avg)) ?>%"></span>
-                </div>
-                <span class="small"><?= $learners > 0 ? number_format($avg, 1) . '%' : '-' ?></span>
-              </td>
-              <td class="small"><?= $trainers !== '' ? e($trainers) : '<span class="text-muted">—</span>' ?></td>
-              <td class="text-end text-nowrap">
-                <a class="btn btn-sm btn-outline-primary" href="<?= url('/admin/members/plans/' . $pid) ?>">
-                  <i class="fa fa-users"></i> รายละเอียด
-                </a>
-              </td>
-            </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
-      </div>
-      <p class="small text-muted mt-2 mb-0" id="members-plans-empty" hidden>ไม่พบแผนตามเงื่อนไขที่กรอง</p>
+      <table id="members-plans-table" class="table datatable w-100" data-order='[[1,"asc"]]'>
+        <thead>
+          <tr>
+            <th class="col-primary">แผน</th>
+            <th class="col-wrap">หัวข้อ</th>
+            <th class="text-center">จำนวนผู้เรียน</th>
+            <th class="text-center">ผ่าน</th>
+            <th class="text-center">กำลังเรียน</th>
+            <th class="text-center">เฉลี่ย %</th>
+            <th class="col-actions text-end">จัดการ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($plans as $p):
+            $pid = (int) $p['id'];
+            $required = (int) ($p['is_required'] ?? 0) === 1 || (int) $p['plan_no'] <= 12;
+            $learners = (int) ($p['learner_count'] ?? 0);
+            $passed = (int) ($p['passed_count'] ?? 0);
+            $active = (int) ($p['active_count'] ?? 0);
+            $avg = $p['avg_percent'] !== null ? (float) $p['avg_percent'] : 0.0;
+            $trainers = implode(', ', $p['trainers'] ?? []);
+            $hay = mb_strtolower(
+              (string) $p['plan_no'] . ' ' . ($p['title'] ?? '') . ' ' . ($p['topic_group'] ?? '') . ' ' . $trainers,
+              'UTF-8'
+            );
+          ?>
+          <tr
+            data-track="<?= $required ? 'required' : 'elective' ?>"
+            data-learners="<?= $learners ?>"
+            data-passed="<?= $passed ?>"
+            data-avg="<?= $avg ?>"
+            data-search="<?= e($hay) ?>"
+          >
+            <td data-order="<?= (int) $p['plan_no'] ?>">
+              <span class="enroll-plan-no">แผนที่ <?= (int) $p['plan_no'] ?></span>
+              <span class="learn-plan-track <?= $required ? 'is-required' : 'is-elective' ?>"><?= $required ? 'บังคับ' : 'ทั่วไป' ?></span>
+            </td>
+            <td class="col-wrap">
+              <strong class="d-block"><?= e($p['title']) ?></strong>
+              <span class="small text-muted d-block"><?= e($p['topic_group'] ?: '') ?> · <?= number_format((float) $p['hours'], 1) ?> ชม.</span>
+              <span class="small d-block mt-1 enroll-trainers-meta">
+                <i class="fa fa-chalkboard-user text-muted me-1"></i>
+                <?php if ($trainers !== ''): ?>
+                  <span class="text-muted">วิทยากร:</span> <?= e($trainers) ?>
+                <?php else: ?>
+                  <span class="text-muted">ยังไม่มีวิทยากร</span>
+                <?php endif; ?>
+              </span>
+            </td>
+            <td class="text-center" data-order="<?= $learners ?>"><strong><?= $learners ?></strong></td>
+            <td class="text-center" data-order="<?= $passed ?>"><?= $passed ?></td>
+            <td class="text-center" data-order="<?= $active ?>"><?= $active ?></td>
+            <td class="text-center" data-order="<?= $avg ?>">
+              <div class="enroll-mini-bar" title="<?= number_format($avg, 1) ?>%">
+                <span style="width:<?= min(100, max(0, $avg)) ?>%"></span>
+              </div>
+              <span class="small"><?= $learners > 0 ? number_format($avg, 1) . '%' : '-' ?></span>
+            </td>
+            <td class="text-end text-nowrap col-actions">
+              <a class="btn btn-sm btn-outline-primary" href="<?= url('/admin/members/plans/' . $pid) ?>">
+                <i class="fa fa-users"></i> รายละเอียด
+              </a>
+            </td>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
     <?php endif; ?>
   </div>
 </div>
 <script>
 (function () {
   var form = document.getElementById('members-plans-filter');
-  var table = document.getElementById('members-plans-table');
-  if (!form || !table) return;
-  var rows = Array.prototype.slice.call(table.querySelectorAll('tbody tr'));
-  var empty = document.getElementById('members-plans-empty');
-  function apply() {
+  var tableEl = document.getElementById('members-plans-table');
+  if (!form || !tableEl) return;
+
+  function searchFn(settings, data, dataIndex) {
+    if (settings.nTable !== tableEl) return true;
+    var tr = settings.aoData[dataIndex] && settings.aoData[dataIndex].nTr;
+    if (!tr) return true;
     var q = (form.q.value || '').trim().toLowerCase();
     var track = form.track.value;
     var has = form.has_learners.value;
     var prog = form.progress.value;
+    var ok = true;
+    if (q && (tr.getAttribute('data-search') || '').indexOf(q) === -1) ok = false;
+    if (ok && track && tr.getAttribute('data-track') !== track) ok = false;
+    if (ok && has === '1' && Number(tr.getAttribute('data-learners') || 0) <= 0) ok = false;
+    if (ok && has === '0' && Number(tr.getAttribute('data-learners') || 0) > 0) ok = false;
+    var avg = Number(tr.getAttribute('data-avg') || 0);
+    var p = Number(tr.getAttribute('data-passed') || 0);
+    if (ok && prog === 'gt0' && avg <= 0) ok = false;
+    if (ok && prog === 'lt50' && avg >= 50) ok = false;
+    if (ok && prog === 'gte50' && avg < 50) ok = false;
+    if (ok && prog === 'passed' && p <= 0) ok = false;
+    return ok;
+  }
+
+  function refreshStats(api) {
     var shown = 0, learners = 0, passed = 0;
-    rows.forEach(function (tr) {
-      var ok = true;
-      if (q && (tr.getAttribute('data-search') || '').indexOf(q) === -1) ok = false;
-      if (ok && track && tr.getAttribute('data-track') !== track) ok = false;
-      if (ok && has === '1' && Number(tr.getAttribute('data-learners') || 0) <= 0) ok = false;
-      if (ok && has === '0' && Number(tr.getAttribute('data-learners') || 0) > 0) ok = false;
-      var avg = Number(tr.getAttribute('data-avg') || 0);
-      var p = Number(tr.getAttribute('data-passed') || 0);
-      if (ok && prog === 'gt0' && avg <= 0) ok = false;
-      if (ok && prog === 'lt50' && avg >= 50) ok = false;
-      if (ok && prog === 'gte50' && avg < 50) ok = false;
-      if (ok && prog === 'passed' && p <= 0) ok = false;
-      tr.hidden = !ok;
-      if (ok) {
-        shown++;
-        learners += Number(tr.getAttribute('data-learners') || 0);
-        passed += p;
-      }
+    api.rows({ search: 'applied' }).every(function () {
+      var tr = this.node();
+      if (!tr) return;
+      shown++;
+      learners += Number(tr.getAttribute('data-learners') || 0);
+      passed += Number(tr.getAttribute('data-passed') || 0);
     });
-    if (empty) empty.hidden = shown > 0;
     var elP = document.getElementById('members-stat-plans');
     var elL = document.getElementById('members-stat-learners');
     var elX = document.getElementById('members-stat-passed');
@@ -194,11 +210,34 @@ $stats = $stats ?? ['plans' => 0, 'learners' => 0, 'passed' => 0];
     if (elL) elL.textContent = String(learners);
     if (elX) elX.textContent = String(passed);
   }
-  form.addEventListener('submit', function (e) { e.preventDefault(); apply(); });
-  form.addEventListener('reset', function () { setTimeout(apply, 0); });
-  form.querySelectorAll('select, input').forEach(function (el) {
-    el.addEventListener('change', apply);
-    el.addEventListener('input', apply);
-  });
+
+  function bind(api) {
+    if (!api || tableEl.dataset.filterBound === '1') return;
+    tableEl.dataset.filterBound = '1';
+    jQuery.fn.dataTable.ext.search.push(searchFn);
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      api.draw();
+    });
+    form.addEventListener('reset', function () {
+      setTimeout(function () { api.draw(); }, 0);
+    });
+    form.querySelectorAll('select, input').forEach(function (el) {
+      el.addEventListener('change', function () { api.draw(); });
+      el.addEventListener('input', function () { api.draw(); });
+    });
+    api.on('draw', function () { refreshStats(api); });
+    refreshStats(api);
+  }
+
+  var tries = 0;
+  (function waitReady() {
+    tries++;
+    if (window.jQuery && jQuery.fn.DataTable && jQuery.fn.DataTable.isDataTable(tableEl)) {
+      bind(jQuery(tableEl).DataTable());
+      return;
+    }
+    if (tries < 80) setTimeout(waitReady, 50);
+  })();
 })();
 </script>

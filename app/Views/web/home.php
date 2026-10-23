@@ -20,7 +20,7 @@ $tagline = app_brand('tagline');
         <div class="home-ctas">
           <?php if (auth()->check()): ?>
             <a class="ws-btn-primary" href="<?= url('/learn') ?>">เข้าเรียนต่อ <i class="fa fa-arrow-right"></i></a>
-            <a class="ws-btn-ghost" href="<?= url('/admin/enrollments') ?>">ลงทะเบียนอบรม</a>
+            <a class="ws-btn-ghost" href="<?= url('/admin/enrollments') ?>">ลงทะเบียน/เข้าเรียน</a>
           <?php else: ?>
             <a class="ws-btn-primary" href="<?= url('/login') ?>">เข้าสู่ระบบ <i class="fa fa-arrow-right"></i></a>
             <a class="ws-btn-ghost" href="<?= url('/curriculum') ?>">ดูโมดูลการอบรม</a>

@@ -10,6 +10,6 @@ ON DUPLICATE KEY UPDATE plan_id = plan_id;
 
 INSERT INTO training_quizzes (plan_id, quiz_type, title, description, pass_score, max_attempts, status, created_by)
 VALUES
-(@plan_id, 'pretest', 'Pretest โมดูลนำร่อง', 'ทดสอบความรู้ก่อนเรียน', 50, 1, 1, @uid),
-(@plan_id, 'posttest', 'Posttest โมดูลนำร่อง', 'ทดสอบความรู้หลังเรียน', 60, 3, 1, @uid)
+(@plan_id, 'pretest', 'ทดสอบก่อนเรียน', 'ทดสอบความรู้ก่อนเรียน', 50, 1, 1, @uid),
+(@plan_id, 'posttest', 'สอบหลังเรียน', 'ทดสอบความรู้หลังเรียน', 70, 3, 1, @uid)
 ON DUPLICATE KEY UPDATE title = VALUES(title), description = VALUES(description);

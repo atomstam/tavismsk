@@ -68,11 +68,22 @@ class PortfolioController extends Controller
 
     public function store(string $type): void
     {
-        $this->moduleOrFail($type);
+        $mod = $this->moduleOrFail($type);
         $this->requirePerm('portfolio', 'create');
-        $id = $this->items->create($this->payload($type, null));
+        $payload = $this->payload($type, null);
+        $id = $this->items->create($payload);
         $this->saveUploads($id);
         activity_log('create', $type, 'เพิ่มรายการพอร์ตโฟลิโอ', null, ['id' => $id]);
+        try {
+            (new \App\Services\NotificationService())->portfolioCreated(
+                $type,
+                (int) $id,
+                (string) ($payload['title'] ?? ($mod['title'] ?? 'รายการใหม่')),
+                (int) ($payload['user_id'] ?? auth()->id())
+            );
+        } catch (\Throwable $e) {
+            // ไม่บล็อกการบันทึกหากแจ้งเตือนล้มเหลว
+        }
         $this->flash('success', 'บันทึกรายการสำเร็จ');
         $this->redirect('/admin/portfolio/' . $type);
     }

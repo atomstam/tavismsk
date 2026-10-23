@@ -36,34 +36,59 @@ $statusMap = [
         <hr><div><?= nl2br(e($row['description'])) ?></div>
       <?php endif; ?>
 
-      <?php if ($cfg): ?>
-        <hr>
-        <h2 class="h6">ใบความรู้</h2>
-        <ul><?php foreach (($cfg['knowledge_sheets'] ?? []) as $ks): ?><li><?= e($ks) ?></li><?php endforeach; ?></ul>
-        <h2 class="h6">ใบงาน</h2>
-        <ul><?php foreach (($cfg['worksheets'] ?? []) as $ws): ?><li><?= e($ws) ?></li><?php endforeach; ?></ul>
-        <h2 class="h6">สื่อ / แหล่งเรียนรู้</h2>
+      <?php
+      $sections = $sections ?? [
+        'contents' => [], 'tasks' => [], 'knowledge' => [], 'worksheets' => [],
+        'worksheets_covered_by_tasks' => false, 'media' => [],
+      ];
+      ?>
+      <hr>
+      <h2 class="h6">เนื้อหาในระบบเรียน (LMS)</h2>
+      <?php if ($sections['contents']): ?>
+        <ul><?php foreach ($sections['contents'] as $c): ?><li><?= e($c['title']) ?></li><?php endforeach; ?></ul>
+      <?php else: ?>
+        <p class="text-muted small">ยังไม่มี</p>
+      <?php endif; ?>
+
+      <h2 class="h6">ภาระงานในระบบเรียน (LMS)</h2>
+      <?php if ($sections['tasks']): ?>
+        <ul><?php foreach ($sections['tasks'] as $t): ?><li><?= e($t['title']) ?></li><?php endforeach; ?></ul>
+      <?php else: ?>
+        <p class="text-muted small">ยังไม่มี</p>
+      <?php endif; ?>
+
+      <h2 class="h6">ใบความรู้</h2>
+      <?php if ($sections['knowledge']): ?>
+        <ul><?php foreach ($sections['knowledge'] as $ks): ?><li><?= e($ks) ?></li><?php endforeach; ?></ul>
+      <?php else: ?>
+        <p class="text-muted small">ยังไม่มี</p>
+      <?php endif; ?>
+
+      <h2 class="h6">ใบงาน</h2>
+      <?php if ($sections['worksheets']): ?>
+        <ul><?php foreach ($sections['worksheets'] as $ws): ?><li><?= e($ws) ?></li><?php endforeach; ?></ul>
+      <?php elseif (!empty($sections['worksheets_covered_by_tasks'])): ?>
+        <p class="text-muted small">ใบงานดำเนินการผ่านภาระงานในระบบด้านบนแล้ว ไม่แสดงซ้ำ</p>
+      <?php else: ?>
+        <p class="text-muted small">ยังไม่มี</p>
+      <?php endif; ?>
+
+      <h2 class="h6">สื่อ / แหล่งเรียนรู้</h2>
+      <?php if ($sections['media']): ?>
         <ul>
-          <?php foreach (($cfg['resources'] ?? []) as $res): ?>
+          <?php foreach ($sections['media'] as $res): ?>
             <li>
               <?php if (!empty($res['url'])): ?>
                 <a href="<?= e($res['url']) ?>" target="_blank" rel="noopener"><?= e($res['title'] ?? 'ลิงก์') ?></a>
-                <span class="text-muted small">(<?= e($res['type'] ?? '') ?>)</span>
+                <?php if (!empty($res['type'])): ?><span class="text-muted small">(<?= e($res['type']) ?>)</span><?php endif; ?>
               <?php else: ?>
                 <?= e($res['title'] ?? '') ?>
               <?php endif; ?>
             </li>
           <?php endforeach; ?>
         </ul>
-      <?php endif; ?>
-
-      <?php if ($resources): ?>
-        <hr><h2 class="h6">ทรัพยากรในฐานข้อมูล</h2>
-        <ul><?php foreach ($resources as $r): ?><li><?= e($r['title']) ?><?php if ($r['url']): ?> — <a href="<?= e($r['url']) ?>" target="_blank" rel="noopener">เปิด</a><?php endif; ?></li><?php endforeach; ?></ul>
-      <?php endif; ?>
-      <?php if ($worksheets): ?>
-        <h2 class="h6">ใบงานในฐานข้อมูล</h2>
-        <ul><?php foreach ($worksheets as $w): ?><li><?= e($w['title']) ?></li><?php endforeach; ?></ul>
+      <?php else: ?>
+        <p class="text-muted small">ไม่มีสื่อเพิ่มเติม (เนื้อหาหลักอยู่ใน LMS)</p>
       <?php endif; ?>
     </div></div>
   </div>

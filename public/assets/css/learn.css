@@ -151,6 +151,14 @@
 }
 .learn-pill.ok { background: #ecfdf5; color: #065f46; }
 .learn-pill.lock { background: #f1f5f9; color: #64748b; }
+/* อย่าให้ display ของ .learn-pill ทับ attribute[hidden] — ป้ายเรียนแล้วต้องโชว์ทีละรายการ */
+.learn-pill[hidden],
+.learn-content-done-pill.is-pending {
+  display: none !important;
+}
+.learn-content-item.is-done .learn-content-done-pill {
+  display: inline-flex !important;
+}
 
 .btn-learn-primary {
   background: var(--p-gradient-btn) !important;
@@ -260,7 +268,9 @@
 /* วางทับมุมปกการ์ดเท่านั้น — ไม่ใช้ absolute ในตาราง/หัวข้อ */
 .learn-plan-cover .learn-plan-track,
 .admin-plan-cover-foot .learn-plan-track,
-.ws-work-card .thumb .learn-plan-track {
+.ws-work-card .thumb .learn-plan-track,
+.ws-plan-cover .learn-plan-track,
+.ws-page-hero-media .learn-plan-track {
   position: absolute;
   right: 12px;
   bottom: 12px;
@@ -677,4 +687,229 @@ body.pf-light .ws-footer {
   position: relative;
   z-index: 5;
 }
+
+/* —— หน้าเกียรติบัตร / วุฒิบัตร —— */
+.cert-page-head .cert-lead {
+  margin: .35rem 0 0;
+  color: #475569;
+  font-size: .95rem;
+  max-width: 40rem;
+}
+.cert-diploma-banner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 1.15rem 1.35rem;
+  border-radius: 18px;
+  border: 1px solid #fdba74;
+  background: linear-gradient(135deg, #fff7ed 0%, #ffffff 55%, #fffbeb 100%);
+  box-shadow: 0 10px 28px rgba(154, 52, 18, .08);
+}
+.cert-diploma-banner.is-ready {
+  border-color: #86efac;
+  background: linear-gradient(135deg, #ecfdf5 0%, #ffffff 55%, #f0fdf4 100%);
+  box-shadow: 0 10px 28px rgba(22, 101, 52, .08);
+}
+.cert-diploma-kicker {
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #9a3412;
+  margin-bottom: .2rem;
+}
+.cert-diploma-banner.is-ready .cert-diploma-kicker { color: #166534; }
+.cert-diploma-copy h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.35;
+}
+.cert-diploma-copy p {
+  margin: .35rem 0 0;
+  color: #475569;
+  font-size: .92rem;
+}
+.cert-btn-diploma {
+  background: linear-gradient(135deg, #ea580c, #c2410c) !important;
+  border: 0 !important;
+  color: #fff !important;
+  font-weight: 700;
+  border-radius: 12px;
+  padding: .7rem 1.25rem;
+  box-shadow: 0 8px 18px rgba(194, 65, 12, .28);
+}
+.cert-diploma-banner.is-ready .cert-btn-diploma {
+  background: linear-gradient(135deg, #16a34a, #15803d) !important;
+  box-shadow: 0 8px 18px rgba(22, 163, 74, .28);
+}
+.cert-btn-diploma.is-disabled,
+.cert-btn-diploma:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+  box-shadow: none !important;
+}
+.cert-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: .75rem 1rem;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+.cert-section-title {
+  margin: .35rem 0 .2rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+.cert-section-desc {
+  margin: 0;
+  color: #64748b;
+  font-size: .88rem;
+}
+.cert-section-count {
+  font-size: .85rem;
+  font-weight: 700;
+  color: #334155;
+  background: #f1f5f9;
+  border-radius: 999px;
+  padding: .35rem .8rem;
+}
+.cert-track {
+  display: inline-flex;
+  align-items: center;
+  padding: .2rem .65rem;
+  border-radius: 999px;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .02em;
+}
+.cert-track.is-required {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.cert-track.is-general {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+.cert-table {
+  --bs-table-bg: transparent;
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+}
+.cert-table thead th {
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: .78rem;
+  font-weight: 800;
+  text-transform: none;
+  border-bottom: 1px solid #e2e8f0;
+  padding: .85rem .75rem;
+  white-space: nowrap;
+}
+.cert-table tbody td {
+  border-bottom: 1px solid #eef2f7;
+  padding: .9rem .75rem;
+  vertical-align: middle;
+  color: #1e293b;
+}
+.cert-table tbody tr:last-child td { border-bottom: 0; }
+.cert-table tbody tr.is-ready { background: #f0fdf4; }
+.cert-plan-title {
+  font-size: .78rem;
+  font-weight: 800;
+  color: #1d4ed8;
+  margin-bottom: .15rem;
+}
+.cert-plan-name {
+  font-size: .98rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.4;
+  margin-bottom: .35rem;
+}
+.cert-plan-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem .65rem;
+  align-items: center;
+  font-size: .8rem;
+  color: #64748b;
+  font-weight: 600;
+}
+.cert-mark {
+  display: inline-flex;
+  width: 1.55rem;
+  height: 1.55rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: .75rem;
+}
+.cert-mark.is-ok {
+  background: #dcfce7;
+  color: #166534;
+}
+.cert-mark.is-off {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+.cert-cell-note {
+  margin-top: .25rem;
+  font-size: .75rem;
+  font-weight: 600;
+  color: #64748b;
+  line-height: 1.35;
+}
+.cert-btn-print {
+  background: #16a34a !important;
+  border: 0 !important;
+  color: #fff !important;
+  font-weight: 700;
+  border-radius: 10px;
+}
+.cert-chip-wait {
+  display: inline-flex;
+  align-items: center;
+  padding: .3rem .65rem;
+  border-radius: 999px;
+  font-size: .75rem;
+  font-weight: 700;
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+.cert-note {
+  border: 1px solid #bfdbfe;
+  background: linear-gradient(180deg, #eff6ff, #fff);
+}
+.cert-note strong { color: #1e3a8a; }
+.cert-note ul {
+  padding-left: 1.15rem;
+  color: #334155;
+  font-size: .88rem;
+}
+.cert-note li { margin-bottom: .2rem; }
+
+[data-theme="dark"] .cert-diploma-banner,
+[data-theme="dark"] .cert-note,
+[data-theme="dark"] .cert-table thead th {
+  background: #111827;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+[data-theme="dark"] .cert-plan-name,
+[data-theme="dark"] .cert-section-title,
+[data-theme="dark"] .cert-diploma-copy h2 { color: #f8fafc; }
+[data-theme="dark"] .cert-table { border-color: #334155; }
+[data-theme="dark"] .cert-table tbody td { border-color: #1f2937; color: #e2e8f0; }
+[data-theme="dark"] .cert-table tbody tr.is-ready { background: rgba(22, 163, 74, .12); }
 

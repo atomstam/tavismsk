@@ -32,6 +32,9 @@ $loggedIn = auth()->check();
       $planId = (int) ($dbRow['id'] ?? 0);
       $pr = $planId > 0 ? ($progressByPlanId[$planId] ?? null) : null;
       $pct = (float) ($pr['overall_percent'] ?? 0);
+      $required = isset($dbRow['is_required'])
+        ? (int) $dbRow['is_required'] === 1
+        : $no <= 12;
     ?>
     <div class="col-md-6">
       <div class="card-soft ws-plan-card h-100">
@@ -43,7 +46,7 @@ $loggedIn = auth()->check();
               <div class="ws-plan-cover-fallback"><i class="fa fa-shield-halved"></i></div>
             <?php endif; ?>
             <span class="ws-plan-cover-badge">แผนที่ <?= $no ?></span>
-            <span class="learn-plan-track <?= $no <= 12 ? 'is-required' : 'is-elective' ?>"><?= $no <= 12 ? 'บังคับ' : 'ทั่วไป' ?></span>
+            <span class="learn-plan-track <?= $required ? 'is-required' : 'is-elective' ?>"><?= $required ? 'บังคับ' : 'ทั่วไป' ?></span>
             <?php if ($pr): ?>
               <span class="ws-plan-cover-progress"><?= number_format($pct, 0) ?>%</span>
             <?php endif; ?>

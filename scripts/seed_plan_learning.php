@@ -78,20 +78,26 @@ foreach ($plans as $plan) {
     $lms->ensureQuiz($planId, 'posttest', 'สอบหลัง: ' . $plan['title'], $actorId);
     $lms->ensureQuiz($planId, 'satisfaction', 'ประเมินความพึงพอใจ: ' . $plan['title'], $actorId);
 
-    $have = (int) (db()->fetch(
-        'SELECT COUNT(*) AS c FROM training_quiz_questions WHERE quiz_id = ? AND status = 1',
+    // เพิ่มทีละสาระ ไม่ซ้ำข้อความ (กันรันซ้ำแล้วได้ข้อซ้ำในคลัง)
+    $sortBase = (int) (db()->fetch(
+        'SELECT COALESCE(MAX(sort_order), 0) AS m FROM training_quiz_questions WHERE quiz_id = ?',
         [$preId]
-    )['c'] ?? 0);
-    $need = 12 - $have;
-    for ($i = 0; $i < $need; $i++) {
-        $sheet = $sheets[$i % count($sheets)];
-        $n = $have + $i + 1;
-        $text = 'แผนที่ ' . (int) $plan['plan_no'] . ' ข้อ ' . $n . ': สาระ «' . $sheet . '» ข้อใดถูกต้อง';
+    )['m'] ?? 0);
+    foreach ($sheets as $si => $sheet) {
+        $text = 'สาระ «' . $sheet . '» ข้อใดถูกต้อง';
         $exists = db()->fetch(
-            'SELECT id FROM training_quiz_questions WHERE quiz_id = ? AND question_text = ?',
+            'SELECT id FROM training_quiz_questions WHERE quiz_id = ? AND status = 1 AND question_text = ? LIMIT 1',
             [$preId, $text]
         );
         if ($exists) {
+            continue;
+        }
+        // รองรับข้อเก่าที่เคยมีคำนำ "แผนที่ X ข้อ Y:"
+        $legacy = db()->fetch(
+            'SELECT id FROM training_quiz_questions WHERE quiz_id = ? AND status = 1 AND question_text LIKE ? LIMIT 1',
+            [$preId, '%สาระ «' . $sheet . '» ข้อใดถูกต้อง']
+        );
+        if ($legacy) {
             continue;
         }
         $qid = (int) db()->insert('training_quiz_questions', [
@@ -100,7 +106,7 @@ foreach ($plans as $plan) {
             'question_type' => 'single',
             'points' => 1,
             'explanation' => 'สอดคล้องกับสาระของแผน: ' . $sheet,
-            'sort_order' => $n,
+            'sort_order' => $sortBase + $si + 1,
             'status' => 1,
             'created_at' => $now,
             'updated_at' => $now,

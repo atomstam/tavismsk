@@ -165,6 +165,7 @@ class TrainingService
         $attendance = $requiredTotal > 0 ? round(($requiredPassed / $requiredTotal) * 100, 2) : 0;
         $isPassed = ($requiredTotal > 0 && $requiredPassed === $requiredTotal) ? 1 : 0;
         $status = $enroll['status'];
+        $passedModules = (int) ($sum['passed_modules'] ?? 0);
         if ($isPassed) {
             $status = 'completed';
         } elseif (in_array($status, ['approved', 'pending'], true) && $passedModules > 0) {
@@ -216,18 +217,24 @@ class TrainingService
             return $existing;
         }
 
+        $standing = $this->diplomaStanding($enrollmentId);
         $name = trim(($enroll['title'] ?? '') . ($enroll['first_name'] ?? '') . ' ' . ($enroll['last_name'] ?? ''));
+        $courseTitle = (string) config(
+            'app',
+            'training.course_title',
+            'หลักสูตรวัคซีนจราจร เพื่อพัฒนาสมรรถนะด้านจราจรและความปลอดภัยทางถนน'
+        );
         $id = (int) db()->insert('certificates', [
             'cert_no' => $this->nextCertNo(),
             'verify_code' => bin2hex(random_bytes(16)),
             'enrollment_id' => $enrollmentId,
             'user_id' => (int) $enroll['user_id'],
             'org_unit_id' => $enroll['org_unit_id'] ?? null,
-            'title' => 'วุฒิบัตรผ่านหลักสูตร ' . app_brand('full_name') . ' (' . app_brand('short_name') . ')',
+            'title' => $courseTitle,
             'recipient_name' => $name,
             'org_name' => $enroll['org_name'] ?? null,
-            'hours' => (float) $enroll['total_hours'],
-            'final_score' => $enroll['final_score'] ?? null,
+            'hours' => (float) $standing['hours'],
+            'final_score' => (float) $standing['passed'],
             'issued_at' => date('Y-m-d H:i:s'),
             'issued_by' => $issuerId,
             'status' => 'active',
@@ -236,6 +243,36 @@ class TrainingService
         ]);
 
         return db()->fetch('SELECT * FROM certificates WHERE id = ?', [$id]) ?: null;
+    }
+
+    /**
+     * สรุปแผนบังคับสำหรับวุฒิบัตร
+     * @return array{total:int,passed:int,ready:bool,hours:float}
+     */
+    public function diplomaStanding(int $enrollmentId): array
+    {
+        $lms = new ModuleLearningService();
+        $plans = db()->fetchAll(
+            'SELECT * FROM learning_plans WHERE status = 1 AND is_required = 1 ORDER BY plan_no, id'
+        );
+        $passed = 0;
+        $hours = 0.0;
+        foreach ($plans as $plan) {
+            $planId = (int) $plan['id'];
+            $progress = $lms->recalculate($planId, $enrollmentId, false);
+            $settings = $lms->settings($planId);
+            if (PlanProgress::certificateReady($progress, [], $settings)) {
+                $passed++;
+                $hours += (float) ($plan['hours'] ?? 0);
+            }
+        }
+        $total = count($plans);
+        return [
+            'total' => $total,
+            'passed' => $passed,
+            'ready' => $total > 0 && $passed === $total,
+            'hours' => round($hours, 1),
+        ];
     }
 
     /** เกียรติบัตรของแผนเดียว ออกได้เมื่อแผนนั้นผ่านเกณฑ์ */
@@ -250,11 +287,9 @@ class TrainingService
             [$enrollmentId]
         );
         $plan = db()->fetch('SELECT * FROM learning_plans WHERE id = ? AND status = 1', [$planId]);
-        $progress = db()->fetch(
-            'SELECT is_passed, overall_percent FROM training_module_progress WHERE enrollment_id = ? AND plan_id = ?',
-            [$enrollmentId, $planId]
-        );
-        if (!$enroll || !$plan || !(int) ($progress['is_passed'] ?? 0)) {
+        $progress = (new ModuleLearningService())->recalculate($planId, $enrollmentId, true);
+        $settings = (new ModuleLearningService())->settings($planId);
+        if (!$enroll || !$plan || !PlanProgress::certificateReady($progress, [], $settings)) {
             return null;
         }
         $existing = db()->fetch(
@@ -276,7 +311,7 @@ class TrainingService
             'recipient_name' => $name,
             'org_name' => $enroll['org_name'] ?? null,
             'hours' => (float) ($plan['hours'] ?? 1),
-            'final_score' => $progress['overall_percent'] ?? null,
+            'final_score' => $progress['score_percent'] ?? $progress['overall_percent'] ?? null,
             'issued_at' => date('Y-m-d H:i:s'),
             'issued_by' => $issuerId,
             'status' => 'active',
@@ -286,32 +321,20 @@ class TrainingService
         return db()->fetch('SELECT * FROM certificates WHERE id = ?', [$id]) ?: null;
     }
 
-    /** @return array{total:int,passed:int,ready:bool} */
+    /** @return array{total:int,passed:int,ready:bool,hours?:float} */
     public function requiredPlanStanding(int $enrollmentId): array
     {
-        $plans = db()->fetchAll(
-            'SELECT id FROM learning_plans WHERE status = 1 AND is_required = 1'
-        );
-        $passed = 0;
-        foreach ($plans as $plan) {
-            $row = db()->fetch(
-                'SELECT is_passed FROM training_module_progress WHERE enrollment_id = ? AND plan_id = ?',
-                [$enrollmentId, (int) $plan['id']]
-            );
-            if ((int) ($row['is_passed'] ?? 0) === 1) {
-                $passed++;
-            }
-        }
-        $total = count($plans);
+        $standing = $this->diplomaStanding($enrollmentId);
         return [
-            'total' => $total,
-            'passed' => $passed,
-            'ready' => $total > 0 && $passed === $total,
+            'total' => $standing['total'],
+            'passed' => $standing['passed'],
+            'ready' => $standing['ready'],
+            'hours' => $standing['hours'],
         ];
     }
 
     private function requiredPlansComplete(int $enrollmentId): bool
     {
-        return $this->requiredPlanStanding($enrollmentId)['ready'];
+        return $this->diplomaStanding($enrollmentId)['ready'];
     }
 }

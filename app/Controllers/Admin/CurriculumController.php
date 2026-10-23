@@ -105,13 +105,24 @@ class CurriculumController extends Controller
             }
         }
 
+        $lmsContents = [];
+        $lmsTasks = [];
+        if (!empty($row['id'])) {
+            try {
+                $lms = new \App\Services\ModuleLearningService();
+                $lmsContents = $lms->contents((int) $row['id']);
+                $lmsTasks = $lms->tasks((int) $row['id']);
+            } catch (\Throwable $e) {
+            }
+        }
+        $sections = curriculum_plan_sections($cfg ?? [], $lmsContents, $lmsTasks, $resources, $worksheets);
+
         $this->view('admin/curriculum/show', [
             'title' => 'แผนที่ ' . (int) ($row['plan_no'] ?? 0),
             'breadcrumb' => 'หน้าหลัก / แผนการเรียนรู้ / รายละเอียด',
             'row' => $row,
             'cfg' => $cfg,
-            'resources' => $resources,
-            'worksheets' => $worksheets,
+            'sections' => $sections,
             'progress' => $progress,
             'members' => $members,
         ]);

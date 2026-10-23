@@ -4,12 +4,12 @@ $tab = $tab ?? 'content';
 $settings = $settings ?? [];
 $pid = (int) ($plan['id'] ?? 0);
 $tabs = [
-  'content' => 'เนื้อหา',
-  'pretest' => 'ทดสอบก่อน',
-  'tasks' => 'ภาระงาน',
-  'posttest' => 'สอบหลัง',
-  'submissions' => 'ตรวจงาน',
-  'settings' => 'น้ำหนัก %',
+  'content' => ['label' => 'เนื้อหา', 'icon' => 'fa-book-open'],
+  'pretest' => ['label' => 'ทดสอบก่อน', 'icon' => 'fa-clipboard-question'],
+  'tasks' => ['label' => 'ภาระงาน', 'icon' => 'fa-list-check'],
+  'posttest' => ['label' => 'สอบหลัง', 'icon' => 'fa-file-circle-check'],
+  'submissions' => ['label' => 'ตรวจงาน', 'icon' => 'fa-clipboard-check'],
+  'settings' => ['label' => 'น้ำหนัก %', 'icon' => 'fa-sliders'],
 ];
 $typeLabel = [
   'pdf' => 'PDF', 'word' => 'Word', 'excel' => 'Excel',
@@ -46,13 +46,24 @@ $shareLine = static function (string $key) use ($shares): string {
   </div>
 </div>
 
-<ul class="nav nav-pills flex-wrap gap-1 mb-3">
-  <?php foreach ($tabs as $k => $label): ?>
-    <li class="nav-item">
-      <a class="nav-link <?= $tab === $k ? 'active' : '' ?>" href="<?= url('/admin/training/' . $pid . '?tab=' . $k) ?>"><?= e($label) ?></a>
-    </li>
-  <?php endforeach; ?>
-</ul>
+<nav class="lms-tabs mb-3" aria-label="แท็บจัดการบทเรียน">
+  <ul class="lms-tabs-list">
+    <?php foreach ($tabs as $k => $meta):
+      $label = is_array($meta) ? (string) ($meta['label'] ?? $k) : (string) $meta;
+      $icon = is_array($meta) ? (string) ($meta['icon'] ?? 'fa-circle') : 'fa-circle';
+      $active = $tab === $k;
+    ?>
+      <li>
+        <a class="lms-tab<?= $active ? ' is-active' : '' ?>"
+           href="<?= url('/admin/training/' . $pid . '?tab=' . $k) ?>"
+           <?= $active ? 'aria-current="page"' : '' ?>>
+          <i class="fa <?= e($icon) ?>" aria-hidden="true"></i>
+          <span><?= e($label) ?></span>
+        </a>
+      </li>
+    <?php endforeach; ?>
+  </ul>
+</nav>
 
 <div class="alert alert-info py-2 small">
   <?php
@@ -62,7 +73,7 @@ $shareLine = static function (string $key) use ($shares): string {
   เนื้อหา / ข้อสอบ / ภาระงานที่บันทึกที่นี่ จะแสดงในการเรียนฝั่งเว็บไซต์ที่
   <a href="<?= url('/learn/' . $pid) ?>" target="_blank">/learn/<?= $pid ?></a>
   ด้วยลำดับเดียวกัน: ทดสอบก่อน → เนื้อหา → ภาระงาน → สอบหลัง → ความพึงพอใจ
-  แผนนี้ดึงจากคลัง <?= $quizDraw ?> ข้อ<?= $quizShuffle ? ' แล้วสุ่มลำดับข้อและตัวเลือก ข้อสอบหลังได้ข้อชุดเดิมแต่ลำดับไม่ซ้ำกับก่อนเรียน' : ' ตามลำดับในคลัง ไม่สุ่ม' ?>
+  แผนนี้ดึง <?= $quizDraw ?> ข้อ<?= $quizShuffle ? ' แบบสุ่มลำดับข้อและตัวเลือก (ถ้าคลังแผนไม่พอ ระบบเติมจากคลังรวมโดยไม่ซ้ำข้อความ) ข้อสอบหลังใช้ชุดเดิมแต่สลับลำดับ' : ' ตามลำดับในคลัง ไม่สุ่ม' ?>
   จำนวนข้อและการสุ่มตั้งในแท็บน้ำหนัก %
   แบบประเมินความพึงพอใจเป็นชุดกลางของผู้ดูแลระบบ ใช้ร่วมทุกแผน
 </div>
@@ -243,7 +254,7 @@ $shareLine = static function (string $key) use ($shares): string {
         <input type="hidden" name="quiz_type" value="<?= e($tab) ?>">
         <div class="lms-field lms-field-wide"><label class="form-label">ชื่อ</label><input name="title" class="form-control" value="<?= e($quiz['title'] ?? '') ?>"></div>
         <div class="lms-field lms-field-wide"><label class="form-label">คำอธิบาย</label><input name="description" class="form-control" value="<?= e($quiz['description'] ?? '') ?>"></div>
-        <div class="lms-field"><label class="form-label">คะแนนผ่าน (%)</label><input type="number" step="0.01" name="pass_score" class="form-control" value="<?= e((string)($quiz['pass_score'] ?? 60)) ?>"></div>
+        <div class="lms-field"><label class="form-label">คะแนนผ่าน (%)</label><input type="number" step="0.01" name="pass_score" class="form-control" value="<?= e((string)($quiz['pass_score'] ?? ($tab==='posttest'?70:60))) ?>"></div>
         <div class="lms-field"><label class="form-label">จำนวนครั้งสูงสุด</label><input type="number" name="max_attempts" class="form-control" value="<?= e((string)($quiz['max_attempts'] ?? ($tab==='pretest'?1:3))) ?>" min="1"></div>
         <div class="lms-field"><label class="form-label">จำกัดเวลา (นาที)</label><input type="number" name="time_limit_minutes" class="form-control" value="<?= e((string)($quiz['time_limit_minutes'] ?? '')) ?>" placeholder="ว่าง = ไม่จำกัด"></div>
         <div class="lms-field lms-field-action"><button class="btn btn-primary" type="submit">บันทึก</button></div>
@@ -569,26 +580,112 @@ $shareLine = static function (string $key) use ($shares): string {
 })();
 </script>
 
-<?php elseif ($tab === 'submissions'): ?>
+<?php elseif ($tab === 'submissions'):
+  $pendingCount = (int) ($pendingCount ?? 0);
+  $statusTh = static fn (?string $st): string => match ((string) $st) {
+    'submitted' => 'รอตรวจ',
+    'approved' => 'ตรวจผ่าน',
+    'rejected' => 'ไม่ผ่าน',
+    'revision' => 'ต้องแก้ไข',
+    default => (string) $st,
+  };
+?>
+<div class="card-soft mb-3"><div class="card-body">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+    <div>
+      <h2 class="h6 mb-1">ตรวจให้คะแนนภาระงาน</h2>
+      <p class="small text-muted mb-0">ค่าเริ่มต้นของแต่ละภาระงาน = คะแนนเต็ม · รอตรวจ <?= $pendingCount ?> รายการ</p>
+    </div>
+    <?php if (can_perm('assessments','edit') && $pendingCount > 0): ?>
+    <form method="post" action="<?= url('/admin/training/' . $pid . '/submissions/bulk-review') ?>" class="d-flex flex-wrap gap-2"
+          data-confirm="ตรวจผ่านทุกคน ทุกภาระงานที่รอตรวจในแผนนี้? (คะแนน = คะแนนเต็ม)">
+      <?= csrf_field() ?>
+      <input type="hidden" name="scope" value="all">
+      <button class="btn btn-success btn-sm" type="submit"><i class="fa fa-check-double"></i> ตรวจผ่านทั้งแผน</button>
+    </form>
+    <?php endif; ?>
+  </div>
+</div></div>
+
+<?php if (can_perm('assessments','edit') && $pendingCount > 0): ?>
+<form method="post" action="<?= url('/admin/training/' . $pid . '/submissions/bulk-review') ?>" id="bulk-selected-form" class="d-none">
+  <?= csrf_field() ?>
+  <input type="hidden" name="scope" value="selected">
+</form>
+<?php endif; ?>
 <div class="card-soft"><div class="card-body">
-  <table class="table datatable table-hover mb-0 align-middle">
-    <thead><tr><th>ผู้เรียน</th><th>ภาระงาน</th><th>สถานะ</th><th>ส่งเมื่อ</th><th>ตรวจ</th></tr></thead>
-    <tbody>
-    <?php foreach (($submissions ?? []) as $s): ?>
+    <?php if (can_perm('assessments','edit') && $pendingCount > 0): ?>
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      <button class="btn btn-outline-success btn-sm" type="submit" form="bulk-selected-form"
+              data-confirm="ตรวจผ่านรายการที่เลือก? (คะแนน = คะแนนเต็มของแต่ละภาระงาน)">
+        <i class="fa fa-check"></i> ตรวจผ่านที่เลือก
+      </button>
+    </div>
+    <?php endif; ?>
+  <table class="table table-hover mb-0 align-middle">
+    <thead>
       <tr>
-        <td><?= e(trim(($s['first_name']??'').' '.($s['last_name']??'')) ?: $s['username']) ?><div class="small text-muted"><?= e($s['enrollment_no']) ?></div></td>
+        <th style="width:36px"><?php if ($pendingCount > 0): ?><input type="checkbox" class="form-check-input" id="check-all-subs"><?php endif; ?></th>
+        <th>ผู้เรียน</th>
+        <th>ภาระงาน</th>
+        <th>สถานะ</th>
+        <th>คะแนน</th>
+        <th>ส่งเมื่อ</th>
+        <th>ตรวจ</th>
+      </tr>
+    </thead>
+    <tbody>
+    <?php
+      $shownEnrollBulk = [];
+      foreach (($submissions ?? []) as $s):
+      $maxScore = (float) ($s['task_max_score'] ?? 100);
+      $scoreVal = $s['score'] !== null && $s['score'] !== '' ? (float) $s['score'] : null;
+      $pct = $scoreVal !== null && $maxScore > 0 ? round(($scoreVal / $maxScore) * 100, 1) : null;
+      $pending = in_array((string) $s['status'], ['submitted', 'revision'], true);
+      $eid = (int) $s['enrollment_id'];
+    ?>
+      <tr>
+        <td>
+          <?php if (can_perm('assessments','edit') && $pending): ?>
+            <input type="checkbox" class="form-check-input sub-check" name="submission_ids[]" value="<?= (int) $s['id'] ?>" form="bulk-selected-form">
+          <?php endif; ?>
+        </td>
+        <td>
+          <?= e(trim(($s['first_name']??'').' '.($s['last_name']??'')) ?: $s['username']) ?>
+          <div class="small text-muted"><?= e($s['enrollment_no']) ?></div>
+          <?php if (can_perm('assessments','edit') && $pending && empty($shownEnrollBulk[$eid])):
+            $shownEnrollBulk[$eid] = true;
+          ?>
+          <form method="post" action="<?= url('/admin/training/' . $pid . '/submissions/bulk-review') ?>" class="mt-1"
+                data-confirm="ตรวจผ่านภาระงานทั้งหมดของผู้เรียนคนนี้ที่รอตรวจ?">
+            <?= csrf_field() ?>
+            <input type="hidden" name="scope" value="enrollment">
+            <input type="hidden" name="enrollment_id" value="<?= $eid ?>">
+            <button class="btn btn-link btn-sm p-0" type="submit">ตรวจผ่านทั้งคนนี้</button>
+          </form>
+          <?php endif; ?>
+        </td>
         <td><?= e($s['task_title']) ?>
+          <div class="small text-muted">เต็ม <?= number_format($maxScore, 0) ?> คะแนน</div>
           <?php if ($s['link_url']): ?><div class="small"><a href="<?= e($s['link_url']) ?>" target="_blank">ลิงก์</a></div><?php endif; ?>
           <?php if ($s['file_path']): ?><div class="small"><a href="<?= e(upload_url($s['file_path'])) ?>" target="_blank">ไฟล์</a></div><?php endif; ?>
           <?php if ($s['answer_text']): ?><div class="small text-muted"><?= e(mb_strimwidth($s['answer_text'],0,100,'…')) ?></div><?php endif; ?>
         </td>
-        <td><span class="badge text-bg-<?= $s['status']==='approved'?'success':($s['status']==='rejected'?'danger':'warning') ?>"><?= e($s['status']) ?></span></td>
+        <td><span class="badge text-bg-<?= $s['status']==='approved'?'success':($s['status']==='rejected'?'danger':'warning') ?>"><?= e($statusTh($s['status'])) ?></span></td>
+        <td class="small">
+          <?php if ($scoreVal !== null): ?>
+            <?= number_format($scoreVal, 1) ?> / <?= number_format($maxScore, 0) ?>
+            <div class="text-muted"><?= number_format((float) $pct, 0) ?>%</div>
+          <?php else: ?>
+            <span class="text-muted">—</span>
+          <?php endif; ?>
+        </td>
         <td class="small"><?= e($s['submitted_at'] ?? '-') ?></td>
         <td style="min-width:220px">
-          <?php if (can_perm('assessments','edit') && in_array($s['status'], ['submitted','revision'], true)): ?>
+          <?php if (can_perm('assessments','edit') && $pending): ?>
           <form method="post" action="<?= url('/admin/training/' . $pid . '/submission/' . (int)$s['id'] . '/review') ?>" class="d-flex flex-column gap-1">
             <?= csrf_field() ?>
-            <input type="number" name="score" class="form-control form-control-sm" placeholder="คะแนน" step="0.01">
+            <input type="number" name="score" class="form-control form-control-sm" value="<?= e((string) $maxScore) ?>" min="0" max="<?= e((string) $maxScore) ?>" step="0.01" title="ค่าเริ่มต้น = คะแนนเต็ม">
             <input name="feedback" class="form-control form-control-sm" placeholder="ความเห็น">
             <div class="btn-group btn-group-sm">
               <button name="status" value="approved" class="btn btn-success" type="submit">ผ่าน</button>
@@ -597,15 +694,24 @@ $shareLine = static function (string $key) use ($shares): string {
             </div>
           </form>
           <?php else: ?>
-            <?= e((string)($s['score'] ?? '-')) ?> · <?= e(mb_strimwidth((string)($s['feedback']??''),0,40,'…')) ?>
+            <span class="small text-muted"><?= e(mb_strimwidth((string)($s['feedback']??''),0,40,'…')) ?></span>
           <?php endif; ?>
         </td>
       </tr>
     <?php endforeach; ?>
-    <?php if (empty($submissions)): ?><tr><td colspan="5" class="text-center text-muted py-4">ยังไม่มีการส่งงาน</td></tr><?php endif; ?>
+    <?php if (empty($submissions)): ?><tr><td colspan="7" class="text-center text-muted py-4">ยังไม่มีการส่งงาน</td></tr><?php endif; ?>
     </tbody>
   </table>
 </div></div>
+<script>
+(function () {
+  var all = document.getElementById('check-all-subs');
+  if (!all) return;
+  all.addEventListener('change', function () {
+    document.querySelectorAll('.sub-check').forEach(function (el) { el.checked = all.checked; });
+  });
+})();
+</script>
 
 <?php else: /* settings */ ?>
 <div class="card-soft lms-panel" style="max-width:720px"><div class="card-body">

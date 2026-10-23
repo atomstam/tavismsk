@@ -11,9 +11,9 @@ class DashboardStatsService
 {
     /** การ์ดภาพรวมระบบอบรม */
     public const CARD_KEYS = [
-        'learners', 'enrollments', 'pending', 'modules', 'certificates', 'hours_total',
-        'org_units', 'task_pending',
-        'my_progress', 'my_hours', 'my_certificates', 'my_modules_done',
+        'learners', 'enrollments', 'pending', 'modules', 'certificates', 'plan_certificates',
+        'diplomas', 'hours_total', 'org_units', 'task_pending', 'plans_owned', 'cert_ready',
+        'my_progress', 'my_hours', 'my_certificates', 'my_diplomas', 'my_modules_done',
         // legacy eportfolio keys (ยังรองรับ)
         'personnel', 'awards', 'training', 'speaker', 'committee', 'innovation', 'research', 'plc',
     ];
@@ -42,13 +42,17 @@ class DashboardStatsService
             'enrollments' => $this->countEnrollments($scopeUser, $seeAll, null),
             'pending' => $this->countEnrollments($scopeUser, $seeAll, 'pending'),
             'modules' => (int) (db()->fetch('SELECT COUNT(*) AS c FROM learning_plans WHERE status = 1')['c'] ?? 0),
-            'certificates' => $this->countCertificates($scopeUser, $seeAll),
+            'plans_owned' => $this->countPlansOwned($uid),
+            'certificates', 'plan_certificates' => $this->countCertificates($scopeUser, $seeAll, 'plan'),
+            'diplomas' => $this->countCertificates($scopeUser, $seeAll, 'diploma'),
+            'cert_ready' => $this->countCertReady($scopeUser, $seeAll),
             'hours_total' => $this->sumHours($scopeUser, $seeAll),
             'org_units' => (int) (db()->fetch('SELECT COUNT(*) AS c FROM org_units WHERE deleted_at IS NULL')['c'] ?? 0),
             'task_pending' => $this->countTaskPending($scopeUser, $seeAll),
             'my_progress' => (float) number_format($this->avgProgress($uid), 1, '.', ''),
             'my_hours' => (float) number_format($this->sumHours($uid, false), 1, '.', ''),
-            'my_certificates' => $this->countCertificates($uid, false),
+            'my_certificates' => $this->countCertificates($uid, false, 'plan'),
+            'my_diplomas' => $this->countCertificates($uid, false, 'diploma'),
             'my_modules_done' => $this->countModulesDone($uid),
             'personnel' => ($seeAll && $filterUser === 0)
                 ? (int) db()->count('personnel', 'deleted_at IS NULL')
@@ -137,15 +141,76 @@ class DashboardStatsService
         return (int) (db()->fetch("SELECT COUNT(*) AS c FROM course_enrollments WHERE {$where}", $params)['c'] ?? 0);
     }
 
-    private function countCertificates(?int $scopeUser, bool $seeAll): int
+    /**
+     * @param 'all'|'plan'|'diploma' $kind
+     */
+    private function countCertificates(?int $scopeUser, bool $seeAll, string $kind = 'all'): int
     {
         $where = "status = 'active'";
         $params = [];
+        if ($kind === 'plan') {
+            $where .= ' AND plan_id IS NOT NULL';
+        } elseif ($kind === 'diploma') {
+            $where .= ' AND plan_id IS NULL';
+        }
         if ($scopeUser !== null && (!$seeAll || $scopeUser > 0)) {
             $where .= ' AND user_id = ?';
             $params[] = $scopeUser;
+        } elseif (auth()->role() === 'trainer') {
+            $planIds = (new PlanOwnerService())->approvedPlanIds((int) (auth()->id() ?? 0));
+            if ($planIds === []) {
+                return 0;
+            }
+            $ph = implode(',', array_map('intval', $planIds));
+            if ($kind === 'diploma') {
+                // วุฒิบัตรของผู้เรียนที่มีความก้าวหน้าในแผนที่ดูแล
+                $where .= " AND enrollment_id IN (
+                    SELECT DISTINCT tmp.enrollment_id FROM training_module_progress tmp
+                    WHERE tmp.plan_id IN ({$ph})
+                )";
+            } else {
+                $where .= " AND plan_id IN ({$ph})";
+            }
         }
         return (int) (db()->fetch("SELECT COUNT(*) AS c FROM certificates WHERE {$where}", $params)['c'] ?? 0);
+    }
+
+    private function countPlansOwned(int $userId): int
+    {
+        if (auth()->role() === 'admin') {
+            return (int) (db()->fetch('SELECT COUNT(*) AS c FROM learning_plans WHERE status = 1')['c'] ?? 0);
+        }
+        return count((new PlanOwnerService())->approvedPlanIds($userId));
+    }
+
+    private function countCertReady(?int $scopeUser, bool $seeAll): int
+    {
+        try {
+            $planFilter = '';
+            $params = [];
+            if ($scopeUser !== null && (!$seeAll || $scopeUser > 0)) {
+                $planFilter = ' AND e.user_id = ?';
+                $params[] = $scopeUser;
+            } elseif (auth()->role() === 'trainer') {
+                $planIds = (new PlanOwnerService())->approvedPlanIds((int) (auth()->id() ?? 0));
+                if ($planIds === []) {
+                    return 0;
+                }
+                $ph = implode(',', array_map('intval', $planIds));
+                $planFilter = " AND tmp.plan_id IN ({$ph})";
+            }
+            // นับ progress ที่ผ่านแผนแล้ว แต่ยังไม่มีเกียรติบัตรรายแผน
+            return (int) (db()->fetch(
+                "SELECT COUNT(*) AS c
+                 FROM training_module_progress tmp
+                 INNER JOIN course_enrollments e ON e.id = tmp.enrollment_id
+                 LEFT JOIN certificates c ON c.enrollment_id = e.id AND c.plan_id = tmp.plan_id AND c.status = 'active'
+                 WHERE tmp.is_passed = 1 AND c.id IS NULL{$planFilter}",
+                $params
+            )['c'] ?? 0);
+        } catch (\Throwable $e) {
+            return 0;
+        }
     }
 
     private function sumHours(?int $scopeUser, bool $seeAll): float
@@ -173,6 +238,15 @@ class DashboardStatsService
         if ($scopeUser !== null && (!$seeAll || $scopeUser > 0)) {
             $where .= ' AND s.user_id = ?';
             $params[] = $scopeUser;
+        } elseif (auth()->role() === 'trainer') {
+            $planIds = (new PlanOwnerService())->approvedPlanIds((int) (auth()->id() ?? 0));
+            if ($planIds === []) {
+                return 0;
+            }
+            $ph = implode(',', array_map('intval', $planIds));
+            $where .= " AND EXISTS (
+                SELECT 1 FROM training_tasks t WHERE t.id = s.task_id AND t.plan_id IN ({$ph})
+            )";
         }
         try {
             return (int) (db()->fetch(
