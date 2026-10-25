@@ -138,18 +138,12 @@ body.pf-dark .ws-user-menu-panel a:hover {
   background: #1f2937 !important;
   color: #c4b5fd !important;
 }
-/* Role dropdown = soft sidebar tones (dark theme) */
-body.pf-dark .ws-user-menu-role-admin .ws-user-menu-panel {
+/* Frontend dropdown = brand purple ทุก role (dark) */
+body.pf-dark .ws-user-menu-role-admin .ws-user-menu-panel,
+body.pf-dark .ws-user-menu-role-trainer .ws-user-menu-panel,
+body.pf-dark .ws-user-menu-role-user .ws-user-menu-panel {
   background: linear-gradient(180deg, #2e1065 0%, #4c1d95 55%, #5b21b6 100%) !important;
   border-color: #7c3aed !important;
-}
-body.pf-dark .ws-user-menu-role-trainer .ws-user-menu-panel {
-  background: linear-gradient(180deg, #083344 0%, #155e75 55%, #0e7490 100%) !important;
-  border-color: #0891b2 !important;
-}
-body.pf-dark .ws-user-menu-role-user .ws-user-menu-panel {
-  background: linear-gradient(180deg, #7c2d12 0%, #9a3412 55%, #c2410c 100%) !important;
-  border-color: #ea580c !important;
 }
 body.pf-dark .ws-user-menu-role-admin .ws-user-menu-head,
 body.pf-dark .ws-user-menu-role-trainer .ws-user-menu-head,
@@ -178,18 +172,25 @@ body.pf-dark .ws-user-menu-role-user .ws-user-menu-panel a:hover {
   background: rgba(255, 255, 255, .14) !important;
   color: #fff !important;
 }
+body.pf-dark .ws-user-menu-panel a i,
+body.pf-dark .ws-user-menu-panel .ws-user-logout button i,
+body.pf-dark .ws-user-menu-role-admin .ws-user-menu-panel a:hover i,
+body.pf-dark .ws-user-menu-role-trainer .ws-user-menu-panel a:hover i,
+body.pf-dark .ws-user-menu-role-user .ws-user-menu-panel a:hover i {
+  color: #fff !important;
+}
+body.pf-dark .ws-user-menu-panel a i {
+  background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%) !important;
+}
+body.pf-dark .ws-user-menu-panel .ws-user-logout button i {
+  background: linear-gradient(135deg, #f87171 0%, #dc2626 100%) !important;
+}
 @media (max-width: 991px) {
-  body.pf-dark .ws-nav-actions .ws-user-menu-role-admin .ws-user-menu-panel {
+  body.pf-dark .ws-nav-actions .ws-user-menu-role-admin .ws-user-menu-panel,
+  body.pf-dark .ws-nav-actions .ws-user-menu-role-trainer .ws-user-menu-panel,
+  body.pf-dark .ws-nav-actions .ws-user-menu-role-user .ws-user-menu-panel {
     background: linear-gradient(180deg, #2e1065 0%, #4c1d95 55%, #5b21b6 100%) !important;
     border-color: #7c3aed !important;
-  }
-  body.pf-dark .ws-nav-actions .ws-user-menu-role-trainer .ws-user-menu-panel {
-    background: linear-gradient(180deg, #083344 0%, #155e75 55%, #0e7490 100%) !important;
-    border-color: #0891b2 !important;
-  }
-  body.pf-dark .ws-nav-actions .ws-user-menu-role-user .ws-user-menu-panel {
-    background: linear-gradient(180deg, #7c2d12 0%, #9a3412 55%, #c2410c 100%) !important;
-    border-color: #ea580c !important;
   }
 }
 body.pf-dark .ws-user-logout {

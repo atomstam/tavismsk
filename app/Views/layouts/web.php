@@ -55,11 +55,11 @@ $authAvatar = $authUser ? avatar_url($authUser['avatar'] ?? null) : '';
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="<?= asset('vendor/fontawesome/css/all.min.css') ?>?v=6.5.2">
   <link rel="stylesheet" href="<?= asset('css/app.css') ?>?v=53">
-  <link rel="stylesheet" href="<?= asset('css/web-site.css') ?>?v=44">
+  <link rel="stylesheet" href="<?= asset('css/web-site.css') ?>?v=46">
   <link rel="stylesheet" href="<?= asset('css/portfolio-clean.css') ?>?v=4">
   <link rel="stylesheet" href="<?= asset('css/portfolio-dark.css') ?>?v=9">
-  <link rel="stylesheet" href="<?= asset('css/web-dark-home.css') ?>?v=30">
-  <link rel="stylesheet" href="<?= asset('css/web-theme.css') ?>?v=24">
+  <link rel="stylesheet" href="<?= asset('css/web-dark-home.css') ?>?v=32">
+  <link rel="stylesheet" href="<?= asset('css/web-theme.css') ?>?v=26">
   <link rel="stylesheet" href="<?= asset('css/learn.css') ?>?v=11">
   <script>
     tailwind.config = {
@@ -205,19 +205,19 @@ $authAvatar = $authUser ? avatar_url($authUser['avatar'] ?? null) : '';
                 <strong><?= e($authName) ?></strong>
                 <small><?= e($authRole) ?></small>
               </div>
-              <a href="<?= url('/admin/dashboard') ?>"><i class="fa fa-gauge"></i> เข้าสู่ระบบจัดการ</a>
-              <a href="<?= url('/curriculum') ?>"><i class="fa fa-book-open"></i> หลักสูตร</a>
+              <a href="<?= url('/admin/dashboard') ?>"><i class="fa-solid fa-gauge-high"></i> เข้าสู่ระบบจัดการ</a>
+              <a href="<?= url('/curriculum') ?>"><i class="fa-solid fa-book-open"></i> หลักสูตร</a>
               <?php if (can_perm('learn', 'view')): ?>
-                <a href="<?= url('/learn') ?>"><i class="fa fa-graduation-cap"></i> บทเรียนของฉัน</a>
+                <a href="<?= url('/learn') ?>"><i class="fa-solid fa-graduation-cap"></i> บทเรียนของฉัน</a>
               <?php endif; ?>
-              <a href="<?= url('/admin/profile') ?>"><i class="fa fa-user-pen"></i> แก้ไขข้อมูลส่วนตัว</a>
+              <a href="<?= url('/admin/profile') ?>"><i class="fa-solid fa-user-pen"></i> แก้ไขข้อมูลส่วนตัว</a>
               <form method="post" action="<?= url('/logout') ?>" class="ws-user-logout">
                 <?= csrf_field() ?>
                 <button type="submit"
                         data-confirm="ต้องการออกจากระบบหรือไม่?"
                         data-confirm-title="ออกจากระบบ"
                         data-confirm-ok="ออกจากระบบ">
-                  <i class="fa fa-right-from-bracket"></i> ออกจากระบบ
+                  <i class="fa-solid fa-arrow-right-from-bracket"></i> ออกจากระบบ
                 </button>
               </form>
             </div>

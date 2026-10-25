@@ -346,20 +346,13 @@ body.web-site .container {
   border-color: #ea580c;
   box-shadow: 0 4px 14px rgba(234, 88, 12, .18);
 }
-.ws-user-menu-role-admin .ws-user-menu-panel {
-  background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
-  border-color: #7c3aed;
-  color: #fff;
-}
-.ws-user-menu-role-trainer .ws-user-menu-panel {
-  background: linear-gradient(135deg, #22d3ee 0%, #0891b2 100%);
-  border-color: #0891b2;
-  color: #fff;
-}
+/* Frontend dropdown = brand purple (ทุก role) */
+.ws-user-menu-role-admin .ws-user-menu-panel,
+.ws-user-menu-role-trainer .ws-user-menu-panel,
 .ws-user-menu-role-user .ws-user-menu-panel {
-  background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%);
-  border-color: #ea580c;
-  color: #fff;
+  background: linear-gradient(180deg, #f5f3ff 0%, #ede9fe 55%, #e9e5ff 100%);
+  border-color: #c4b5fd;
+  color: #1e1b4b;
 }
 .ws-user-menu-role-admin .ws-user-menu-head,
 .ws-user-menu-role-trainer .ws-user-menu-head,
@@ -367,51 +360,33 @@ body.web-site .container {
 .ws-user-menu-role-admin .ws-user-logout,
 .ws-user-menu-role-trainer .ws-user-logout,
 .ws-user-menu-role-user .ws-user-logout {
-  border-color: rgba(255, 255, 255, .28);
+  border-color: rgba(196, 181, 253, .55);
 }
 .ws-user-menu-role-admin .ws-user-menu-head strong,
 .ws-user-menu-role-trainer .ws-user-menu-head strong,
 .ws-user-menu-role-user .ws-user-menu-head strong {
-  color: #fff;
+  color: #1e1b4b;
 }
 .ws-user-menu-role-admin .ws-user-menu-head small,
 .ws-user-menu-role-trainer .ws-user-menu-head small,
 .ws-user-menu-role-user .ws-user-menu-head small {
-  color: rgba(255, 255, 255, .88);
+  color: #7c3aed;
 }
 .ws-user-menu-role-admin .ws-user-menu-panel a,
 .ws-user-menu-role-trainer .ws-user-menu-panel a,
-.ws-user-menu-role-user .ws-user-menu-panel a,
-.ws-user-menu-role-admin .ws-user-logout button,
-.ws-user-menu-role-trainer .ws-user-logout button,
-.ws-user-menu-role-user .ws-user-logout button {
-  color: #fff;
+.ws-user-menu-role-user .ws-user-menu-panel a {
+  color: #1e1b4b;
 }
 .ws-user-menu-role-admin .ws-user-menu-panel a i,
 .ws-user-menu-role-trainer .ws-user-menu-panel a i,
-.ws-user-menu-role-user .ws-user-menu-panel a i,
-.ws-user-menu-role-admin .ws-user-logout button i,
-.ws-user-menu-role-trainer .ws-user-logout button i,
-.ws-user-menu-role-user .ws-user-logout button i {
-  color: rgba(255, 255, 255, .92);
+.ws-user-menu-role-user .ws-user-menu-panel a i {
+  color: #fff;
 }
 .ws-user-menu-role-admin .ws-user-menu-panel a:hover,
 .ws-user-menu-role-trainer .ws-user-menu-panel a:hover,
 .ws-user-menu-role-user .ws-user-menu-panel a:hover {
-  background: rgba(255, 255, 255, .2);
-  color: #fff;
-}
-.ws-user-menu-role-admin .ws-user-logout button,
-.ws-user-menu-role-trainer .ws-user-logout button,
-.ws-user-menu-role-user .ws-user-logout button {
-  background: rgba(127, 29, 29, .28);
-  border-radius: 10px;
-}
-.ws-user-menu-role-admin .ws-user-logout button:hover,
-.ws-user-menu-role-trainer .ws-user-logout button:hover,
-.ws-user-menu-role-user .ws-user-logout button:hover {
-  background: rgba(127, 29, 29, .42);
-  color: #fff;
+  background: rgba(124, 58, 237, .1);
+  color: #7c3aed;
 }
 .ws-user-menu.open .ws-user-menu-panel {
   display: block !important;
@@ -1688,27 +1663,77 @@ body.web-site .content-body p:last-child { margin-bottom: 0; }
   .ws-nav-actions .ws-btn-download { display: none; }
 }
 
-.ws-user-menu-panel.ws-user-menu-panel--admin {
+.ws-user-menu-panel.ws-user-menu-panel--admin,
+.ws-user-menu-panel.ws-user-menu-panel--trainer,
+.ws-user-menu-panel.ws-user-menu-panel--user {
   background: linear-gradient(180deg, #f5f3ff 0%, #ede9fe 55%, #e9e5ff 100%) !important;
   border-color: #c4b5fd !important;
   color: #1e1b4b !important;
 }
-.ws-user-menu-panel.ws-user-menu-panel--trainer {
-  background: linear-gradient(180deg, #ecfeff 0%, #cffafe 55%, #a5f3fc 100%) !important;
-  border-color: #67e8f9 !important;
-  color: #164e63 !important;
-}
-.ws-user-menu-panel.ws-user-menu-panel--user {
-  background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 55%, #fed7aa 100%) !important;
-  border-color: #fdba74 !important;
-  color: #7c2d12 !important;
-}
 .ws-user-menu-panel--admin .ws-user-menu-head strong,
-.ws-user-menu-panel--admin a { color: #1e1b4b !important; }
 .ws-user-menu-panel--trainer .ws-user-menu-head strong,
-.ws-user-menu-panel--trainer a { color: #164e63 !important; }
 .ws-user-menu-panel--user .ws-user-menu-head strong,
-.ws-user-menu-panel--user a { color: #7c2d12 !important; }
-.ws-user-menu-panel--admin .ws-user-menu-head small { color: #7c3aed !important; }
-.ws-user-menu-panel--trainer .ws-user-menu-head small { color: #0891b2 !important; }
-.ws-user-menu-panel--user .ws-user-menu-head small { color: #ea580c !important; }
+.ws-user-menu-panel--admin a,
+.ws-user-menu-panel--trainer a,
+.ws-user-menu-panel--user a {
+  color: #1e1b4b !important;
+}
+.ws-user-menu-panel--admin .ws-user-menu-head small,
+.ws-user-menu-panel--trainer .ws-user-menu-head small,
+.ws-user-menu-panel--user .ws-user-menu-head small {
+  color: #7c3aed !important;
+}
+
+/* White icons on brand-purple badges */
+.ws-user-menu-panel a,
+.ws-user-menu-panel .ws-user-logout button {
+  gap: 12px !important;
+  padding: 9px 10px !important;
+  border-radius: 12px !important;
+  font-weight: 500;
+  transition: background .15s ease, transform .15s ease, color .15s ease;
+}
+.ws-user-menu-panel a i,
+.ws-user-menu-panel .ws-user-logout button i {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px;
+  border-radius: 10px !important;
+  font-size: 12px !important;
+  color: #fff !important;
+  background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%) !important;
+  box-shadow: 0 4px 10px rgba(124, 58, 237, .22);
+  flex-shrink: 0;
+}
+.ws-user-menu-panel .ws-user-logout {
+  border-top: 1px solid rgba(196, 181, 253, .55) !important;
+  margin-top: 8px !important;
+  padding-top: 8px !important;
+}
+.ws-user-menu-panel .ws-user-logout button {
+  border: 1px solid rgba(248, 113, 113, .45) !important;
+  background: linear-gradient(180deg, #fff 0%, #fef2f2 100%) !important;
+  color: #b91c1c !important;
+  box-shadow: none !important;
+}
+.ws-user-menu-panel .ws-user-logout button i {
+  background: linear-gradient(135deg, #f87171 0%, #dc2626 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 10px rgba(220, 38, 38, .22);
+}
+.ws-user-menu-panel .ws-user-logout button:hover {
+  background: #fef2f2 !important;
+  border-color: #f87171 !important;
+  color: #991b1b !important;
+}
+.ws-user-menu-panel a:hover {
+  background: rgba(124, 58, 237, .1) !important;
+  color: #7c3aed !important;
+}
+.ws-user-menu-panel a:hover i {
+  transform: translateY(-1px);
+  color: #fff !important;
+}
