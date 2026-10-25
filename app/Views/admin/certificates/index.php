@@ -1,11 +1,8 @@
 <?php
 $requiredRows = $requiredRows ?? [];
 $generalRows = $generalRows ?? [];
-$diploma = $diploma ?? ['total' => 0, 'passed' => 0, 'ready' => false, 'hours' => 0.0];
-$diplomaCert = $diplomaCert ?? null;
 $passNoteTask = (float) ($passNoteTask ?? 70);
 $passNotePost = (float) ($passNotePost ?? 70);
-$diplomaReady = !empty($diploma['ready']);
 
 $mark = static function (bool $ok): string {
     if ($ok) {
@@ -20,7 +17,7 @@ $renderTable = static function (array $rows, float $passNoteTask, float $passNot
     <table class="table cert-table align-middle mb-0">
       <thead>
         <tr>
-          <th>แผนการเรียนรู้</th>
+          <th>หลักสูตร</th>
           <th class="text-center">สอบก่อน</th>
           <th class="text-center">เนื้อหา</th>
           <th class="text-center">ภาระงาน</th>
@@ -31,7 +28,7 @@ $renderTable = static function (array $rows, float $passNoteTask, float $passNot
       </thead>
       <tbody>
       <?php if (!$rows): ?>
-        <tr><td colspan="7" class="text-center text-muted py-4">ยังไม่มีแผนในกลุ่มนี้</td></tr>
+        <tr><td colspan="7" class="text-center text-muted py-4">ยังไม่มีหลักสูตรในกลุ่มนี้</td></tr>
       <?php else: ?>
         <?php foreach ($rows as $row):
           $plan = $row['plan'] ?? [];
@@ -45,7 +42,7 @@ $renderTable = static function (array $rows, float $passNoteTask, float $passNot
         ?>
           <tr class="<?= $ready ? 'is-ready' : '' ?>">
             <td>
-              <div class="cert-plan-title">แผนที่ <?= (int) ($plan['plan_no'] ?? 0) ?></div>
+              <div class="cert-plan-title">หลักสูตรที่ <?= (int) ($plan['plan_no'] ?? 0) ?></div>
               <div class="cert-plan-name"><?= e((string) ($plan['title'] ?? '')) ?></div>
               <div class="cert-plan-meta">
                 <span class="cert-track <?= $isReq ? 'is-required' : 'is-general' ?>"><?= $isReq ? 'บังคับ' : 'ทั่วไป' ?></span>
@@ -99,34 +96,7 @@ $renderTable = static function (array $rows, float $passNoteTask, float $passNot
   <div>
     <p class="page-kicker">CERTIFICATES</p>
     <h1>เกียรติบัตรของฉัน</h1>
-    <p class="cert-lead">ติดตามความครบถ้วนของแต่ละแผน และพิมพ์เกียรติบัตร/วุฒิบัตรเมื่อผ่านเกณฑ์</p>
-  </div>
-</div>
-
-<div class="cert-diploma-banner <?= $diplomaReady ? 'is-ready' : 'is-locked' ?>">
-  <div class="cert-diploma-copy">
-    <div class="cert-diploma-kicker">วุฒิบัตรหลักสูตร</div>
-    <h2>พิมพ์วุฒิบัตรเมื่อผ่านแผนบังคับครบทุกแผน</h2>
-    <p>
-      ผ่านแล้ว <strong><?= (int) ($diploma['passed'] ?? 0) ?></strong>
-      / <?= (int) ($diploma['total'] ?? 0) ?> แผนบังคับ
-      · รวม <?= number_format((float) ($diploma['hours'] ?? 0), 1) ?> ชั่วโมง
-      <?php if (!empty($diplomaCert['cert_no'])): ?>
-        · เลขที่ <?= e((string) $diplomaCert['cert_no']) ?>
-      <?php endif; ?>
-    </p>
-  </div>
-  <div class="cert-diploma-action">
-    <?php if ($diplomaReady): ?>
-      <a class="btn cert-btn-diploma" href="<?= url('/admin/certificates/diploma/view') ?>">
-        <i class="fa fa-award"></i> พิมพ์วุฒิบัตร
-      </a>
-    <?php else: ?>
-      <button class="btn cert-btn-diploma is-disabled" type="button" disabled>
-        <i class="fa fa-lock"></i> ยังพิมพ์วุฒิบัตรไม่ได้
-      </button>
-      <div class="cert-cell-note mt-1">ต้องผ่านแผนบังคับครบทุกแผนก่อน</div>
-    <?php endif; ?>
+    <p class="cert-lead">ติดตามความครบถ้วนของแต่ละหลักสูตร และพิมพ์เกียรติบัตรรายหลักสูตรเมื่อผ่านเกณฑ์</p>
   </div>
 </div>
 
@@ -136,9 +106,9 @@ $renderTable = static function (array $rows, float $passNoteTask, float $passNot
       <div>
         <span class="cert-track is-required">บังคับ</span>
         <h2 class="cert-section-title">ตารางที่ 1 · วิชาบังคับ</h2>
-        <p class="cert-section-desc">ต้องเรียนและผ่านครบทุกแผนในกลุ่มนี้ จึงพิมพ์วุฒิบัตรได้</p>
+        <p class="cert-section-desc">พิมพ์เกียรติบัตรรายหลักสูตรได้เมื่อผ่านเกณฑ์ของหลักสูตรนั้น — วุฒิบัตรดูที่เมนูวุฒิบัตรเมื่อผ่านครบทุกหลักสูตร</p>
       </div>
-      <div class="cert-section-count"><?= count($requiredRows) ?> แผน</div>
+      <div class="cert-section-count"><?= count($requiredRows) ?> หลักสูตร</div>
     </div>
     <?php $renderTable($requiredRows, $passNoteTask, $passNotePost); ?>
   </div>
@@ -150,9 +120,9 @@ $renderTable = static function (array $rows, float $passNoteTask, float $passNot
       <div>
         <span class="cert-track is-general">ทั่วไป</span>
         <h2 class="cert-section-title">ตารางที่ 2 · วิชาทั่วไป</h2>
-        <p class="cert-section-desc">เรียนตามความสนใจ พิมพ์เกียรติบัตรรายแผนได้เมื่อผ่านเกณฑ์ของแผนนั้น</p>
+        <p class="cert-section-desc">เรียนตามความสนใจ พิมพ์เกียรติบัตรรายหลักสูตรได้เมื่อผ่านเกณฑ์ของหลักสูตรนั้น</p>
       </div>
-      <div class="cert-section-count"><?= count($generalRows) ?> แผน</div>
+      <div class="cert-section-count"><?= count($generalRows) ?> หลักสูตร</div>
     </div>
     <?php $renderTable($generalRows, $passNoteTask, $passNotePost); ?>
   </div>
@@ -160,32 +130,15 @@ $renderTable = static function (array $rows, float $passNoteTask, float $passNot
 
 <div class="cert-note card-soft mb-3">
   <div class="card-body">
-    <strong>หมายเหตุเกณฑ์การผ่านของทุกแผน</strong>
+    <strong>หมายเหตุเกณฑ์การผ่านของทุกหลักสูตร</strong>
     <ul class="mb-0 mt-2">
       <li>ดำเนินการครบทุกขั้นตอน: สอบก่อน · เนื้อหา · ภาระงาน · สอบหลัง · แบบสอบถามความพึงพอใจ</li>
       <li>คะแนนภาระงานคิดหลังวิทยากรตรวจแล้ว ไม่ต่ำกว่า <?= number_format($passNoteTask, 0) ?>%</li>
       <li>คะแนนสอบหลังเรียนไม่ต่ำกว่า <?= number_format($passNotePost, 0) ?>%</li>
-      <li>เกียรติบัตร = รายแผน · วุฒิบัตร = ผ่านวิชาบังคับครบทุกแผน (ระบุจำนวนหลักสูตรและชั่วโมง)</li>
+      <li>เกียรติบัตรออกเป็นรายหลักสูตร ส่วนวุฒิบัตรอยู่ที่เมนูวุฒิบัตร และออกได้เมื่อผ่านวิชาบังคับครบทุกหลักสูตร</li>
     </ul>
   </div>
 </div>
-
-<?php if (!empty($canIssue)): ?>
-<div class="card-soft mb-3"><div class="card-body">
-  <h2 class="cert-section-title mb-3">สำหรับผู้ดูแล · พร้อมออกวุฒิบัตรผู้เรียนอื่น</h2>
-  <table id="certificates-ready-datatable" class="table ab-datatable w-100" data-ajax-url="<?= e(url('/admin/certificates/ready-datatable')) ?>">
-    <thead>
-      <tr>
-        <th>เลขลงทะเบียน</th>
-        <th>ชื่อ</th>
-        <th>หน่วยงาน</th>
-        <th>ชม.</th>
-        <th></th>
-      </tr>
-    </thead>
-  </table>
-</div></div>
-<?php endif; ?>
 
 <div class="card-soft"><div class="card-body">
   <h2 class="cert-section-title mb-3">เอกสารที่ออกแล้ว</h2>

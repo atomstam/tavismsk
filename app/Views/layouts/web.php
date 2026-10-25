@@ -17,9 +17,17 @@ $clubTypes = array_keys($modules);
 $isClubMenu = str_starts_with($path, '/portfolios') && !str_contains($path, 'gallery');
 $isCurriculum = str_starts_with($path, '/curriculum');
 $isLearn = str_starts_with($path, '/learn');
+$isForms = str_starts_with($path, '/forms');
+$isNews = str_starts_with($path, '/news');
+$isGallery = str_contains($path, 'gallery');
+$isAboutClub = str_starts_with($path, '/about') || str_starts_with($path, '/contact');
+$isContentMenu = $isNews || $isGallery || $isForms;
+$navForms = function_exists('public_forms') ? public_forms() : [];
 $authUser = auth()->check() ? auth()->user() : null;
 $authName = $authUser ? user_full_name($authUser) : '';
-$authRole = $authUser ? role_name((string) ($authUser['role'] ?? '')) : '';
+$authRoleKeyRaw = $authUser ? (string) (auth()->resolvedRole() ?: (auth()->role() ?: ($authUser['role'] ?? 'user'))) : 'user';
+$authRoleKey = in_array($authRoleKeyRaw, ['admin', 'trainer', 'user'], true) ? $authRoleKeyRaw : 'user';
+$authRole = $authUser ? role_name((string) (auth()->role() ?: ($authUser['role'] ?? ''))) : '';
 $authAvatar = $authUser ? avatar_url($authUser['avatar'] ?? null) : '';
 ?>
 <!DOCTYPE html>
@@ -46,12 +54,12 @@ $authAvatar = $authUser ? avatar_url($authUser['avatar'] ?? null) : '';
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="<?= asset('vendor/fontawesome/css/all.min.css') ?>?v=6.5.2">
-  <link rel="stylesheet" href="<?= asset('css/app.css') ?>?v=48">
-  <link rel="stylesheet" href="<?= asset('css/web-site.css') ?>?v=41">
+  <link rel="stylesheet" href="<?= asset('css/app.css') ?>?v=53">
+  <link rel="stylesheet" href="<?= asset('css/web-site.css') ?>?v=44">
   <link rel="stylesheet" href="<?= asset('css/portfolio-clean.css') ?>?v=4">
   <link rel="stylesheet" href="<?= asset('css/portfolio-dark.css') ?>?v=9">
-  <link rel="stylesheet" href="<?= asset('css/web-dark-home.css') ?>?v=27">
-  <link rel="stylesheet" href="<?= asset('css/web-theme.css') ?>?v=20">
+  <link rel="stylesheet" href="<?= asset('css/web-dark-home.css') ?>?v=30">
+  <link rel="stylesheet" href="<?= asset('css/web-theme.css') ?>?v=24">
   <link rel="stylesheet" href="<?= asset('css/learn.css') ?>?v=11">
   <script>
     tailwind.config = {
@@ -100,23 +108,22 @@ $authAvatar = $authUser ? avatar_url($authUser['avatar'] ?? null) : '';
 
     <nav class="ws-menu" id="ws-menu">
       <a href="<?= url('/') ?>" class="<?= $isHome ? 'active' : '' ?>">หน้าแรก</a>
-      <a href="<?= url('/about') ?>" class="<?= str_starts_with($path, '/about') ? 'active' : '' ?>">เกี่ยวกับเรา</a>
 
       <div class="ws-drop" data-drop>
         <button type="button" class="<?= ($isCurriculum || $isLearn) ? 'active' : '' ?>">
-          แผนการเรียนรู้ <i class="fa fa-chevron-down fa-xs"></i>
+          หลักสูตร <i class="fa fa-chevron-down fa-xs"></i>
         </button>
         <div class="ws-drop-panel">
-          <a href="<?= url('/curriculum') ?>"><i class="fa fa-list"></i> แผนทั้งหมด (14 ชม.)</a>
+          <a href="<?= url('/curriculum') ?>"><i class="fa fa-list"></i> หลักสูตรทั้งหมด (14 ชม.)</a>
           <?php if ($authUser && can_perm('learn', 'view')): ?>
             <a href="<?= url('/learn') ?>" class="<?= $isLearn ? 'active' : '' ?>"><i class="fa fa-graduation-cap"></i> บทเรียนของฉัน</a>
           <?php endif; ?>
           <?php
           $planQuick = function_exists('curriculum_plans') ? curriculum_plans() : [];
           foreach (array_slice($planQuick, 0, 6, true) as $pn => $pp): ?>
-            <a href="<?= url('/curriculum/' . (int) $pn) ?>"><i class="fa fa-book-open"></i> แผนที่ <?= (int) $pn ?></a>
+            <a href="<?= url('/curriculum/' . (int) $pn) ?>"><i class="fa fa-book-open"></i> หลักสูตรที่ <?= (int) $pn ?></a>
           <?php endforeach; ?>
-          <a href="<?= url('/curriculum') ?>"><i class="fa fa-ellipsis"></i> ดูแผนที่ 7–14</a>
+          <a href="<?= url('/curriculum') ?>"><i class="fa fa-ellipsis"></i> ดูหลักสูตรที่ 7–14</a>
         </div>
       </div>
 
@@ -133,9 +140,44 @@ $authAvatar = $authUser ? avatar_url($authUser['avatar'] ?? null) : '';
         </div>
       </div>
 
-      <a href="<?= url('/news') ?>" class="<?= str_starts_with($path, '/news') ? 'active' : '' ?>">ข่าวสาร</a>
-      <a href="<?= url('/portfolios/gallery') ?>" class="<?= str_contains($path, 'gallery') ? 'active' : '' ?>">แกลเลอรี่กิจกรรม</a>
-      <a href="<?= url('/contact') ?>" class="<?= str_starts_with($path, '/contact') ? 'active' : '' ?>">ติดต่อ</a>
+      <div class="ws-drop" data-drop>
+        <button type="button" class="<?= $isContentMenu ? 'active' : '' ?>">
+          เนื้อหา <i class="fa fa-chevron-down fa-xs"></i>
+        </button>
+        <div class="ws-drop-panel">
+          <a href="<?= url('/news') ?>" class="<?= $isNews ? 'active' : '' ?>">
+            <i class="fa fa-newspaper"></i> ข่าวสาร
+          </a>
+          <a href="<?= url('/portfolios/gallery') ?>" class="<?= $isGallery ? 'active' : '' ?>">
+            <i class="fa fa-images"></i> แกลเลอรี่กิจกรรม
+          </a>
+          <a href="<?= url('/forms') ?>" class="<?= $isForms ? 'active' : '' ?>">
+            <i class="fa fa-file-lines"></i> แบบฟอร์ม
+          </a>
+          <?php if ($navForms): ?>
+            <?php foreach ($navForms as $nf): ?>
+              <a href="<?= url('/forms/' . rawurlencode((string) $nf['slug'])) ?>"
+                 class="<?= ($path === '/forms/' . $nf['slug']) ? 'active' : '' ?>">
+                <i class="fa fa-angle-right"></i> <?= e((string) $nf['title']) ?>
+              </a>
+            <?php endforeach; ?>
+          <?php endif; ?>
+        </div>
+      </div>
+
+      <div class="ws-drop" data-drop>
+        <button type="button" class="<?= $isAboutClub ? 'active' : '' ?>">
+          เกี่ยวกับชมรม <i class="fa fa-chevron-down fa-xs"></i>
+        </button>
+        <div class="ws-drop-panel">
+          <a href="<?= url('/about') ?>" class="<?= str_starts_with($path, '/about') ? 'active' : '' ?>">
+            <i class="fa fa-circle-info"></i> เกี่ยวกับเรา
+          </a>
+          <a href="<?= url('/contact') ?>" class="<?= str_starts_with($path, '/contact') ? 'active' : '' ?>">
+            <i class="fa fa-headset"></i> ติดต่อ
+          </a>
+        </div>
+      </div>
     </nav>
 
     <div class="ws-nav-tools">
@@ -149,7 +191,7 @@ $authAvatar = $authUser ? avatar_url($authUser['avatar'] ?? null) : '';
           <i class="fa fa-sun" aria-hidden="true"></i>
         </button>
         <?php if ($authUser): ?>
-          <div class="ws-drop ws-user-menu" data-drop>
+          <div class="ws-drop ws-user-menu ws-user-menu-role-<?= e($authRoleKey) ?>" data-drop>
             <button type="button" class="ws-user-chip" aria-haspopup="true" aria-expanded="false" title="เมนูผู้ใช้">
               <img src="<?= e($authAvatar) ?>" alt="">
               <span class="ws-user-meta">
@@ -158,13 +200,13 @@ $authAvatar = $authUser ? avatar_url($authUser['avatar'] ?? null) : '';
               </span>
               <i class="fa fa-chevron-down"></i>
             </button>
-            <div class="ws-drop-panel ws-user-menu-panel">
+            <div class="ws-drop-panel ws-user-menu-panel ws-user-menu-panel--<?= e($authRoleKey) ?>" data-role="<?= e($authRoleKey) ?>">
               <div class="ws-user-menu-head">
                 <strong><?= e($authName) ?></strong>
                 <small><?= e($authRole) ?></small>
               </div>
               <a href="<?= url('/admin/dashboard') ?>"><i class="fa fa-gauge"></i> เข้าสู่ระบบจัดการ</a>
-              <a href="<?= url('/curriculum') ?>"><i class="fa fa-book-open"></i> แผนการเรียนรู้</a>
+              <a href="<?= url('/curriculum') ?>"><i class="fa fa-book-open"></i> หลักสูตร</a>
               <?php if (can_perm('learn', 'view')): ?>
                 <a href="<?= url('/learn') ?>"><i class="fa fa-graduation-cap"></i> บทเรียนของฉัน</a>
               <?php endif; ?>
@@ -218,12 +260,13 @@ $authAvatar = $authUser ? avatar_url($authUser['avatar'] ?? null) : '';
         <h4>เมนูทางลัด</h4>
         <ul class="ws-footer-links">
           <li><a href="<?= url('/') ?>">หน้าแรก</a></li>
-          <li><a href="<?= url('/about') ?>">เกี่ยวกับระบบ</a></li>
-          <li><a href="<?= url('/curriculum') ?>">โมดูลการอบรม</a></li>
+          <li><a href="<?= url('/about') ?>">เกี่ยวกับเรา</a></li>
+          <li><a href="<?= url('/contact') ?>">ติดต่อ</a></li>
+          <li><a href="<?= url('/curriculum') ?>">หลักสูตร</a></li>
           <li><a href="<?= url('/certificate/verify') ?>">ตรวจสอบเกียรติบัตร</a></li>
           <li><a href="<?= url('/faq') ?>">คำถามที่พบบ่อย</a></li>
           <li><a href="<?= url('/downloads') ?>">ดาวน์โหลด</a></li>
-          <li><a href="<?= url('/contact') ?>">ติดต่อ</a></li>
+          <li><a href="<?= url('/forms') ?>">แบบฟอร์ม</a></li>
         </ul>
       </div>
       <div class="col-6 col-lg-3">

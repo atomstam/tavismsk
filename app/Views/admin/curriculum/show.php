@@ -18,7 +18,7 @@ $statusMap = [
 ?>
 <div class="page-head">
   <div>
-    <p class="page-kicker">แผนที่ <?= (int)($row['plan_no'] ?? 0) ?></p>
+    <p class="page-kicker">หลักสูตรที่ <?= (int)($row['plan_no'] ?? 0) ?></p>
     <h1><?= e($row['title'] ?? ($cfg['title'] ?? '')) ?></h1>
   </div>
   <a class="btn btn-outline-secondary" href="<?= url('/admin/curriculum') ?>"><i class="fa fa-arrow-left"></i> กลับ</a>

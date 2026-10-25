@@ -12,7 +12,7 @@ $webShell = !empty($webShell);
     <h1>บทเรียนของฉัน</h1>
   </div>
   <div class="d-flex flex-wrap gap-2">
-    <a class="btn <?= $webShell ? 'btn-outline-secondary' : 'btn-learn-outline' ?>" href="<?= url($webShell ? '/curriculum' : '/admin/curriculum') ?>"><i class="fa fa-list"></i> แผนการเรียนรู้</a>
+    <a class="btn <?= $webShell ? 'btn-outline-secondary' : 'btn-learn-outline' ?>" href="<?= url($webShell ? '/curriculum' : '/admin/curriculum') ?>"><i class="fa fa-list"></i> หลักสูตร</a>
     <?php if (can_perm('assessments', 'create')): ?>
     <a class="btn <?= $webShell ? 'btn-outline-secondary' : 'btn-learn-outline' ?>" href="<?= url('/admin/training') ?>"><i class="fa fa-chalkboard-user"></i> จัดการบทเรียน</a>
     <?php endif; ?>
@@ -27,14 +27,14 @@ $webShell = !empty($webShell);
   <div class="progress mb-2">
     <div class="progress-bar" style="width:<?= min(100, $courseOverall) ?>%"></div>
   </div>
-  <p class="small text-muted mb-2">ความก้าวหน้านี้คิดจากแผนบังคับ <?= (int) ($requiredStanding['passed'] ?? 0) ?>/<?= (int) ($requiredStanding['required'] ?? $requiredStanding['total'] ?? 0) ?> แผน แผนทั่วไปไม่นับในการดาวน์โหลดวุฒิบัตร</p>
+  <p class="small text-muted mb-2">ความก้าวหน้านี้คิดจากหลักสูตรบังคับ <?= (int) ($requiredStanding['passed'] ?? 0) ?>/<?= (int) ($requiredStanding['required'] ?? $requiredStanding['total'] ?? 0) ?> หลักสูตร หลักสูตรทั่วไปไม่นับในการดาวน์โหลดวุฒิบัตร</p>
   <?php if (!empty($requiredStanding['ready'])): ?>
     <form method="post" action="<?= url($learnBase . '/diploma') ?>">
       <?= csrf_field() ?>
       <button class="btn btn-learn-primary" type="submit"><i class="fa fa-download"></i> ดาวน์โหลดวุฒิบัตร</button>
     </form>
   <?php else: ?>
-    <p class="small mb-0">ต้องเรียนแผนบังคับให้ครบและผ่านเกณฑ์ก่อน จึงจะดาวน์โหลดวุฒิบัตรได้</p>
+    <p class="small mb-0">ต้องเรียนหลักสูตรบังคับให้ครบและผ่านเกณฑ์ก่อน จึงจะดาวน์โหลดวุฒิบัตรได้</p>
   <?php endif; ?>
 </div>
 
@@ -63,14 +63,14 @@ $webShell = !empty($webShell);
     <article class="learn-plan-card">
       <div class="learn-plan-cover">
         <?php if ($hasCover): ?>
-          <img src="<?= asset($coverRel) ?>?v=4" alt="แผนที่ <?= $planNo ?>" loading="lazy" decoding="async">
+          <img src="<?= asset($coverRel) ?>?v=4" alt="หลักสูตรที่ <?= $planNo ?>" loading="lazy" decoding="async">
         <?php else: ?>
           <div class="learn-plan-cover-fallback">
-            <span>แผนที่</span>
+            <span>หลักสูตรที่</span>
             <strong><?= $planNo ?></strong>
           </div>
         <?php endif; ?>
-        <span class="learn-plan-cover-badge">แผนที่ <?= $planNo ?></span>
+        <span class="learn-plan-cover-badge">หลักสูตรที่ <?= $planNo ?></span>
         <span class="learn-plan-cover-hours"><i class="fa fa-clock"></i> <?= e((string)$p['hours']) ?> ชม.</span>
         <span class="learn-plan-track <?= $requiredPlan ? 'is-required' : 'is-elective' ?>"><?= e($trackLabel) ?></span>
       </div>
@@ -98,7 +98,7 @@ $webShell = !empty($webShell);
   </div>
 <?php endforeach; ?>
 <?php if (!$modules): ?>
-  <div class="col-12"><div class="card-soft"><div class="card-body text-center text-muted">ยังไม่มีโมดูลการอบรม</div></div></div>
+  <div class="col-12"><div class="card-soft"><div class="card-body text-center text-muted">ยังไม่มีหลักสูตร</div></div></div>
 <?php endif; ?>
 </div>
 <?php if ($webShell): ?></div><?php endif; ?>

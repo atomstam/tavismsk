@@ -10,7 +10,7 @@ $filterPlan = (int) ($_GET['plan_id'] ?? 0);
   <div>
     <p class="page-kicker">PLAN CHAT</p>
     <h1>กระดานสนทนา</h1>
-    <p class="text-muted mb-0">เลือกห้องรวมของแผน หรือสนทนาตัวต่อตัวระหว่างวิทยากรกับผู้เรียน</p>
+    <p class="text-muted mb-0">เลือกห้องรวมของหลักสูตร หรือสนทนาตัวต่อตัวระหว่างวิทยากรกับผู้เรียน</p>
   </div>
 </div>
 
@@ -19,12 +19,12 @@ $filterPlan = (int) ($_GET['plan_id'] ?? 0);
   <form method="post" action="<?= url('/admin/plan-chat/start') ?>" class="row g-2 align-items-end" id="pc-start-form">
     <?= csrf_field() ?>
     <div class="col-md-4">
-      <label class="form-label">แผนการเรียนรู้</label>
+      <label class="form-label">หลักสูตร</label>
       <select name="plan_id" id="pc-plan" class="form-select" required>
-        <option value="">— เลือกแผน —</option>
+        <option value="">— เลือกหลักสูตร —</option>
         <?php foreach ($plans as $p): ?>
           <option value="<?= (int) $p['id'] ?>" <?= $filterPlan === (int) $p['id'] ? 'selected' : '' ?>>
-            แผนที่ <?= (int) $p['plan_no'] ?> — <?= e($p['title']) ?>
+            หลักสูตรที่ <?= (int) $p['plan_no'] ?> — <?= e($p['title']) ?>
           </option>
         <?php endforeach; ?>
       </select>
@@ -32,7 +32,7 @@ $filterPlan = (int) ($_GET['plan_id'] ?? 0);
     <div class="col-md-3">
       <label class="form-label">ประเภทห้อง</label>
       <select name="room" id="pc-room" class="form-select" required>
-        <option value="group">ห้องรวมของแผน</option>
+        <option value="group">ห้องรวมของหลักสูตร</option>
         <option value="direct">ตัวต่อตัว</option>
       </select>
     </div>
@@ -46,9 +46,9 @@ $filterPlan = (int) ($_GET['plan_id'] ?? 0);
           <?php endforeach; ?>
         </select>
       <?php else: ?>
-        <label class="form-label">วิทยากรของแผน</label>
+        <label class="form-label">วิทยากรของหลักสูตร</label>
         <select name="trainer_id" id="pc-trainer" class="form-select">
-          <option value="">— เลือกวิทยากรที่ดูแลแผนนี้ —</option>
+          <option value="">— เลือกวิทยากรที่ดูแลหลักสูตรนี้ —</option>
         </select>
       <?php endif; ?>
     </div>
@@ -67,13 +67,13 @@ $filterPlan = (int) ($_GET['plan_id'] ?? 0);
   function fillTrainers() {
     if (!trainer) return;
     var pid = plan.value;
-    trainer.innerHTML = '<option value="">— เลือกวิทยากรที่ดูแลแผนนี้ —</option>';
+    trainer.innerHTML = '<option value="">— เลือกวิทยากรที่ดูแลหลักสูตรนี้ —</option>';
     var list = map[pid] || [];
     if (pid && list.length === 0) {
       var empty = document.createElement('option');
       empty.value = '';
       empty.disabled = true;
-      empty.textContent = 'แผนนี้ยังไม่มีวิทยากรที่ได้รับมอบหมาย';
+      empty.textContent = 'หลักสูตรนี้ยังไม่มีวิทยากรที่ได้รับมอบหมาย';
       trainer.appendChild(empty);
       return;
     }
@@ -123,11 +123,11 @@ $filterPlan = (int) ($_GET['plan_id'] ?? 0);
                 <span class="plan-chat-type-badge <?= $isGroup ? 'is-group' : 'is-direct' ?>">
                   <?= $isGroup ? 'ห้องรวม' : 'ตัวต่อตัว' ?>
                 </span>
-                แผนที่ <?= (int) $t['plan_no'] ?> · <?= e($t['plan_title']) ?>
+                หลักสูตรที่ <?= (int) $t['plan_no'] ?> · <?= e($t['plan_title']) ?>
               </strong>
               <span class="text-muted small d-block">
                 <?php if ($isGroup): ?>
-                  สนทนาเปิดของแผนนี้ · วิทยากรและผู้เรียนในแผนเข้าร่วมได้
+                  สนทนาเปิดของหลักสูตรนี้ · วิทยากรและผู้เรียนในหลักสูตรเข้าร่วมได้
                 <?php else: ?>
                   ผู้เรียน: <?= e($t['learner_name'] ?: '-') ?> · วิทยากร: <?= e($t['trainer_name'] ?: '-') ?>
                 <?php endif; ?>

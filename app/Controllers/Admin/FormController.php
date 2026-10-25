@@ -43,13 +43,13 @@ class FormController extends Controller
             'title' => $title,
             'slug' => slugify($title),
             'description' => trim((string) $this->input('description', '')),
-            'status' => 1,
+            'status' => (int) $this->input('status', 1) === 1 ? 1 : 0,
             'created_by' => auth()->id(),
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
         ]);
         $this->saveFields($id);
-        $this->flash('success', 'สร้างแบบฟอร์มแล้ว');
+        $this->flash('success', 'สร้างแบบฟอร์มแล้ว — เปิดสถานะเพื่อแสดงในเมนูหน้าเว็บ');
         $this->redirect('/admin/forms');
     }
 
@@ -116,6 +116,7 @@ class FormController extends Controller
         if (!is_array($labels)) {
             return;
         }
+        $sort = 0;
         foreach ($labels as $i => $label) {
             $label = trim((string) $label);
             if ($label === '') {
@@ -124,12 +125,13 @@ class FormController extends Controller
             db()->insert('form_fields', [
                 'form_id' => $formId,
                 'label' => $label,
-                'name' => 'f' . ($i + 1),
+                'name' => 'f' . ($sort + 1),
                 'type' => (string) ($types[$i] ?? 'text'),
                 'options' => (string) ($opts[$i] ?? ''),
                 'required' => !empty($req[$i]) ? 1 : 0,
-                'sort_order' => $i,
+                'sort_order' => $sort,
             ]);
+            $sort++;
         }
     }
 }

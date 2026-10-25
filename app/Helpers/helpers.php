@@ -479,6 +479,52 @@ if (!function_exists('time_ago')) {
     }
 }
 
+if (!function_exists('notification_new_within_days')) {
+    /** จำนวนวันสูงสุดที่ถือว่าการแจ้งเตือนเป็น «ใหม่» (จาก config) */
+    function notification_new_within_days(): int
+    {
+        $days = (int) config('app', 'notifications.new_within_days', 1);
+        return $days > 0 ? $days : 1;
+    }
+}
+
+if (!function_exists('notification_new_since')) {
+    /** เวลาเริ่มต้นของช่วง «ใหม่» (Y-m-d H:i:s ตาม timezone ของแอป) */
+    function notification_new_since(): string
+    {
+        return date('Y-m-d H:i:s', time() - (notification_new_within_days() * 86400));
+    }
+}
+
+if (!function_exists('notification_is_new')) {
+    /** ยังไม่อ่าน และสร้างภายในระยะเวลาที่กำหนดใน config */
+    function notification_is_new(?string $createdAt, mixed $isRead = 0): bool
+    {
+        if ((int) $isRead !== 0 || !$createdAt) {
+            return false;
+        }
+        $ts = strtotime($createdAt);
+        if ($ts === false) {
+            return false;
+        }
+        return $ts >= (time() - (notification_new_within_days() * 86400));
+    }
+}
+
+if (!function_exists('notification_new_count')) {
+    function notification_new_count(int $userId): int
+    {
+        if ($userId < 1) {
+            return 0;
+        }
+        return (int) db()->count(
+            'notifications',
+            'user_id = ? AND is_read = 0 AND created_at >= ?',
+            [$userId, notification_new_since()]
+        );
+    }
+}
+
 if (!function_exists('request_ip')) {
     function request_ip(): string
     {
@@ -892,6 +938,33 @@ if (!function_exists('portfolio_modules')) {
     }
 }
 
+if (!function_exists('public_forms')) {
+    /**
+     * Active online forms for the public website menu / listing.
+     * Separate from fixed /contact (contact_messages).
+     *
+     * @return list<array<string,mixed>>
+     */
+    function public_forms(): array
+    {
+        static $cache = null;
+        if ($cache !== null) {
+            return $cache;
+        }
+        try {
+            $cache = db()->fetchAll(
+                'SELECT id, title, slug, description, updated_at
+                 FROM forms
+                 WHERE status = 1
+                 ORDER BY title ASC, id ASC'
+            );
+        } catch (\Throwable $e) {
+            $cache = [];
+        }
+        return $cache;
+    }
+}
+
 if (!function_exists('portfolio_module')) {
     function portfolio_module(string $key): ?array
     {
@@ -936,7 +1009,7 @@ if (!function_exists('curriculum_title_key')) {
 
 if (!function_exists('curriculum_plan_sections')) {
     /**
-     * รวมรายการแสดงผลต่อแผน โดยแยกหมวดและตัดรายการซ้ำข้ามแหล่ง
+     * รวมรายการแสดงผลต่อหลักสูตร โดยแยกหมวดและตัดรายการซ้ำข้ามแหล่ง
      * - เนื้อหา/ภาระงาน = จาก LMS เท่านั้น
      * - ใบความรู้ = จาก config
      * - ใบงาน = config+DB ที่ยังไม่ซ้ำกับภาระงาน LMS

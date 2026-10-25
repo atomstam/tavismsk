@@ -28,14 +28,14 @@ $activeIdx = $stageOrder[$stage] ?? 0;
 <?php if ($webShell): ?><div class="container py-4 ws-page-stack learn-web"><?php endif; ?>
 <div class="page-head">
   <div>
-    <p class="page-kicker">พื้นที่เรียน · แผนที่ <?= (int)($plan['plan_no'] ?? 0) ?> · <?= e(\App\Services\PlanProgress::trackLabel($plan)) ?></p>
+    <p class="page-kicker">พื้นที่เรียน · หลักสูตรที่ <?= (int)($plan['plan_no'] ?? 0) ?> · <?= e(\App\Services\PlanProgress::trackLabel($plan)) ?></p>
     <h1><?= e($plan['title'] ?? '') ?></h1>
   </div>
   <div class="d-flex flex-wrap gap-2">
     <?php if (!$webShell && can_perm('plan_chat', 'view')): ?>
       <a class="btn btn-learn-primary" href="<?= url('/admin/plan-chat/plan/' . $pid) ?>"><i class="fa fa-comments"></i> กระดานสนทนา</a>
     <?php endif; ?>
-    <a class="btn <?= $webShell ? 'btn-outline-secondary' : 'btn-learn-outline' ?>" href="<?= url($webShell ? '/curriculum/' . (int)($plan['plan_no'] ?? 0) : '/admin/curriculum/' . $pid) ?>"><i class="fa fa-circle-info"></i> รายละเอียดแผน</a>
+    <a class="btn <?= $webShell ? 'btn-outline-secondary' : 'btn-learn-outline' ?>" href="<?= url($webShell ? '/curriculum/' . (int)($plan['plan_no'] ?? 0) : '/admin/curriculum/' . $pid) ?>"><i class="fa fa-circle-info"></i> รายละเอียดหลักสูตร</a>
     <a class="btn <?= $webShell ? 'btn-outline-secondary' : 'btn-learn-outline' ?>" href="<?= url($learnBase) ?>"><i class="fa fa-arrow-left"></i> กลับ</a>
   </div>
 </div>
@@ -51,7 +51,7 @@ $activeIdx = $stageOrder[$stage] ?? 0;
       <div class="learn-pct"><?= number_format($pct, 1) ?>%</div>
       <div class="small opacity-75">
         <?php if ((int) ($progress['is_passed'] ?? 0) === 1): ?>
-          ผ่านแผนแล้ว · คะแนนรวม <?= number_format((float) ($progress['score_percent'] ?? 0), 1) ?>%
+          ผ่านหลักสูตรแล้ว · คะแนนรวม <?= number_format((float) ($progress['score_percent'] ?? 0), 1) ?>%
         <?php else: ?>
           ดำเนินการเรียนครบองค์ประกอบ → 100%
         <?php endif; ?>
@@ -61,7 +61,7 @@ $activeIdx = $stageOrder[$stage] ?? 0;
           <i class="fa fa-file-pdf"></i> พิมพ์เกียรติบัตร PDF
         </a>
       <?php else: ?>
-        <div class="small opacity-75 mt-1">ผ่านเกณฑ์แล้วจึงพิมพ์เกียรติบัตรของแผนนี้ได้ (ครบทุกขั้น · ภาระงาน ≥70% · สอบหลัง ≥70%)</div>
+        <div class="small opacity-75 mt-1">ผ่านเกณฑ์แล้วจึงพิมพ์เกียรติบัตรของหลักสูตรนี้ได้ (ครบทุกขั้น · ภาระงาน ≥70% · สอบหลัง ≥70%)</div>
       <?php endif; ?>
     </div>
   </div>
@@ -277,7 +277,7 @@ $activeIdx = $stageOrder[$stage] ?? 0;
         <div class="learn-gate-locked-msg text-muted small mb-0"<?= ($canSatisfaction || $satAttempt) ? ' hidden' : '' ?>>ปลดล็อกหลังทำแบบทดสอบหลังเรียนเสร็จ</div>
         <div class="learn-gate-open"<?= ($canSatisfaction && !$satAttempt) ? '' : ' hidden' ?>>
           <?php if ($satQuiz): ?>
-            <p class="text-muted small">ช่วยประเมินความพึงพอใจต่อการเรียนในแผนนี้</p>
+            <p class="text-muted small">ช่วยประเมินความพึงพอใจต่อการเรียนในหลักสูตรนี้</p>
             <a class="btn btn-learn-primary learn-satisfaction-btn" href="<?= e($satisfactionUrl) ?>">ทำแบบประเมิน</a>
           <?php else: ?>
             <p class="text-muted mb-0 small">ยังไม่มีแบบประเมินในโมดูลนี้ (ผ่านขั้นตอนนี้โดยอัตโนมัติ)</p>
@@ -291,8 +291,8 @@ $activeIdx = $stageOrder[$stage] ?? 0;
 <?php if (!$webShell && can_perm('plan_chat', 'view')): ?>
 <div class="card-soft mt-3"><div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
   <div>
-    <h2 class="h6 mb-1"><i class="fa fa-comments text-primary"></i> กระดานสนทนาของแผนนี้</h2>
-    <p class="small text-muted mb-0">เลือกห้องรวมของแผน หรือคุยตัวต่อตัวกับวิทยากร · เก็บประวัติย้อนหลังได้</p>
+    <h2 class="h6 mb-1"><i class="fa fa-comments text-primary"></i> กระดานสนทนาของหลักสูตรนี้</h2>
+    <p class="small text-muted mb-0">เลือกห้องรวมของหลักสูตร หรือคุยตัวต่อตัวกับวิทยากร · เก็บประวัติย้อนหลังได้</p>
   </div>
   <a class="btn btn-learn-primary" href="<?= url('/admin/plan-chat/plan/' . $pid) ?>">เลือกห้องสนทนา</a>
 </div></div>

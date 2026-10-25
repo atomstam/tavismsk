@@ -9,7 +9,7 @@ use App\Services\ModuleLearningService;
 use App\Services\QuizImageService;
 
 /**
- * แบบประเมินความพึงพอใจชุดเดียว ผู้ดูแลระบบเป็นคนแก้ แล้วใช้กับทุกแผน
+ * แบบประเมินความพึงพอใจชุดเดียว ผู้ดูแลระบบเป็นคนแก้ แล้วใช้กับทุกหลักสูตร
  */
 class SatisfactionController extends Controller
 {
@@ -62,7 +62,7 @@ class SatisfactionController extends Controller
         ];
         db()->update('training_quizzes', $fields, 'id = ?', [$quizId]);
         $this->copyMetaToEveryPlan($title, $fields);
-        flash('success', 'บันทึกแบบประเมินความพึงพอใจแล้ว ใช้กับทุกแผน');
+        flash('success', 'บันทึกแบบประเมินความพึงพอใจแล้ว ใช้กับทุกหลักสูตร');
         $this->redirect('/admin/satisfaction');
     }
 

@@ -9,7 +9,7 @@ $pid = (int) ($plan['id'] ?? 0);
   <div>
     <p class="page-kicker">PLAN CHAT</p>
     <h1>เลือกห้องสนทนา</h1>
-    <p class="text-muted mb-0">แผนที่ <?= (int) ($plan['plan_no'] ?? 0) ?> · <?= e($plan['title'] ?? '') ?></p>
+    <p class="text-muted mb-0">หลักสูตรที่ <?= (int) ($plan['plan_no'] ?? 0) ?> · <?= e($plan['title'] ?? '') ?></p>
   </div>
   <a class="btn btn-learn-outline" href="<?= url('/admin/learn/' . $pid) ?>">กลับบทเรียน</a>
 </div>
@@ -20,8 +20,8 @@ $pid = (int) ($plan['id'] ?? 0);
       <input type="hidden" name="room" value="group">
       <div class="card-body d-flex flex-column">
         <span class="plan-chat-type-badge is-group mb-2">ห้องรวม</span>
-        <strong class="mb-1">ห้องสนทนารวมของแผนนี้</strong>
-        <p class="small text-muted flex-grow-1">วิทยากรและผู้เรียนพูดคุยร่วมกันในห้องเดียว · ประวัติเก็บรวมของแผน</p>
+        <strong class="mb-1">ห้องสนทนารวมของหลักสูตรนี้</strong>
+        <p class="small text-muted flex-grow-1">วิทยากรและผู้เรียนพูดคุยร่วมกันในห้องเดียว · ประวัติเก็บรวมของหลักสูตร</p>
         <button class="btn btn-primary" type="submit"><i class="fa fa-users"></i> เข้าห้องรวม</button>
       </div>
     </form>
@@ -55,14 +55,14 @@ $pid = (int) ($plan['id'] ?? 0);
           <?php endif; ?>
         <?php else: ?>
           <?php if ($trainers === []): ?>
-            <p class="small text-warning mb-0">แผนนี้ยังไม่มีวิทยากรที่ได้รับมอบหมาย (เจ้าของหลักสูตรที่อนุมัติแล้ว)</p>
+            <p class="small text-warning mb-0">หลักสูตรนี้ยังไม่มีวิทยากรที่ได้รับมอบหมาย (เจ้าของหลักสูตรที่อนุมัติแล้ว)</p>
           <?php else: ?>
             <form method="post" action="<?= url('/admin/plan-chat/start') ?>" class="row g-2">
               <?= csrf_field() ?>
               <input type="hidden" name="room" value="direct">
               <input type="hidden" name="plan_id" value="<?= $pid ?>">
               <div class="col-12">
-                <label class="form-label small mb-1">วิทยากรของแผนนี้</label>
+                <label class="form-label small mb-1">วิทยากรของหลักสูตรนี้</label>
                 <select name="trainer_id" class="form-select" required>
                   <option value="">— เลือกวิทยากร —</option>
                   <?php foreach ($trainers as $t): ?>

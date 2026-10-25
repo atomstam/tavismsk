@@ -1,12 +1,12 @@
 <?php
 $rows = $rows ?? [];
-$stats = $stats ?? ['plans' => 0, 'learners' => 0, 'cert_ready' => 0, 'cert_issued' => 0, 'diploma_issued' => 0];
+$stats = $stats ?? ['plans' => 0, 'learners' => 0, 'cert_ready' => 0, 'cert_issued' => 0];
 ?>
 <div class="page-head">
   <div>
     <p class="page-kicker">CERTIFICATES</p>
     <h1>เกียรติบัตรออนไลน์</h1>
-    <p class="text-muted mb-0">บริหารเกียรติบัตร/วุฒิบัตรของผู้เรียนในแผนที่รับผิดชอบ — กดเข้าแผนเพื่อดูรายชื่อและพิมพ์เอกสาร</p>
+    <p class="text-muted mb-0">บริหารเกียรติบัตรของผู้เรียนในหลักสูตรที่รับผิดชอบ — กดเข้าหลักสูตรเพื่อดูรายชื่อและพิมพ์เอกสารรายหลักสูตร</p>
   </div>
 </div>
 
@@ -15,7 +15,7 @@ $stats = $stats ?? ['plans' => 0, 'learners' => 0, 'cert_ready' => 0, 'cert_issu
     <div class="metric-stat metric-stat--blue">
       <div class="metric-stat-icon"><i class="fa fa-layer-group"></i></div>
       <div class="metric-stat-body">
-        <span class="metric-stat-label">แผนที่ดูแล</span>
+        <span class="metric-stat-label">หลักสูตรที่ดูแล</span>
         <strong class="metric-stat-value"><?= (int) $stats['plans'] ?></strong>
       </div>
     </div>
@@ -52,21 +52,20 @@ $stats = $stats ?? ['plans' => 0, 'learners' => 0, 'cert_ready' => 0, 'cert_issu
 <div class="card-soft"><div class="card-body">
   <?php if ($rows === []): ?>
     <div class="text-center text-muted py-4">
-      ยังไม่มีแผนที่รับผิดชอบ
+      ยังไม่มีหลักสูตรที่รับผิดชอบ
       <?php if (auth()->role() === 'trainer'): ?>
-        — <a href="<?= url('/admin/trainer-apply') ?>">สมัครเป็นวิทยากรของแผน</a>
+        — <a href="<?= url('/admin/trainer-apply') ?>">สมัครเป็นวิทยากรของหลักสูตร</a>
       <?php endif; ?>
     </div>
   <?php else: ?>
     <table id="cert-manage-plans" class="table datatable w-100" data-order='[[1,"asc"]]'>
       <thead>
         <tr>
-          <th class="col-primary">แผน</th>
+          <th class="col-primary">หลักสูตร</th>
           <th class="col-wrap">หัวข้อ</th>
           <th class="text-center">ผู้เรียน</th>
           <th class="text-center">พร้อมออก</th>
           <th class="text-center">ออกเกียรติบัตรแล้ว</th>
-          <th class="text-center">วุฒิบัตรแล้ว</th>
           <th class="text-center">เฉลี่ย %</th>
           <th class="col-actions text-end">จัดการ</th>
         </tr>
@@ -81,7 +80,7 @@ $stats = $stats ?? ['plans' => 0, 'learners' => 0, 'cert_ready' => 0, 'cert_issu
         ?>
         <tr>
           <td data-order="<?= (int) ($plan['plan_no'] ?? 0) ?>">
-            <span class="enroll-plan-no">แผนที่ <?= (int) ($plan['plan_no'] ?? 0) ?></span>
+            <span class="enroll-plan-no">หลักสูตรที่ <?= (int) ($plan['plan_no'] ?? 0) ?></span>
             <span class="learn-plan-track <?= $required ? 'is-required' : 'is-elective' ?>"><?= $required ? 'บังคับ' : 'ทั่วไป' ?></span>
           </td>
           <td class="col-wrap">
@@ -105,7 +104,6 @@ $stats = $stats ?? ['plans' => 0, 'learners' => 0, 'cert_ready' => 0, 'cert_issu
             <?php endif; ?>
           </td>
           <td class="text-center" data-order="<?= (int) $row['cert_issued'] ?>"><?= (int) $row['cert_issued'] ?></td>
-          <td class="text-center" data-order="<?= (int) $row['diploma_issued'] ?>"><?= (int) $row['diploma_issued'] ?></td>
           <td class="text-center" data-order="<?= $avg !== null ? $avg : -1 ?>">
             <?= $avg !== null ? number_format($avg, 1) . '%' : '-' ?>
           </td>

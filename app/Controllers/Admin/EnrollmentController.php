@@ -19,7 +19,7 @@ class EnrollmentController extends Controller
         $this->manage = new EnrollmentManageService();
     }
 
-    /** ผู้เรียน: ลงทะเบียนของตัวเอง + แผนที่เรียนอยู่ */
+    /** ผู้เรียน: ลงทะเบียนของตัวเอง + หลักสูตรที่เรียนอยู่ */
     public function index(): void
     {
         $this->requirePerm('enrollments');
@@ -39,7 +39,7 @@ class EnrollmentController extends Controller
         ]);
     }
 
-    /** Admin / Trainer: บริหารจัดการแผนและสารสนเทศผู้เรียน */
+    /** Admin / Trainer: บริหารจัดการหลักสูตรและสารสนเทศผู้เรียน */
     public function manage(): void
     {
         $this->requirePerm('enrollments');
@@ -50,8 +50,8 @@ class EnrollmentController extends Controller
 
         $uid = (int) auth()->id();
         $this->view('admin/enrollments/index_manage', [
-            'title' => 'บริหารแผนอบรม',
-            'breadcrumb' => 'หน้าหลัก / บริหารแผนอบรม',
+            'title' => 'บริหารหลักสูตร',
+            'breadcrumb' => 'หน้าหลัก / บริหารหลักสูตร',
             'role' => $role,
             'plans' => $this->manage->planSummaries($role, $uid),
             'stats' => $this->manage->dashboardStats($role, $uid),
@@ -70,7 +70,7 @@ class EnrollmentController extends Controller
             : '/admin/enrollments';
 
         if (!$plan || !$this->manage->canViewPlan($pid, $role, $uid)) {
-            $this->flash('error', 'ไม่พบแผน หรือไม่มีสิทธิ์เข้าดู');
+            $this->flash('error', 'ไม่พบหลักสูตร หรือไม่มีสิทธิ์เข้าดู');
             $this->redirect($back);
         }
 
@@ -83,10 +83,10 @@ class EnrollmentController extends Controller
         }
 
         $this->view('admin/enrollments/plan', [
-            'title' => 'แผนที่ ' . (int) ($plan['plan_no'] ?? 0),
+            'title' => 'หลักสูตรที่ ' . (int) ($plan['plan_no'] ?? 0),
             'breadcrumb' => ($role === 'admin' || $role === 'trainer')
-                ? 'หน้าหลัก / บริหารแผนอบรม / รายละเอียดแผน'
-                : 'หน้าหลัก / ลงทะเบียน/เข้าเรียน / รายละเอียดแผน',
+                ? 'หน้าหลัก / บริหารหลักสูตร / รายละเอียดหลักสูตร'
+                : 'หน้าหลัก / ลงทะเบียน/เข้าเรียน / รายละเอียดหลักสูตร',
             'role' => $role,
             'plan' => $plan,
             'learners' => $learners,
@@ -149,8 +149,8 @@ class EnrollmentController extends Controller
             'org_unit_id' => $orgId,
             'note' => (string) $this->input('note', ''),
         ]);
-        activity_log('create', 'enrollments', 'ลงทะเบียนอบรม #' . $id);
-        flash('success', $role === 'admin' ? 'ลงทะเบียนอบรมสำเร็จ' : 'ลงทะเบียนอบรมสำเร็จ รอการอนุมัติ');
+        activity_log('create', 'enrollments', 'ลงทะเบียนหลักสูตร #' . $id);
+        flash('success', $role === 'admin' ? 'ลงทะเบียนหลักสูตรสำเร็จ' : 'ลงทะเบียนหลักสูตรสำเร็จ รอการอนุมัติ');
         $this->redirect($role === 'admin' ? '/admin/plan-enrollments' : '/admin/enrollments');
     }
 }

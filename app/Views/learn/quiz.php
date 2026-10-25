@@ -17,7 +17,7 @@ $planTitle = trim((string) ($plan['title'] ?? ''));
 <?php if ($webShell): ?><div class="container py-4 ws-page-stack learn-web"><?php endif; ?>
 <div class="page-head">
   <div>
-    <p class="page-kicker">แผนที่ <?= $planNo ?><?= $planTitle !== '' ? ' · ' . e($planTitle) : '' ?></p>
+    <p class="page-kicker">หลักสูตรที่ <?= $planNo ?><?= $planTitle !== '' ? ' · ' . e($planTitle) : '' ?></p>
     <h1><?= e($typeLabel) ?></h1>
   </div>
   <a class="btn <?= $webShell ? 'btn-outline-secondary' : 'btn-learn-outline' ?>" href="<?= url($learnBase . '/' . $pid) ?>">ยกเลิก</a>

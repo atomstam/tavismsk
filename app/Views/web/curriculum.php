@@ -12,8 +12,8 @@ $loggedIn = auth()->check();
 ?>
 <div class="container ws-page-stack">
   <div class="ws-page-hero">
-    <div class="crumb"><a href="<?= url('/') ?>">หน้าแรก</a> › แผนการเรียนรู้</div>
-    <h1>แผนการจัดการเรียนรู้ 14 ชั่วโมง</h1>
+    <div class="crumb"><a href="<?= url('/') ?>">หน้าแรก</a> › หลักสูตร</div>
+    <h1>หลักสูตร 14 ชั่วโมง</h1>
     <p><?= e(config('app', 'training.course_title', app_brand('full_name'))) ?> — ความรู้ ทักษะ และทัศนคติการใช้รถใช้ถนนอย่างปลอดภัย</p>
     <?php if ($loggedIn): ?>
       <div class="ws-plan-learn-cta">
@@ -41,11 +41,11 @@ $loggedIn = auth()->check();
         <a href="<?= url('/curriculum/' . $no) ?>" class="d-block text-decoration-none text-reset">
           <div class="ws-plan-cover">
             <?php if ($hasCover): ?>
-              <img src="<?= asset($cover) ?>?v=4" alt="แผนที่ <?= $no ?>" loading="lazy" decoding="async">
+              <img src="<?= asset($cover) ?>?v=4" alt="หลักสูตรที่ <?= $no ?>" loading="lazy" decoding="async">
             <?php else: ?>
               <div class="ws-plan-cover-fallback"><i class="fa fa-shield-halved"></i></div>
             <?php endif; ?>
-            <span class="ws-plan-cover-badge">แผนที่ <?= $no ?></span>
+            <span class="ws-plan-cover-badge">หลักสูตรที่ <?= $no ?></span>
             <span class="learn-plan-track <?= $required ? 'is-required' : 'is-elective' ?>"><?= $required ? 'บังคับ' : 'ทั่วไป' ?></span>
             <?php if ($pr): ?>
               <span class="ws-plan-cover-progress"><?= number_format($pct, 0) ?>%</span>

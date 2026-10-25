@@ -393,7 +393,7 @@ class AuthController extends Controller
         try {
             (new \App\Services\ModuleLearningService())->enrollRequiredPlans((int) $id);
         } catch (\Throwable $e) {
-            // การลงทะเบียนแผนไม่ควรทำให้สมัครสมาชิกพัง
+            // การลงทะเบียนหลักสูตรไม่ควรทำให้สมัครสมาชิกพัง
         }
         activity_log('register', 'auth', 'สมัครสมาชิกใหม่', null, [
             'user_id' => $id,

@@ -24,7 +24,7 @@ $statusLabel = $statusMap[$statusKey] ?? ($statusKey !== '' ? $statusKey : 'ย�
   <div>
     <p class="page-kicker">MY ENROLLMENT</p>
     <h1>ลงทะเบียน/เข้าเรียน</h1>
-    <p class="text-muted mb-0">ติดตามสถานะลงทะเบียน ความก้าวหน้า และคะแนนของแต่ละแผน — เข้าเรียนต่อได้ทันที</p>
+    <p class="text-muted mb-0">ติดตามสถานะลงทะเบียน ความก้าวหน้า และคะแนนของแต่ละหลักสูตร — เข้าเรียนต่อได้ทันที</p>
   </div>
   <?php if (can_perm('enrollments', 'create') && !$myEnrollment): ?>
   <form method="post" action="<?= url('/admin/enrollments') ?>">
@@ -40,7 +40,7 @@ $statusLabel = $statusMap[$statusKey] ?? ($statusKey !== '' ? $statusKey : 'ย�
     <div class="metric-stat metric-stat--blue">
       <div class="metric-stat-icon"><i class="fa fa-layer-group"></i></div>
       <div class="metric-stat-body">
-        <span class="metric-stat-label">แผนของฉัน</span>
+        <span class="metric-stat-label">หลักสูตรของฉัน</span>
         <strong class="metric-stat-value"><?= (int) $stats['plans'] ?></strong>
       </div>
     </div>
@@ -86,22 +86,22 @@ $statusLabel = $statusMap[$statusKey] ?? ($statusKey !== '' ? $statusKey : 'ย�
   <div class="card-body">
     <div class="enroll-plans-head">
       <div>
-        <h2 class="h6 mb-0">แผนที่ลงทะเบียน / เรียนอยู่</h2>
+        <h2 class="h6 mb-0">หลักสูตรที่ลงทะเบียน / เรียนอยู่</h2>
         <p class="small text-muted mb-0 mt-1">ความก้าวหน้า = ครบองค์ประกอบ · คะแนนใช้ตัดสินผ่านและเกียรติบัตร</p>
       </div>
-      <span class="enroll-plans-count"><?= count($plans) ?> แผน</span>
+      <span class="enroll-plans-count"><?= count($plans) ?> หลักสูตร</span>
     </div>
     <?php if ($plans === []): ?>
       <div class="enroll-empty">
         <i class="fa fa-book-open"></i>
-        <p class="mb-0">ยังไม่มีแผนในบัญชีของคุณ — กดลงทะเบียนด้านบน หรือเริ่มเรียนจากเมนูบทเรียนของฉัน</p>
+        <p class="mb-0">ยังไม่มีหลักสูตรในบัญชีของคุณ — กดลงทะเบียนด้านบน หรือเริ่มเรียนจากเมนูบทเรียนของฉัน</p>
       </div>
     <?php else: ?>
       <div class="table-responsive">
         <table class="table enroll-plan-table enroll-user-table align-middle mb-0">
           <thead>
             <tr>
-              <th>แผน</th>
+              <th>หลักสูตร</th>
               <th>หัวข้อ</th>
               <th>ขั้นปัจจุบัน</th>
               <th class="text-center">ความก้าวหน้า</th>
@@ -121,7 +121,7 @@ $statusLabel = $statusMap[$statusKey] ?? ($statusKey !== '' ? $statusKey : 'ย�
             ?>
             <tr class="<?= $passed ? 'is-passed' : ($started ? 'is-active-row' : '') ?>">
               <td>
-                <span class="enroll-plan-no">แผนที่ <?= (int) $p['plan_no'] ?></span>
+                <span class="enroll-plan-no">หลักสูตรที่ <?= (int) $p['plan_no'] ?></span>
                 <span class="learn-plan-track <?= $required ? 'is-required' : 'is-elective' ?>"><?= $required ? 'บังคับ' : 'ทั่วไป' ?></span>
               </td>
               <td>

@@ -26,6 +26,7 @@ use App\Controllers\Admin\ClubMemberController;
 use App\Controllers\Admin\AiController;
 use App\Controllers\Admin\EnrollmentController;
 use App\Controllers\Admin\CertificateController;
+use App\Controllers\Admin\DiplomaController;
 use App\Controllers\Admin\OrgUnitController;
 use App\Controllers\Admin\OrgStatsController;
 use App\Controllers\Admin\TrainingManageController;
@@ -57,14 +58,15 @@ $router->get('/faq', [HomeController::class, 'faq']);
 $router->get('/contact', [HomeController::class, 'contact']);
 $router->post('/contact', [HomeController::class, 'contactStore'], ['csrf', 'rate:contact:5:60']);
 $router->get('/captcha', [HomeController::class, 'captcha']);
+$router->get('/forms', [HomeController::class, 'formsIndex']);
 $router->get('/forms/{slug}', [HomeController::class, 'formShow']);
-$router->post('/forms/{slug}', [HomeController::class, 'formStore'], ['csrf']);
+$router->post('/forms/{slug}', [HomeController::class, 'formStore'], ['csrf', 'rate:forms:10:60']);
 
 $router->get('/curriculum', [CurriculumPublicController::class, 'index']);
 $router->get('/curriculum/{planNo}', [CurriculumPublicController::class, 'show']);
 $router->get('/certificate/verify', [CertificatePublicController::class, 'verify']);
 
-// Frontend LMS — เรียนแผน (auth) ลำดับเดียวกับ backend
+// Frontend LMS — เรียนหลักสูตร (auth) ลำดับเดียวกับ backend
 $router->group(['middleware' => ['auth']], function (Router $r) {
     $r->get('/learn', [WebLearnController::class, 'index']);
     $r->post('/learn/diploma', [WebLearnController::class, 'diploma'], ['csrf']);
@@ -225,7 +227,7 @@ $router->group(['prefix' => '/admin', 'middleware' => ['auth', 'admin']], functi
     $r->post('/enrollments', [EnrollmentController::class, 'store'], ['csrf']);
     $r->post('/enrollments/{id}/approve', [EnrollmentController::class, 'approve'], ['csrf']);
 
-    // Admin / Trainer — บริหารแผนอบรม (แยกจากเมนูการเรียนของฉัน)
+    // Admin / Trainer — บริหารหลักสูตร (แยกจากเมนูการเรียนของฉัน)
     $r->get('/plan-enrollments', [EnrollmentController::class, 'manage']);
     $r->get('/plan-enrollments/plans/{planId}', [EnrollmentController::class, 'plan']);
 
@@ -261,7 +263,7 @@ $router->group(['prefix' => '/admin', 'middleware' => ['auth', 'admin']], functi
     $r->post('/satisfaction/question', [SatisfactionController::class, 'storeQuestion'], ['csrf']);
     $r->post('/satisfaction/question/{id}/delete', [SatisfactionController::class, 'deleteQuestion'], ['csrf']);
 
-    // กระดานสนทนาต่อแผน (ผู้เรียน ↔ วิทยากร)
+    // กระดานสนทนาต่อหลักสูตร (ผู้เรียน ↔ วิทยากร)
     $r->get('/plan-chat', [PlanChatController::class, 'index']);
     $r->post('/plan-chat/start', [PlanChatController::class, 'start'], ['csrf']);
     $r->get('/plan-chat/plan/{planId}', [PlanChatController::class, 'fromPlan']);
@@ -280,6 +282,7 @@ $router->group(['prefix' => '/admin', 'middleware' => ['auth', 'admin']], functi
     $r->post('/learn/{planId}/content/{contentId}/complete', [LearnController::class, 'completeContent'], ['csrf']);
     $r->post('/learn/{planId}/task/{taskId}/submit', [LearnController::class, 'submitTask'], ['csrf']);
 
+    $r->get('/diplomas', [DiplomaController::class, 'index']);
     $r->get('/certificates', [CertificateController::class, 'index']);
     $r->get('/certificates/datatable', [CertificateController::class, 'datatable']);
     $r->get('/certificates/ready-datatable', [CertificateController::class, 'readyDatatable']);

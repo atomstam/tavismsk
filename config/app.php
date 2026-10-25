@@ -104,6 +104,10 @@ return [
     'lms' => [
         'questions_per_learner' => 10,
     ],
+    /** การแจ้งเตือน: ถือว่า «ใหม่» เมื่อยังไม่อ่านและอยู่ในช่วงเวลานี้ */
+    'notifications' => [
+        'new_within_days' => max(1, (int) env('NOTIFICATION_NEW_WITHIN_DAYS', 1)),
+    ],
     'maintenance_mode' => filter_var(env('MAINTENANCE_MODE', false), FILTER_VALIDATE_BOOLEAN),
     'fiscal_year' => date('Y') + 543,
 ];

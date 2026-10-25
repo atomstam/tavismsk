@@ -231,8 +231,20 @@ class HomeController extends Controller
         exit;
     }
 
+    public function formsIndex(): void
+    {
+        $this->track();
+        $forms = public_forms();
+        $this->webView('web/forms', [
+            'title' => 'แบบฟอร์มออนไลน์',
+            'forms' => $forms,
+            'visitorStats' => $this->visitorStats(),
+        ]);
+    }
+
     public function formShow(string $slug): void
     {
+        $this->track();
         $form = db()->fetch('SELECT * FROM forms WHERE slug = ? AND status = 1', [$slug]);
         if (!$form) {
             http_response_code(404);
@@ -240,27 +252,81 @@ class HomeController extends Controller
             return;
         }
         $fields = db()->fetchAll('SELECT * FROM form_fields WHERE form_id = ? ORDER BY sort_order', [$form['id']]);
-        $this->webView('web/form', ['title' => $form['title'], 'form' => $form, 'fields' => $fields]);
+        $this->webView('web/form', [
+            'title' => $form['title'],
+            'form' => $form,
+            'fields' => $fields,
+            'visitorStats' => $this->visitorStats(),
+        ]);
     }
 
     public function formStore(string $slug): void
     {
         $form = db()->fetch('SELECT * FROM forms WHERE slug = ? AND status = 1', [$slug]);
         if (!$form) {
-            $this->redirect('/');
+            $this->flash('error', 'ไม่พบแบบฟอร์มหรือปิดรับแล้ว');
+            $this->redirect('/forms');
         }
-        $fields = db()->fetchAll('SELECT * FROM form_fields WHERE form_id = ?', [$form['id']]);
+        $fields = db()->fetchAll(
+            'SELECT * FROM form_fields WHERE form_id = ? ORDER BY sort_order',
+            [$form['id']]
+        );
         $payload = [];
+        $errors = [];
         foreach ($fields as $f) {
-            $payload[$f['name']] = $_POST[$f['name']] ?? '';
+            $name = (string) $f['name'];
+            $type = (string) ($f['type'] ?? 'text');
+            $label = (string) ($f['label'] ?? $name);
+            $required = !empty($f['required']);
+
+            if ($type === 'file') {
+                $file = $_FILES[$name] ?? null;
+                $hasFile = is_array($file) && (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK;
+                if ($required && !$hasFile) {
+                    $errors[] = 'กรุณาแนบไฟล์: ' . $label;
+                    continue;
+                }
+                if ($hasFile) {
+                    $stored = upload_file($file, 'form-submissions', [
+                        'pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'webp', 'gif', 'zip',
+                    ]);
+                    if ($stored === null || $stored === '') {
+                        $errors[] = 'อัปโหลดไฟล์ไม่สำเร็จ: ' . $label;
+                        continue;
+                    }
+                    $payload[$name] = $stored;
+                    $payload[$name . '_label'] = $label;
+                } else {
+                    $payload[$name] = '';
+                }
+                continue;
+            }
+
+            $raw = $_POST[$name] ?? ($type === 'checkbox' ? [] : '');
+            if (is_array($raw)) {
+                $value = implode(', ', array_map(static fn ($v) => trim((string) $v), $raw));
+            } else {
+                $value = trim((string) $raw);
+            }
+            if ($required && $value === '') {
+                $errors[] = 'กรุณากรอก: ' . $label;
+            }
+            $payload[$name] = $value;
+            $payload[$name . '_label'] = $label;
         }
+
+        if ($errors !== []) {
+            $this->flash('error', implode(' · ', array_slice($errors, 0, 3)));
+            $this->redirect('/forms/' . $slug);
+        }
+
         db()->insert('form_submissions', [
-            'form_id' => $form['id'],
+            'form_id' => (int) $form['id'],
             'user_id' => auth()->id(),
             'payload' => json_encode($payload, JSON_UNESCAPED_UNICODE),
             'created_at' => date('Y-m-d H:i:s'),
         ]);
-        $this->flash('success', 'ส่งแบบฟอร์มเรียบร้อย');
+        $this->flash('success', 'ส่งแบบฟอร์มเรียบร้อย ขอบคุณที่ให้ข้อมูล');
         $this->redirect('/forms/' . $slug);
     }
 

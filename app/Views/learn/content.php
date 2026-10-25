@@ -11,7 +11,7 @@ $isPdf = ($preview['kind'] ?? '') === 'pdf' && ($preview['frame_src'] ?? '') !==
 <?php if ($webShell): ?><div class="container py-4 ws-page-stack learn-web"><?php endif; ?>
 <div class="page-head">
   <div>
-    <p class="page-kicker">เนื้อหา · แผนที่ <?= (int)($plan['plan_no'] ?? 0) ?></p>
+    <p class="page-kicker">เนื้อหา · หลักสูตรที่ <?= (int)($plan['plan_no'] ?? 0) ?></p>
     <h1><?= e($content['title'] ?? '') ?></h1>
   </div>
   <?php if (!$isPdf): ?>

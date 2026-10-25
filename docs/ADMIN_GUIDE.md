@@ -28,8 +28,8 @@ Footer: **จัดทำโดย สำนักงานเขตพื้น
 
 ## เมนูแอดมินที่สำคัญ
 
-- **โมดูลการอบรม** `/admin/curriculum`
-- **ลงทะเบียนอบรม** `/admin/enrollments`
+- **หลักสูตร** `/admin/curriculum`
+- **ลงทะเบียนหลักสูตร** `/admin/enrollments`
 - **เกียรติบัตรออนไลน์** `/admin/certificates`
 - **โครงสร้างหน่วยงาน** `/admin/org-units`
 - **ผู้เข้ารับการพัฒนา** `/admin/members`

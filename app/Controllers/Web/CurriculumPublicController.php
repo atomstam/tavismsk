@@ -36,7 +36,7 @@ class CurriculumPublicController extends Controller
         }
 
         $this->webView('web/curriculum', [
-            'title' => 'แผนการเรียนรู้ 14 ชั่วโมง',
+            'title' => 'หลักสูตร 14 ชั่วโมง',
             'plans' => $plans,
             'dbByNo' => $dbByNo,
             'progressByPlanId' => $progressByPlanId,
@@ -50,7 +50,7 @@ class CurriculumPublicController extends Controller
         $cfg = curriculum_plan($no);
         if (!$cfg) {
             http_response_code(404);
-            $this->webView('errors/404', ['title' => 'ไม่พบแผนการเรียนรู้']);
+            $this->webView('errors/404', ['title' => 'ไม่พบหลักสูตร']);
             return;
         }
 
@@ -82,7 +82,7 @@ class CurriculumPublicController extends Controller
         $sections = curriculum_plan_sections($cfg, $lmsContents, $lmsTasks, $resources, $worksheets);
 
         $this->webView('web/curriculum-show', [
-            'title' => 'แผนที่ ' . $no . ' — ' . $cfg['title'],
+            'title' => 'หลักสูตรที่ ' . $no . ' — ' . $cfg['title'],
             'cfg' => $cfg,
             'row' => $row,
             'sections' => $sections,

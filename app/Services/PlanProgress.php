@@ -39,7 +39,7 @@ final class PlanProgress
         return (float) $decision['score_percent'];
     }
 
-    /** แผนที่ 1–12 บังคับ แผนที่ 13 เป็นต้นไปเลือกเรียนตามความสนใจ */
+    /** หลักสูตรที่ 1–12 บังคับ หลักสูตรที่ 13 เป็นต้นไปเลือกเรียนตามความสนใจ */
     public static function isRequired(array $plan): bool
     {
         if (array_key_exists('is_required', $plan)) {
@@ -95,7 +95,7 @@ final class PlanProgress
         }
         $overall = round($overall / $total * 100, 2);
 
-        // คะแนนรวม: ใช้ตัดสินผ่านแผนและแสดงในเกียรติบัตร
+        // คะแนนรวม: ใช้ตัดสินผ่านหลักสูตรและแสดงในเกียรติบัตร
         $scoreOverall = 0.0;
         foreach ($weights as $key => $weight) {
             if ($weight <= 0) {
@@ -129,7 +129,7 @@ final class PlanProgress
     }
 
     /**
-     * เงื่อนไขพิมพ์เกียรติบัตรรายแผน
+     * เงื่อนไขพิมพ์เกียรติบัตรรายหลักสูตร
      * @param array<string, int|float|bool> $done
      * @param array<string, float|int> $percents
      * @param array<string, mixed> $settings
@@ -175,7 +175,7 @@ final class PlanProgress
 
     /**
      * ข้อสอบก่อน หลัง และแบบประเมิน: คะแนนต่อข้อคงที่ 1 คะแนน จำนวนข้อคงที่ตามที่ตั้งสุ่มหรือชุดกลาง
-     * เนื้อหาและภาระงาน: คะแนนรวมเท่ากับจำนวนรายการบังคับ แล้วแปลงคะแนนนั้นเป็นร้อยละตามน้ำหนักของแผน
+     * เนื้อหาและภาระงาน: คะแนนรวมเท่ากับจำนวนรายการบังคับ แล้วแปลงคะแนนนั้นเป็นร้อยละตามน้ำหนักของหลักสูตร
      *
      * @param array<string, mixed> $settings
      * @return array<string, mixed>

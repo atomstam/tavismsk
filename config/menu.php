@@ -58,6 +58,15 @@ return [
     ],
     [
         'type' => 'link',
+        'label' => 'วุฒิบัตรของฉัน',
+        'icon' => 'fa-award',
+        'path' => '/admin/diplomas',
+        'module' => 'certificates',
+        'roles' => ['user'],
+        'portal_only' => true,
+    ],
+    [
+        'type' => 'link',
         'label' => 'กระดานสนทนา',
         'icon' => 'fa-comments',
         'path' => '/admin/plan-chat',
@@ -81,15 +90,6 @@ return [
     [
         'type' => 'label',
         'label' => 'ทั่วไป',
-        'roles' => ['user'],
-        'portal_only' => true,
-    ],
-    [
-        'type' => 'link',
-        'label' => 'ระบบบันทึก',
-        'icon' => 'fa-inbox',
-        'path' => '/admin/tickets',
-        'module' => 'tickets',
         'roles' => ['user'],
         'portal_only' => true,
     ],
@@ -126,7 +126,7 @@ return [
     ],
     [
         'type' => 'link',
-        'label' => 'โมดูลการอบรม',
+        'label' => 'หลักสูตร',
         'icon' => 'fa-book-open-reader',
         'path' => '/admin/curriculum',
         'module' => 'curriculum',
@@ -151,7 +151,7 @@ return [
     ],
     [
         'type' => 'link',
-        'label' => 'บริหารแผนอบรม',
+        'label' => 'บริหารหลักสูตร',
         'icon' => 'fa-clipboard-list',
         'path' => '/admin/plan-enrollments',
         'module' => 'enrollments',
@@ -190,6 +190,14 @@ return [
         'module' => 'certificates',
         'roles' => ['admin', 'trainer'],
     ],
+    [
+        'type' => 'link',
+        'label' => 'วุฒิบัตร',
+        'icon' => 'fa-award',
+        'path' => '/admin/diplomas',
+        'module' => 'certificates',
+        'roles' => ['admin', 'trainer'],
+    ],
 
     // —— Evidence of the course ——
     [
@@ -219,11 +227,11 @@ return [
         'roles' => ['admin', 'trainer'],
     ],
 
-    // —— People and org. User accounts stay with Admin. ——
+    // —— People and org. Admin only (Trainer has no manage rights). ——
     [
         'type' => 'label',
         'label' => 'บุคคลและหน่วยงาน',
-        'roles' => ['admin', 'trainer'],
+        'roles' => ['admin'],
     ],
     [
         'type' => 'link',
@@ -231,7 +239,7 @@ return [
         'icon' => 'fa-id-card',
         'path' => '/admin/personnel',
         'module' => 'personnel',
-        'roles' => ['admin', 'trainer'],
+        'roles' => ['admin'],
     ],
     [
         'type' => 'link',
@@ -239,7 +247,7 @@ return [
         'icon' => 'fa-building',
         'path' => '/admin/departments',
         'module' => 'departments',
-        'roles' => ['admin', 'trainer'],
+        'roles' => ['admin'],
     ],
     [
         'type' => 'link',
@@ -247,7 +255,7 @@ return [
         'icon' => 'fa-sitemap',
         'path' => '/admin/org-units',
         'module' => 'org_units',
-        'roles' => ['admin', 'trainer'],
+        'roles' => ['admin'],
     ],
 
     [
@@ -308,7 +316,7 @@ return [
         'roles' => ['admin'],
     ],
 
-    // —— Shared tools. Forms and records stay off the Admin menu. ——
+    // —— Shared tools. Forms: Admin only (not Trainer/User). ——
     [
         'type' => 'label',
         'label' => 'เครื่องมือ',
@@ -328,15 +336,7 @@ return [
         'icon' => 'fa-rectangle-list',
         'path' => '/admin/forms',
         'module' => 'forms',
-        'roles' => ['trainer'],
-    ],
-    [
-        'type' => 'link',
-        'label' => 'ระบบบันทึก',
-        'icon' => 'fa-inbox',
-        'path' => '/admin/tickets',
-        'module' => 'tickets',
-        'roles' => ['trainer'],
+        'roles' => ['admin'],
     ],
     [
         'type' => 'link',

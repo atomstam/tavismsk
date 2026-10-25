@@ -332,6 +332,87 @@ body.web-site .container {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
+
+/* Frontend user dropdown — สีเดียวกับปุ่มบทบาทหน้า login */
+.ws-user-menu-role-admin .ws-user-chip {
+  border-color: #7c3aed;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, .18);
+}
+.ws-user-menu-role-trainer .ws-user-chip {
+  border-color: #0891b2;
+  box-shadow: 0 4px 14px rgba(8, 145, 178, .18);
+}
+.ws-user-menu-role-user .ws-user-chip {
+  border-color: #ea580c;
+  box-shadow: 0 4px 14px rgba(234, 88, 12, .18);
+}
+.ws-user-menu-role-admin .ws-user-menu-panel {
+  background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
+  border-color: #7c3aed;
+  color: #fff;
+}
+.ws-user-menu-role-trainer .ws-user-menu-panel {
+  background: linear-gradient(135deg, #22d3ee 0%, #0891b2 100%);
+  border-color: #0891b2;
+  color: #fff;
+}
+.ws-user-menu-role-user .ws-user-menu-panel {
+  background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%);
+  border-color: #ea580c;
+  color: #fff;
+}
+.ws-user-menu-role-admin .ws-user-menu-head,
+.ws-user-menu-role-trainer .ws-user-menu-head,
+.ws-user-menu-role-user .ws-user-menu-head,
+.ws-user-menu-role-admin .ws-user-logout,
+.ws-user-menu-role-trainer .ws-user-logout,
+.ws-user-menu-role-user .ws-user-logout {
+  border-color: rgba(255, 255, 255, .28);
+}
+.ws-user-menu-role-admin .ws-user-menu-head strong,
+.ws-user-menu-role-trainer .ws-user-menu-head strong,
+.ws-user-menu-role-user .ws-user-menu-head strong {
+  color: #fff;
+}
+.ws-user-menu-role-admin .ws-user-menu-head small,
+.ws-user-menu-role-trainer .ws-user-menu-head small,
+.ws-user-menu-role-user .ws-user-menu-head small {
+  color: rgba(255, 255, 255, .88);
+}
+.ws-user-menu-role-admin .ws-user-menu-panel a,
+.ws-user-menu-role-trainer .ws-user-menu-panel a,
+.ws-user-menu-role-user .ws-user-menu-panel a,
+.ws-user-menu-role-admin .ws-user-logout button,
+.ws-user-menu-role-trainer .ws-user-logout button,
+.ws-user-menu-role-user .ws-user-logout button {
+  color: #fff;
+}
+.ws-user-menu-role-admin .ws-user-menu-panel a i,
+.ws-user-menu-role-trainer .ws-user-menu-panel a i,
+.ws-user-menu-role-user .ws-user-menu-panel a i,
+.ws-user-menu-role-admin .ws-user-logout button i,
+.ws-user-menu-role-trainer .ws-user-logout button i,
+.ws-user-menu-role-user .ws-user-logout button i {
+  color: rgba(255, 255, 255, .92);
+}
+.ws-user-menu-role-admin .ws-user-menu-panel a:hover,
+.ws-user-menu-role-trainer .ws-user-menu-panel a:hover,
+.ws-user-menu-role-user .ws-user-menu-panel a:hover {
+  background: rgba(255, 255, 255, .2);
+  color: #fff;
+}
+.ws-user-menu-role-admin .ws-user-logout button,
+.ws-user-menu-role-trainer .ws-user-logout button,
+.ws-user-menu-role-user .ws-user-logout button {
+  background: rgba(127, 29, 29, .28);
+  border-radius: 10px;
+}
+.ws-user-menu-role-admin .ws-user-logout button:hover,
+.ws-user-menu-role-trainer .ws-user-logout button:hover,
+.ws-user-menu-role-user .ws-user-logout button:hover {
+  background: rgba(127, 29, 29, .42);
+  color: #fff;
+}
 .ws-user-menu.open .ws-user-menu-panel {
   display: block !important;
 }
@@ -1606,3 +1687,28 @@ body.web-site .content-body p:last-child { margin-bottom: 0; }
   .ws-cat-grid, .ws-work-grid, .ws-gallery-grid { grid-template-columns: 1fr; }
   .ws-nav-actions .ws-btn-download { display: none; }
 }
+
+.ws-user-menu-panel.ws-user-menu-panel--admin {
+  background: linear-gradient(180deg, #f5f3ff 0%, #ede9fe 55%, #e9e5ff 100%) !important;
+  border-color: #c4b5fd !important;
+  color: #1e1b4b !important;
+}
+.ws-user-menu-panel.ws-user-menu-panel--trainer {
+  background: linear-gradient(180deg, #ecfeff 0%, #cffafe 55%, #a5f3fc 100%) !important;
+  border-color: #67e8f9 !important;
+  color: #164e63 !important;
+}
+.ws-user-menu-panel.ws-user-menu-panel--user {
+  background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 55%, #fed7aa 100%) !important;
+  border-color: #fdba74 !important;
+  color: #7c2d12 !important;
+}
+.ws-user-menu-panel--admin .ws-user-menu-head strong,
+.ws-user-menu-panel--admin a { color: #1e1b4b !important; }
+.ws-user-menu-panel--trainer .ws-user-menu-head strong,
+.ws-user-menu-panel--trainer a { color: #164e63 !important; }
+.ws-user-menu-panel--user .ws-user-menu-head strong,
+.ws-user-menu-panel--user a { color: #7c2d12 !important; }
+.ws-user-menu-panel--admin .ws-user-menu-head small { color: #7c3aed !important; }
+.ws-user-menu-panel--trainer .ws-user-menu-head small { color: #0891b2 !important; }
+.ws-user-menu-panel--user .ws-user-menu-head small { color: #ea580c !important; }

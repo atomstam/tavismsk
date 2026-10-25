@@ -10,12 +10,12 @@ $isGroup = !empty($isGroup) || (($thread['thread_type'] ?? '') === 'group');
   <div>
     <p class="page-kicker">
       <span class="plan-chat-type-badge <?= $isGroup ? 'is-group' : 'is-direct' ?>"><?= $isGroup ? 'ห้องรวม' : 'ตัวต่อตัว' ?></span>
-      สนทนา · แผนที่ <?= (int) ($thread['plan_no'] ?? 0) ?>
+      สนทนา · หลักสูตรที่ <?= (int) ($thread['plan_no'] ?? 0) ?>
     </p>
     <h1><?= e($thread['plan_title'] ?? '') ?></h1>
     <p class="text-muted mb-0 small">
       <?php if ($isGroup): ?>
-        ห้องสนทนารวมของแผนนี้ · วิทยากรและผู้เรียนเข้าร่วมได้
+        ห้องสนทนารวมของหลักสูตรนี้ · วิทยากรและผู้เรียนเข้าร่วมได้
       <?php else: ?>
         ผู้เรียน: <?= e($thread['learner_name'] ?? '-') ?>
         · วิทยากร: <?= e($thread['trainer_name'] ?? '-') ?>

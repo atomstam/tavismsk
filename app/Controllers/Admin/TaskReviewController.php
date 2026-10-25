@@ -8,7 +8,7 @@ use App\Core\Controller;
 use App\Services\PlanOwnerService;
 
 /**
- * วิทยากร — ตรวจให้คะแนนภาระงานของแผนที่รับผิดชอบ
+ * วิทยากร — ตรวจให้คะแนนภาระงานของหลักสูตรที่รับผิดชอบ
  */
 class TaskReviewController extends Controller
 {
@@ -67,7 +67,7 @@ class TaskReviewController extends Controller
             ];
         }
 
-        // แผนที่รอตรวจขึ้นก่อน
+        // หลักสูตรที่รอตรวจขึ้นก่อน
         usort($rows, static function (array $a, array $b): int {
             if ($a['pending'] === $b['pending']) {
                 return ((int) ($a['plan']['plan_no'] ?? 0)) <=> ((int) ($b['plan']['plan_no'] ?? 0));

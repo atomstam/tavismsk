@@ -55,7 +55,7 @@ class PlanChatService
         return (bool) $row;
     }
 
-    /** @return list<array<string,mixed>> วิทยากรที่ได้รับมอบหมาย/อนุมัติเป็นเจ้าของแผนนี้เท่านั้น */
+    /** @return list<array<string,mixed>> วิทยากรที่ได้รับมอบหมาย/อนุมัติเป็นเจ้าของหลักสูตรนี้เท่านั้น */
     public function trainersForPlan(int $planId): array
     {
         return db()->fetchAll(
@@ -92,7 +92,7 @@ class PlanChatService
     {
         $plan = db()->fetch('SELECT id FROM learning_plans WHERE id = ? AND status = 1', [$planId]);
         if (!$plan) {
-            throw new \RuntimeException('ไม่พบแผนการเรียนรู้');
+            throw new \RuntimeException('ไม่พบหลักสูตร');
         }
         $row = db()->fetch(
             "SELECT * FROM plan_chat_threads WHERE plan_id = ? AND thread_type = 'group' LIMIT 1",
@@ -128,10 +128,10 @@ class PlanChatService
     {
         $plan = db()->fetch('SELECT id FROM learning_plans WHERE id = ? AND status = 1', [$planId]);
         if (!$plan) {
-            throw new \RuntimeException('ไม่พบแผนการเรียนรู้');
+            throw new \RuntimeException('ไม่พบหลักสูตร');
         }
         if (!$this->isPlanOwner($planId, $trainerId)) {
-            throw new \RuntimeException('วิทยากรนี้ยังไม่ใช่เจ้าของแผนที่ได้รับอนุมัติ');
+            throw new \RuntimeException('วิทยากรนี้ยังไม่ใช่เจ้าของหลักสูตรที่ได้รับอนุมัติ');
         }
         $row = db()->fetch(
             "SELECT * FROM plan_chat_threads

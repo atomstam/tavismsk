@@ -33,7 +33,7 @@ if ($learners !== []) {
 <div class="page-head">
   <div>
     <p class="page-kicker">PLAN ENROLLMENT</p>
-    <h1>แผนที่ <?= (int) ($plan['plan_no'] ?? 0) ?></h1>
+    <h1>หลักสูตรที่ <?= (int) ($plan['plan_no'] ?? 0) ?></h1>
     <p class="text-muted mb-0">
       <?= e($plan['title'] ?? '') ?>
       · <?= number_format((float) ($plan['hours'] ?? 0), 1) ?> ชม.
@@ -60,7 +60,7 @@ if ($learners !== []) {
     <div class="metric-stat metric-stat--blue">
       <div class="metric-stat-icon"><i class="fa fa-user-graduate"></i></div>
       <div class="metric-stat-body">
-        <span class="metric-stat-label">ผู้เรียนในแผน</span>
+        <span class="metric-stat-label">ผู้เรียนในหลักสูตร</span>
         <strong class="metric-stat-value"><?= count($learners) ?></strong>
       </div>
     </div>
@@ -69,7 +69,7 @@ if ($learners !== []) {
     <div class="metric-stat metric-stat--emerald">
       <div class="metric-stat-icon"><i class="fa fa-award"></i></div>
       <div class="metric-stat-body">
-        <span class="metric-stat-label">ผ่านแผนแล้ว</span>
+        <span class="metric-stat-label">ผ่านหลักสูตรแล้ว</span>
         <strong class="metric-stat-value"><?= $passed ?></strong>
       </div>
     </div>
@@ -96,9 +96,9 @@ if ($learners !== []) {
 
 <div class="card-soft">
   <div class="card-body">
-    <h2 class="h6 mb-3">ตารางผู้เรียน · ความก้าวหน้ารายแผน</h2>
+    <h2 class="h6 mb-3">ตารางผู้เรียน · ความก้าวหน้ารายหลักสูตร</h2>
     <?php if ($learners === []): ?>
-      <p class="text-muted mb-0 text-center py-4">ยังไม่มีผู้เรียนที่มีความก้าวหน้าในแผนนี้</p>
+      <p class="text-muted mb-0 text-center py-4">ยังไม่มีผู้เรียนที่มีความก้าวหน้าในหลักสูตรนี้</p>
     <?php else: ?>
       <table class="table datatable w-100" id="enroll-plan-learners" data-order='[[1,"asc"]]'>
         <thead>
@@ -166,9 +166,9 @@ if ($learners !== []) {
   </div>
   <div class="col-lg-7">
     <div class="card-soft h-100"><div class="card-body">
-      <h2 class="h6 mb-3">ความก้าวหน้าแผนนี้</h2>
+      <h2 class="h6 mb-3">ความก้าวหน้าหลักสูตรนี้</h2>
       <?php if (!$progress): ?>
-        <p class="text-muted">ยังไม่เริ่มเรียนแผนนี้</p>
+        <p class="text-muted">ยังไม่เริ่มเรียนหลักสูตรนี้</p>
         <a class="btn btn-learn-primary" href="<?= url('/admin/learn/' . $pid) ?>"><i class="fa fa-play"></i> เริ่มเรียน</a>
       <?php else: ?>
         <div class="mb-3">
@@ -208,7 +208,7 @@ if ($learners !== []) {
           ขั้นปัจจุบัน:
           <strong><?= e($stageLabel[(string) ($progress['stage'] ?? '')] ?? '-') ?></strong>
           <?php if ((int) ($progress['is_passed'] ?? 0) === 1): ?>
-            <span class="badge text-bg-success ms-1">ผ่านแผนนี้แล้ว</span>
+            <span class="badge text-bg-success ms-1">ผ่านหลักสูตรนี้แล้ว</span>
           <?php endif; ?>
         </p>
         <a class="btn btn-learn-primary" href="<?= url('/admin/learn/' . $pid) ?>"><i class="fa fa-play"></i> ดำเนินการเรียนต่อ</a>

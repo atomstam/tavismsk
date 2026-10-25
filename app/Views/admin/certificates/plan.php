@@ -1,7 +1,7 @@
 <?php
 $plan = $plan ?? [];
 $rows = $rows ?? [];
-$stats = $stats ?? ['learners' => 0, 'cert_ready' => 0, 'cert_issued' => 0, 'diploma_ready' => 0, 'diploma_issued' => 0];
+$stats = $stats ?? ['learners' => 0, 'cert_ready' => 0, 'cert_issued' => 0];
 $canIssue = !empty($canIssue);
 $pid = (int) ($plan['id'] ?? 0);
 $required = \App\Services\PlanProgress::isRequired($plan);
@@ -9,7 +9,7 @@ $required = \App\Services\PlanProgress::isRequired($plan);
 <div class="page-head">
   <div>
     <p class="page-kicker">CERTIFICATES</p>
-    <h1>เกียรติบัตร · แผนที่ <?= (int) ($plan['plan_no'] ?? 0) ?></h1>
+    <h1>เกียรติบัตร · หลักสูตรที่ <?= (int) ($plan['plan_no'] ?? 0) ?></h1>
     <p class="text-muted mb-0">
       <?= e((string) ($plan['title'] ?? '')) ?>
       · <?= number_format((float) ($plan['hours'] ?? 0), 1) ?> ชม.
@@ -19,7 +19,7 @@ $required = \App\Services\PlanProgress::isRequired($plan);
   <div class="d-flex flex-wrap gap-2">
     <?php if ($canIssue && (int) ($stats['cert_ready'] ?? 0) > 0): ?>
       <form method="post" action="<?= url('/admin/certificates/plans/' . $pid . '/issue-ready') ?>" class="d-inline"
-            data-confirm="ออกเกียรติบัตรให้ผู้เรียนที่พร้อมทุกคนในแผนนี้?" data-confirm-title="ออกเกียรติบัตรรายแผน">
+            data-confirm="ออกเกียรติบัตรให้ผู้เรียนที่พร้อมทุกคนในหลักสูตรนี้?" data-confirm-title="ออกเกียรติบัตรรายหลักสูตร">
         <?= csrf_field() ?>
         <button type="submit" class="btn btn-success"><i class="fa fa-certificate"></i> ออกเกียรติบัตรผู้พร้อมทั้งหมด</button>
       </form>
@@ -56,30 +56,12 @@ $required = \App\Services\PlanProgress::isRequired($plan);
       </div>
     </div>
   </div>
-  <div class="col-6 col-lg">
-    <div class="metric-stat metric-stat--emerald">
-      <div class="metric-stat-icon"><i class="fa fa-award"></i></div>
-      <div class="metric-stat-body">
-        <span class="metric-stat-label">พร้อมวุฒิบัตร</span>
-        <strong class="metric-stat-value"><?= (int) $stats['diploma_ready'] ?></strong>
-      </div>
-    </div>
-  </div>
-  <div class="col-6 col-lg">
-    <div class="metric-stat metric-stat--slate">
-      <div class="metric-stat-icon"><i class="fa fa-file-lines"></i></div>
-      <div class="metric-stat-body">
-        <span class="metric-stat-label">ออกวุฒิบัตรแล้ว</span>
-        <strong class="metric-stat-value"><?= (int) $stats['diploma_issued'] ?></strong>
-      </div>
-    </div>
-  </div>
 </div>
 
 <div class="card-soft"><div class="card-body">
   <h2 class="h6 mb-3">รายชื่อผู้เข้ารับการพัฒนา</h2>
   <?php if ($rows === []): ?>
-    <p class="text-muted text-center py-4 mb-0">ยังไม่มีผู้เรียนในแผนนี้</p>
+    <p class="text-muted text-center py-4 mb-0">ยังไม่มีผู้เรียนในหลักสูตรนี้</p>
   <?php else: ?>
     <table id="cert-plan-learners" class="table datatable w-100" data-order='[[3,"desc"]]'>
       <thead>
@@ -89,7 +71,6 @@ $required = \App\Services\PlanProgress::isRequired($plan);
           <th>สถานะการเรียน</th>
           <th class="text-center">รวม %</th>
           <th class="col-wrap">เกียรติบัตร</th>
-          <th class="col-wrap">วุฒิบัตร</th>
           <th class="col-actions text-end">ดูเอกสาร</th>
         </tr>
       </thead>
@@ -98,10 +79,7 @@ $required = \App\Services\PlanProgress::isRequired($plan);
           $eid = (int) $r['enrollment_id'];
           $planReady = !empty($r['plan_ready']);
           $planCert = $r['plan_cert'] ?? null;
-          $diplomaReady = !empty($r['diploma_ready']);
-          $diplomaCert = $r['diploma_cert'] ?? null;
           $planPdfUrl = url('/admin/certificates/enrollments/' . $eid . '/plan/' . $pid . '/view');
-          $diplomaPdfUrl = url('/admin/certificates/enrollments/' . $eid . '/diploma/view');
         ?>
         <tr>
           <td><code><?= e((string) $r['enrollment_no']) ?></code></td>
@@ -115,7 +93,7 @@ $required = \App\Services\PlanProgress::isRequired($plan);
           <td>
             <?= e((string) $r['stage_label']) ?>
             <?php if (!empty($r['plan_passed'])): ?>
-              <span class="badge text-bg-success ms-1">ผ่านแผน</span>
+              <span class="badge text-bg-success ms-1">ผ่านหลักสูตร</span>
             <?php endif; ?>
           </td>
           <td class="text-center" data-order="<?= (float) $r['overall'] ?>">
@@ -133,35 +111,14 @@ $required = \App\Services\PlanProgress::isRequired($plan);
               <div class="small text-muted mt-1">ยังไม่ครบเงื่อนไข</div>
             <?php endif; ?>
           </td>
-          <td class="col-wrap" data-order="<?= $diplomaCert ? '2' : ($diplomaReady ? '1' : '0') ?>">
-            <?php if ($diplomaCert): ?>
-              <span class="badge text-bg-success">ออกแล้ว</span>
-              <div class="small mt-1"><code><?= e((string) ($diplomaCert['cert_no'] ?? '')) ?></code></div>
-            <?php elseif ($diplomaReady): ?>
-              <span class="badge text-bg-warning">พร้อมออก</span>
-              <div class="small text-muted mt-1">ผ่านบังคับครบ</div>
-            <?php else: ?>
-              <span class="badge text-bg-secondary">ยังไม่ได้</span>
-              <div class="small text-muted mt-1">ยังไม่ครบแผนบังคับ</div>
-            <?php endif; ?>
-          </td>
           <td class="text-end text-nowrap col-actions">
             <?php if ($planReady || $planCert): ?>
               <a class="btn btn-sm btn-outline-danger" href="<?= $planPdfUrl ?>" title="ดูเกียรติบัตร PDF">
-                <i class="fa fa-file-pdf"></i> เกียรติบัตร
+                <i class="fa fa-file-pdf"></i> พิมพ์ PDF
               </a>
             <?php else: ?>
               <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="ยังไม่ครบเงื่อนไข">
-                <i class="fa fa-file-pdf"></i> เกียรติบัตร
-              </button>
-            <?php endif; ?>
-            <?php if ($diplomaReady || $diplomaCert): ?>
-              <a class="btn btn-sm btn-outline-primary" href="<?= $diplomaPdfUrl ?>" title="ดูวุฒิบัตร PDF">
-                <i class="fa fa-award"></i> วุฒิบัตร
-              </a>
-            <?php else: ?>
-              <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="ยังไม่ครบเงื่อนไขวุฒิบัตร">
-                <i class="fa fa-award"></i> วุฒิบัตร
+                <i class="fa fa-file-pdf"></i> พิมพ์ PDF
               </button>
             <?php endif; ?>
           </td>

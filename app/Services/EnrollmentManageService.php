@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 /**
- * สารสนเทศการลงทะเบียน/ความก้าวหน้าแบบรายแผน ตามบทบาท
+ * สารสนเทศการลงทะเบียน/ความก้าวหน้าแบบรายหลักสูตร ตามบทบาท
  */
 class EnrollmentManageService
 {
@@ -16,7 +16,7 @@ class EnrollmentManageService
         $this->owners = new PlanOwnerService();
     }
 
-    /** @return list<int>|null null = ทุกแผน (admin) */
+    /** @return list<int>|null null = ทุกหลักสูตร (admin) */
     public function visiblePlanIds(?string $role = null, ?int $userId = null): ?array
     {
         $role = $role ?? (string) (auth()->role() ?? 'user');
@@ -27,7 +27,7 @@ class EnrollmentManageService
         if ($role === 'trainer') {
             return $this->owners->approvedPlanIds($userId);
         }
-        // ผู้เรียน: แผนที่มี progress หรือแผนบังคับที่ผูกกับ enrollment
+        // ผู้เรียน: หลักสูตรที่มี progress หรือหลักสูตรบังคับที่ผูกกับ enrollment
         $en = db()->fetch(
             "SELECT id FROM course_enrollments
              WHERE user_id = ? AND status IN ('pending','approved','in_progress','completed')
@@ -43,7 +43,7 @@ class EnrollmentManageService
         );
         $ids = array_map(static fn (array $r): int => (int) $r['plan_id'], $rows);
         if ($ids === []) {
-            // ยังไม่มี progress — แสดงแผนบังคับ 1–12
+            // ยังไม่มี progress — แสดงหลักสูตรบังคับ 1–12
             $fallback = db()->fetchAll(
                 'SELECT id FROM learning_plans WHERE status = 1 AND plan_no BETWEEN 1 AND 12 ORDER BY plan_no'
             );
@@ -98,7 +98,7 @@ class EnrollmentManageService
             $params
         );
 
-        // เจ้าของแผน (วิทยากรที่ได้รับมอบหมาย)
+        // เจ้าของหลักสูตร (วิทยากรที่ได้รับมอบหมาย)
         $ownerMap = [];
         if ($rows !== []) {
             $planIds = array_map(static fn (array $r): int => (int) $r['id'], $rows);
@@ -159,7 +159,7 @@ class EnrollmentManageService
         return $row ?: null;
     }
 
-    /** ผู้เรียนในแผน (สำหรับ admin/trainer) */
+    /** ผู้เรียนในหลักสูตร (สำหรับ admin/trainer) */
     /** @return list<array<string,mixed>> */
     public function learnersForPlan(int $planId): array
     {
@@ -181,7 +181,7 @@ class EnrollmentManageService
         );
     }
 
-    /** @return array<string,mixed>|null ความก้าวหน้าของผู้เรียนในแผน */
+    /** @return array<string,mixed>|null ความก้าวหน้าของผู้เรียนในหลักสูตร */
     public function myPlanProgress(int $planId, int $userId): ?array
     {
         $en = db()->fetch(

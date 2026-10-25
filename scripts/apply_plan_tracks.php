@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-/** แผน 1–12 บังคับ แผน 13–14 ทั่วไป และเกียรติบัตรรายแผน */
+/** หลักสูตร 1–12 บังคับ หลักสูตร 13–14 ทั่วไป และเกียรติบัตรรายหลักสูตร */
 require dirname(__DIR__) . '/config/bootstrap.php';
 
 function columnExists(string $table, string $column): bool

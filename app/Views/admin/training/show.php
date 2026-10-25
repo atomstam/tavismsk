@@ -25,14 +25,14 @@ $shareLine = static function (string $key) use ($shares): string {
     $count = (int) ($part['count'] ?? 0);
     $unit = (string) ($part['unit'] ?? 'รายการ');
     if ($count < 1) {
-        return 'น้ำหนักแผน ' . $weight . '% ยังไม่มี' . $unit . 'ที่นำมาคิดคะแนน';
+        return 'น้ำหนักหลักสูตร ' . $weight . '% ยังไม่มี' . $unit . 'ที่นำมาคิดคะแนน';
     }
     $each = number_format((float) ($part['each'] ?? 0), 2);
     $points = number_format((float) ($part['points_total'] ?? $count), 0);
     if (!empty($part['fixed'])) {
-        return 'คะแนนคงที่ ' . $count . ' ' . $unit . ' ละ 1 คะแนน รวม ' . $points . ' คะแนน = น้ำหนักแผน ' . $weight . '% ดังนั้น 1 คะแนน = ' . $each . '%';
+        return 'คะแนนคงที่ ' . $count . ' ' . $unit . ' ละ 1 คะแนน รวม ' . $points . ' คะแนน = น้ำหนักหลักสูตร ' . $weight . '% ดังนั้น 1 คะแนน = ' . $each . '%';
     }
-    return 'คิดจากจำนวนรายการ ขณะนี้ ' . $count . ' ' . $unit . ' ละ 1 คะแนน รวม ' . $points . ' คะแนน แล้วแปลงให้เท่ากับน้ำหนักแผน ' . $weight . '% ดังนั้น 1 คะแนน = ' . $each . '%';
+    return 'คิดจากจำนวนรายการ ขณะนี้ ' . $count . ' ' . $unit . ' ละ 1 คะแนน รวม ' . $points . ' คะแนน แล้วแปลงให้เท่ากับน้ำหนักหลักสูตร ' . $weight . '% ดังนั้น 1 คะแนน = ' . $each . '%';
 };
 ?>
 <div class="page-head">
@@ -73,9 +73,9 @@ $shareLine = static function (string $key) use ($shares): string {
   เนื้อหา / ข้อสอบ / ภาระงานที่บันทึกที่นี่ จะแสดงในการเรียนฝั่งเว็บไซต์ที่
   <a href="<?= url('/learn/' . $pid) ?>" target="_blank">/learn/<?= $pid ?></a>
   ด้วยลำดับเดียวกัน: ทดสอบก่อน → เนื้อหา → ภาระงาน → สอบหลัง → ความพึงพอใจ
-  แผนนี้ดึง <?= $quizDraw ?> ข้อ<?= $quizShuffle ? ' แบบสุ่มลำดับข้อและตัวเลือก (ถ้าคลังแผนไม่พอ ระบบเติมจากคลังรวมโดยไม่ซ้ำข้อความ) ข้อสอบหลังใช้ชุดเดิมแต่สลับลำดับ' : ' ตามลำดับในคลัง ไม่สุ่ม' ?>
+  หลักสูตรนี้ดึง <?= $quizDraw ?> ข้อ<?= $quizShuffle ? ' แบบสุ่มลำดับข้อและตัวเลือก (ถ้าคลังหลักสูตรไม่พอ ระบบเติมจากคลังรวมโดยไม่ซ้ำข้อความ) ข้อสอบหลังใช้ชุดเดิมแต่สลับลำดับ' : ' ตามลำดับในคลัง ไม่สุ่ม' ?>
   จำนวนข้อและการสุ่มตั้งในแท็บน้ำหนัก %
-  แบบประเมินความพึงพอใจเป็นชุดกลางของผู้ดูแลระบบ ใช้ร่วมทุกแผน
+  แบบประเมินความพึงพอใจเป็นชุดกลางของผู้ดูแลระบบ ใช้ร่วมทุกหลักสูตร
 </div>
 
 <?php if ($tab === 'content'): ?>
@@ -127,7 +127,7 @@ $shareLine = static function (string $key) use ($shares): string {
     </div></div>
   <div class="card-soft lms-panel"><div class="card-body">
       <h2>รายการเนื้อหา</h2>
-      <p class="small text-muted"><?= e($shareLine('content')) ?> เพิ่มหรือลดเรื่องที่บังคับ แล้วคะแนนรวมของส่วนนี้จะเปลี่ยน แต่ยังแปลงเป็นร้อยละตามน้ำหนักเนื้อหาของแผน</p>
+      <p class="small text-muted"><?= e($shareLine('content')) ?> เพิ่มหรือลดเรื่องที่บังคับ แล้วคะแนนรวมของส่วนนี้จะเปลี่ยน แต่ยังแปลงเป็นร้อยละตามน้ำหนักเนื้อหาของหลักสูตร</p>
       <table class="table lms-table mb-0 align-middle">
         <thead><tr><th>เนื้อหา</th><th>ประเภท</th><th>บังคับ</th><th></th></tr></thead>
         <tbody>
@@ -279,7 +279,7 @@ $shareLine = static function (string $key) use ($shares): string {
             <label class="form-check mt-1"><input class="form-check-input" type="checkbox" name="remove_question_image" value="1"> ลบรูปนี้</label>
           </div>
         </div>
-        <p class="small text-muted">คะแนนคงที่ ข้อละ 1 คะแนน = <?= e(number_format((float)($shares[$tab === 'posttest' ? 'posttest' : 'pretest']['each'] ?? 0), 2)) ?>% ตามน้ำหนัก<?= $tab === 'posttest' ? 'สอบหลัง' : 'สอบก่อน' ?>ของแผนนี้ ไม่เปลี่ยนตามจำนวนเนื้อหาหรือภาระงาน</p>
+        <p class="small text-muted">คะแนนคงที่ ข้อละ 1 คะแนน = <?= e(number_format((float)($shares[$tab === 'posttest' ? 'posttest' : 'pretest']['each'] ?? 0), 2)) ?>% ตามน้ำหนัก<?= $tab === 'posttest' ? 'สอบหลัง' : 'สอบก่อน' ?>ของหลักสูตรนี้ ไม่เปลี่ยนตามจำนวนเนื้อหาหรือภาระงาน</p>
         <?php for ($i = 0; $i < 4; $i++): ?>
           <div class="mb-2" data-choice-slot="<?= $i ?>">
             <input type="hidden" name="choice_ids[]" value="">
@@ -472,7 +472,7 @@ $shareLine = static function (string $key) use ($shares): string {
     </div></div>
   <div class="card-soft lms-panel"><div class="card-body">
       <h2>รายการภาระงาน</h2>
-      <p class="small text-muted"><?= e($shareLine('task')) ?> เพิ่มหรือลดงานที่บังคับ แล้วคะแนนรวมของส่วนนี้จะเปลี่ยน แต่ยังแปลงเป็นร้อยละตามน้ำหนักภาระงานของแผน</p>
+      <p class="small text-muted"><?= e($shareLine('task')) ?> เพิ่มหรือลดงานที่บังคับ แล้วคะแนนรวมของส่วนนี้จะเปลี่ยน แต่ยังแปลงเป็นร้อยละตามน้ำหนักภาระงานของหลักสูตร</p>
       <table class="table lms-table mb-0">
         <thead><tr><th>ภาระงาน</th><th>ตรวจ</th><th></th></tr></thead>
         <tbody>
@@ -598,10 +598,10 @@ $shareLine = static function (string $key) use ($shares): string {
     </div>
     <?php if (can_perm('assessments','edit') && $pendingCount > 0): ?>
     <form method="post" action="<?= url('/admin/training/' . $pid . '/submissions/bulk-review') ?>" class="d-flex flex-wrap gap-2"
-          data-confirm="ตรวจผ่านทุกคน ทุกภาระงานที่รอตรวจในแผนนี้? (คะแนน = คะแนนเต็ม)">
+          data-confirm="ตรวจผ่านทุกคน ทุกภาระงานที่รอตรวจในหลักสูตรนี้? (คะแนน = คะแนนเต็ม)">
       <?= csrf_field() ?>
       <input type="hidden" name="scope" value="all">
-      <button class="btn btn-success btn-sm" type="submit"><i class="fa fa-check-double"></i> ตรวจผ่านทั้งแผน</button>
+      <button class="btn btn-success btn-sm" type="submit"><i class="fa fa-check-double"></i> ตรวจผ่านทั้งหลักสูตร</button>
     </form>
     <?php endif; ?>
   </div>
@@ -727,9 +727,9 @@ $shareLine = static function (string $key) use ($shares): string {
       <div class="col-6"><label class="form-label">เกณฑ์ผ่านความก้าวหน้า %</label><input type="number" step="0.01" min="1" max="100" name="pass_percent" class="form-control" value="<?= e((string)($settings['pass_percent'] ?? 80)) ?>"></div>
       <div class="col-6"><label class="form-label">จำนวนข้อที่ดึงจากคลัง</label><input type="number" min="1" max="100" name="quiz_draw_count" class="form-control" value="<?= e((string)($settings['quiz_draw_count'] ?? 10)) ?>"></div>
     </div>
-    <p class="small text-muted">สอบก่อน สอบหลัง และแบบประเมินใช้คะแนนคงที่ ข้อละ 1 คะแนน เนื้อหาและภาระงานคิดคะแนนจากจำนวนรายการที่บังคับ แล้วแปลงคะแนนนั้นเป็นร้อยละตามน้ำหนักของแผนนี้</p>
+    <p class="small text-muted">สอบก่อน สอบหลัง และแบบประเมินใช้คะแนนคงที่ ข้อละ 1 คะแนน เนื้อหาและภาระงานคิดคะแนนจากจำนวนรายการที่บังคับ แล้วแปลงคะแนนนั้นเป็นร้อยละตามน้ำหนักของหลักสูตรนี้</p>
     <table class="table lms-table mb-3">
-      <thead><tr><th>ส่วน</th><th>แบบ</th><th>จำนวน</th><th>คะแนน</th><th>น้ำหนักแผน</th><th>1 คะแนน</th></tr></thead>
+      <thead><tr><th>ส่วน</th><th>แบบ</th><th>จำนวน</th><th>คะแนน</th><th>น้ำหนักหลักสูตร</th><th>1 คะแนน</th></tr></thead>
       <tbody>
       <?php
         $shareRows = [

@@ -279,7 +279,7 @@ class LearnController extends Controller
             $path = (string) (parse_url((string) $preview['frame_src'], PHP_URL_PATH) ?: '');
             $preview['file_name'] = basename($path) ?: 'content.pdf';
             $preview['info_text'] = 'ไฟล์เนื้อหา: ' . (string) ($content['title'] ?? '')
-                . ' — แผนที่ ' . (int) ($ctx['plan']['plan_no'] ?? 0)
+                . ' — หลักสูตรที่ ' . (int) ($ctx['plan']['plan_no'] ?? 0)
                 . ' — ' . $preview['file_name'];
         }
 
@@ -376,7 +376,7 @@ class LearnController extends Controller
             (int) auth()->id()
         );
         if (!$cert) {
-            flash('error', 'ยังไม่ผ่านเกณฑ์ของแผนนี้ จึงดาวน์โหลดเกียรติบัตรไม่ได้');
+            flash('error', 'ยังไม่ผ่านเกณฑ์ของหลักสูตรนี้ จึงดาวน์โหลดเกียรติบัตรไม่ได้');
             $this->redirect(self::BASE . '/' . $planId);
         }
         $this->redirect('/admin/certificates/' . (int) $cert['id']);
@@ -390,7 +390,7 @@ class LearnController extends Controller
             ? (new TrainingService())->issueCertificate((int) $enroll['id'], (int) auth()->id())
             : null;
         if (!$cert) {
-            flash('error', 'ต้องเรียนแผนบังคับให้ครบและผ่านเกณฑ์ก่อน จึงจะดาวน์โหลดวุฒิบัตรได้');
+            flash('error', 'ต้องเรียนหลักสูตรบังคับให้ครบและผ่านเกณฑ์ก่อน จึงจะดาวน์โหลดวุฒิบัตรได้');
             $this->redirect(self::BASE);
         }
         $this->redirect('/admin/certificates/' . (int) $cert['id']);

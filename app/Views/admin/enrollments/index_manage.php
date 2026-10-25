@@ -7,12 +7,12 @@ $isAdmin = $role === 'admin';
 <div class="page-head">
   <div>
     <p class="page-kicker">PLAN MANAGEMENT</p>
-    <h1>บริหารแผนอบรม</h1>
+    <h1>บริหารหลักสูตร</h1>
     <p class="text-muted mb-0">
       <?php if ($role === 'trainer'): ?>
-        บริหารเฉพาะหลักสูตรที่คุณรับผิดชอบ — ดูสารสนเทศและรายละเอียดผู้เรียนรายแผน
+        บริหารเฉพาะหลักสูตรที่คุณรับผิดชอบ — ดูสารสนเทศและรายละเอียดผู้เรียนรายหลักสูตร
       <?php else: ?>
-        บริหารทุกแผนอบรม — สารสนเทศผู้เรียนรายแผน และอนุมัติการลงทะเบียนหลักสูตร
+        บริหารทุกหลักสูตร — สารสนเทศผู้เรียนรายหลักสูตร และอนุมัติการลงทะเบียนหลักสูตร
       <?php endif; ?>
     </p>
   </div>
@@ -33,7 +33,7 @@ $isAdmin = $role === 'admin';
     <div class="metric-stat metric-stat--blue">
       <div class="metric-stat-icon"><i class="fa fa-clipboard-list"></i></div>
       <div class="metric-stat-body">
-        <span class="metric-stat-label">แผนที่ดูแล</span>
+        <span class="metric-stat-label">หลักสูตรที่ดูแล</span>
         <strong class="metric-stat-value"><?= (int) $stats['plans'] ?></strong>
       </div>
     </div>
@@ -42,7 +42,7 @@ $isAdmin = $role === 'admin';
     <div class="metric-stat metric-stat--teal">
       <div class="metric-stat-icon"><i class="fa fa-user-graduate"></i></div>
       <div class="metric-stat-body">
-        <span class="metric-stat-label">ผู้เรียนในแผน</span>
+        <span class="metric-stat-label">ผู้เรียนในหลักสูตร</span>
         <strong class="metric-stat-value"><?= (int) $stats['learners'] ?></strong>
       </div>
     </div>
@@ -51,7 +51,7 @@ $isAdmin = $role === 'admin';
     <div class="metric-stat metric-stat--emerald">
       <div class="metric-stat-icon"><i class="fa fa-award"></i></div>
       <div class="metric-stat-body">
-        <span class="metric-stat-label">ผ่านแผนแล้ว</span>
+        <span class="metric-stat-label">ผ่านหลักสูตรแล้ว</span>
         <strong class="metric-stat-value"><?= (int) $stats['passed'] ?></strong>
       </div>
     </div>
@@ -72,22 +72,22 @@ $isAdmin = $role === 'admin';
 <div class="card-soft mb-4">
   <div class="card-body">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-      <h2 class="h6 mb-0">สารสนเทศรายแผน</h2>
-      <span class="small text-muted"><?= count($plans) ?> แผน</span>
+      <h2 class="h6 mb-0">สารสนเทศรายหลักสูตร</h2>
+      <span class="small text-muted"><?= count($plans) ?> หลักสูตร</span>
     </div>
     <?php if ($plans === []): ?>
       <div class="text-center text-muted py-4">
         <?php if ($role === 'trainer'): ?>
           ยังไม่มีหลักสูตรที่คุณได้รับมอบหมาย — ติดต่อแอดมินหรือสมัครเป็นเจ้าของหลักสูตร
         <?php else: ?>
-          ยังไม่มีแผนการเรียนรู้ในระบบ
+          ยังไม่มีหลักสูตรในระบบ
         <?php endif; ?>
       </div>
     <?php else: ?>
       <table id="plan-enroll-manage-datatable" class="table datatable w-100" data-order='[[1,"asc"]]'>
         <thead>
           <tr>
-            <th class="col-primary">แผน</th>
+            <th class="col-primary">หลักสูตร</th>
             <th class="col-wrap">หัวข้อ</th>
             <th class="text-center">ผู้เรียน</th>
             <th class="text-center">ผ่าน</th>
@@ -104,7 +104,7 @@ $isAdmin = $role === 'admin';
           ?>
           <tr>
             <td data-order="<?= (int) $p['plan_no'] ?>">
-              <span class="enroll-plan-no">แผนที่ <?= (int) $p['plan_no'] ?></span>
+              <span class="enroll-plan-no">หลักสูตรที่ <?= (int) $p['plan_no'] ?></span>
               <span class="learn-plan-track <?= $required ? 'is-required' : 'is-elective' ?>"><?= $required ? 'บังคับ' : 'ทั่วไป' ?></span>
             </td>
             <td class="col-wrap">

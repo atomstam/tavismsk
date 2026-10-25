@@ -1,7 +1,7 @@
 <?php
 
 /**
- * แผนการจัดการเรียนรู้ ชมรมวัคซีนจราจร (TAVIS) — รวม 14 ชั่วโมง
+ * หลักสูตร ชมรมวัคซีนจราจร (TAVIS) — รวม 14 ชั่วโมง
  * instructor_type: teacher|police|hospital|honda|transport
  */
 

@@ -13,7 +13,7 @@
       <label class="form-label">หลักสูตร</label>
       <select class="form-select" name="plan_id" required>
         <?php foreach ($plans as $p): ?>
-          <option value="<?= (int) $p['id'] ?>">แผนที่ <?= (int) $p['plan_no'] ?> — <?= e($p['title']) ?></option>
+          <option value="<?= (int) $p['id'] ?>">หลักสูตรที่ <?= (int) $p['plan_no'] ?> — <?= e($p['title']) ?></option>
         <?php endforeach; ?>
       </select>
     </div>
@@ -32,12 +32,12 @@
 <div class="card-soft mb-4"><div class="card-body table-responsive">
   <h2 class="h5">คำร้องรออนุมัติ</h2>
   <table class="table lms-table">
-    <thead><tr><th>แผน</th><th>ผู้ขอ</th><th></th></tr></thead>
+    <thead><tr><th>หลักสูตร</th><th>ผู้ขอ</th><th></th></tr></thead>
     <tbody>
     <?php if ($pending === []): ?><tr><td colspan="3" class="text-muted">ไม่มีคำร้อง</td></tr><?php endif; ?>
     <?php foreach ($pending as $row): ?>
       <tr>
-        <td>แผนที่ <?= (int) $row['plan_no'] ?> <?= e($row['plan_title']) ?></td>
+        <td>หลักสูตรที่ <?= (int) $row['plan_no'] ?> <?= e($row['plan_title']) ?></td>
         <td><?= e(trim(($row['title'] ?? '') . ($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''))) ?></td>
         <td class="text-end">
           <form method="post" action="<?= url('/admin/plan-owners/review') ?>" class="d-inline">
@@ -62,11 +62,11 @@
 <div class="card-soft"><div class="card-body table-responsive">
   <h2 class="h5">เจ้าของหลักสูตรปัจจุบัน</h2>
   <table class="table lms-table">
-    <thead><tr><th>แผน</th><th>เจ้าของ</th><th></th></tr></thead>
+    <thead><tr><th>หลักสูตร</th><th>เจ้าของ</th><th></th></tr></thead>
     <tbody>
     <?php foreach ($owners as $row): ?>
       <tr>
-        <td>แผนที่ <?= (int) $row['plan_no'] ?> <?= e($row['plan_title']) ?></td>
+        <td>หลักสูตรที่ <?= (int) $row['plan_no'] ?> <?= e($row['plan_title']) ?></td>
         <td><?= e(trim(($row['title'] ?? '') . ($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''))) ?> (<?= e($row['username']) ?>)</td>
         <td class="text-end">
           <form method="post" action="<?= url('/admin/plan-owners/remove') ?>">

@@ -163,7 +163,7 @@ class DashboardStatsService
             }
             $ph = implode(',', array_map('intval', $planIds));
             if ($kind === 'diploma') {
-                // วุฒิบัตรของผู้เรียนที่มีความก้าวหน้าในแผนที่ดูแล
+                // วุฒิบัตรของผู้เรียนที่มีความก้าวหน้าในหลักสูตรที่ดูแล
                 $where .= " AND enrollment_id IN (
                     SELECT DISTINCT tmp.enrollment_id FROM training_module_progress tmp
                     WHERE tmp.plan_id IN ({$ph})
@@ -199,7 +199,7 @@ class DashboardStatsService
                 $ph = implode(',', array_map('intval', $planIds));
                 $planFilter = " AND tmp.plan_id IN ({$ph})";
             }
-            // นับ progress ที่ผ่านแผนแล้ว แต่ยังไม่มีเกียรติบัตรรายแผน
+            // นับ progress ที่ผ่านหลักสูตรแล้ว แต่ยังไม่มีเกียรติบัตรรายหลักสูตร
             return (int) (db()->fetch(
                 "SELECT COUNT(*) AS c
                  FROM training_module_progress tmp

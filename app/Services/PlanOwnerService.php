@@ -25,7 +25,7 @@ class PlanOwnerService
         return (bool) $row;
     }
 
-    /** @return list<int> วิทยากรเจ้าของแผนที่อนุมัติแล้ว */
+    /** @return list<int> วิทยากรเจ้าของหลักสูตรที่อนุมัติแล้ว */
     public function approvedOwnerUserIds(int $planId): array
     {
         $rows = db()->fetchAll(

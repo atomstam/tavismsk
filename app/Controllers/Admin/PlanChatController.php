@@ -55,7 +55,7 @@ class PlanChatController extends Controller
         try {
             if ($room === 'group') {
                 if (!$this->chat->canJoinPlan($planId, $uid)) {
-                    throw new \RuntimeException('ไม่มีสิทธิ์เข้าห้องรวมของแผนนี้');
+                    throw new \RuntimeException('ไม่มีสิทธิ์เข้าห้องรวมของหลักสูตรนี้');
                 }
                 $thread = $this->chat->ensureGroupThread($planId);
             } else {
@@ -64,19 +64,19 @@ class PlanChatController extends Controller
                 if ($role === 'trainer') {
                     $trainerId = $uid;
                     if (!$this->chat->isPlanOwner($planId, $trainerId)) {
-                        throw new \RuntimeException('คุณยังไม่ได้รับมอบหมายเป็นวิทยากรของแผนนี้');
+                        throw new \RuntimeException('คุณยังไม่ได้รับมอบหมายเป็นวิทยากรของหลักสูตรนี้');
                     }
                     if ($learnerId <= 0) {
                         throw new \RuntimeException('กรุณาเลือกผู้เรียน');
                     }
                 } else {
-                    // ผู้เรียน / แอดมิน: เลือกเฉพาะวิทยากรที่ดูแลแผนนี้
+                    // ผู้เรียน / แอดมิน: เลือกเฉพาะวิทยากรที่ดูแลหลักสูตรนี้
                     $learnerId = $learnerId > 0 ? $learnerId : $uid;
                     if ($trainerId <= 0) {
-                        throw new \RuntimeException('กรุณาเลือกวิทยากรของแผนนี้');
+                        throw new \RuntimeException('กรุณาเลือกวิทยากรของหลักสูตรนี้');
                     }
                     if (!$this->chat->isPlanOwner($planId, $trainerId)) {
-                        throw new \RuntimeException('วิทยากรที่เลือกไม่ได้ดูแลแผนนี้');
+                        throw new \RuntimeException('วิทยากรที่เลือกไม่ได้ดูแลหลักสูตรนี้');
                     }
                 }
                 $thread = $this->chat->findOrCreateDirect($planId, $learnerId, $trainerId);
@@ -99,7 +99,7 @@ class PlanChatController extends Controller
         $this->chat->markRead($thread, (int) auth()->id());
         $messages = $this->chat->messages((int) $thread['id']);
         $this->view('admin/plan_chat/show', [
-            'title' => 'สนทนา · แผนที่ ' . (int) $thread['plan_no'],
+            'title' => 'สนทนา · หลักสูตรที่ ' . (int) $thread['plan_no'],
             'breadcrumb' => 'หน้าหลัก / กระดานสนทนา / รายละเอียด',
             'thread' => $thread,
             'messages' => $messages,
@@ -155,7 +155,7 @@ class PlanChatController extends Controller
         ]);
     }
 
-    /** จากหน้าแผน — ให้เลือกห้องรวมหรือตัวต่อตัว */
+    /** จากหน้าหลักสูตร — ให้เลือกห้องรวมหรือตัวต่อตัว */
     public function fromPlan(string $planId): void
     {
         $this->requirePerm('plan_chat', 'view');
@@ -164,7 +164,7 @@ class PlanChatController extends Controller
         $role = (string) (auth()->role() ?? 'user');
         $plan = db()->fetch('SELECT id, plan_no, title FROM learning_plans WHERE id = ?', [$pid]);
         if (!$plan) {
-            $this->flash('error', 'ไม่พบแผน');
+            $this->flash('error', 'ไม่พบหลักสูตร');
             $this->redirect('/admin/plan-chat');
         }
 

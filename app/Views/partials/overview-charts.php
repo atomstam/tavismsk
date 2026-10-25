@@ -5,7 +5,7 @@ $isAdmin = $isAdmin ?? is_admin_like();
 <?php /* แถว 1: สถานะ + บทบาท/สัดส่วน — เต็มแถว 7/5 */ ?>
 <div class="col-12 col-lg-7">
   <div class="card-soft h-100"><div class="card-body">
-    <h5 class="mb-1">สถานะการลงทะเบียนอบรม</h5>
+    <h5 class="mb-1">สถานะการลงทะเบียนหลักสูตร</h5>
     <p class="text-muted small mb-3">จำนวนรายการตามสถานะในระบบ</p>
     <div class="chart-box chart-box-lg" data-chart="countBar">
       <div class="chart-loading"><span class="spinner"></span><span>กำลังโหลด...</span></div>
@@ -28,7 +28,7 @@ $isAdmin = $isAdmin ?? is_admin_like();
 <div class="col-12 col-lg-5">
   <div class="card-soft h-100"><div class="card-body">
     <h5 class="mb-1">สัดส่วนสถานะของฉัน</h5>
-    <p class="text-muted small mb-3">สถานะการลงทะเบียนอบรม</p>
+    <p class="text-muted small mb-3">สถานะการลงทะเบียนหลักสูตร</p>
     <div class="chart-box chart-box-lg" data-chart="share">
       <div class="chart-loading"><span class="spinner"></span><span>กำลังโหลด...</span></div>
       <canvas id="sharePieChart"></canvas>
@@ -74,7 +74,7 @@ $isAdmin = $isAdmin ?? is_admin_like();
 <div class="col-12 col-lg-6">
   <div class="card-soft h-100"><div class="card-body">
     <h5 class="mb-1">สัดส่วนแบบโพลาร์</h5>
-    <p class="text-muted small mb-3">สถานะการลงทะเบียนอบรม</p>
+    <p class="text-muted small mb-3">สถานะการลงทะเบียนหลักสูตร</p>
     <div class="chart-box chart-box-lg" data-chart="polar">
       <div class="chart-loading"><span class="spinner"></span><span>กำลังโหลด...</span></div>
       <canvas id="polarChart"></canvas>

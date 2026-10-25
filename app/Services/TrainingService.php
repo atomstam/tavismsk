@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 /**
- * ลงทะเบียนอบรม · ประเมินผล · นับชั่วโมง · ออกเกียรติบัตร
+ * ลงทะเบียนหลักสูตร · ประเมินผล · นับชั่วโมง · ออกเกียรติบัตร
  */
 class TrainingService
 {
@@ -246,8 +246,8 @@ class TrainingService
     }
 
     /**
-     * สรุปแผนบังคับสำหรับวุฒิบัตร
-     * @return array{total:int,passed:int,ready:bool,hours:float}
+     * สรุปหลักสูตรบังคับสำหรับวุฒิบัตร
+     * @return array{total:int,passed:int,ready:bool,hours:float,percent:float}
      */
     public function diplomaStanding(int $enrollmentId): array
     {
@@ -272,10 +272,84 @@ class TrainingService
             'passed' => $passed,
             'ready' => $total > 0 && $passed === $total,
             'hours' => round($hours, 1),
+            'percent' => $total > 0 ? round(($passed / $total) * 100, 1) : 0.0,
         ];
     }
 
-    /** เกียรติบัตรของแผนเดียว ออกได้เมื่อแผนนั้นผ่านเกณฑ์ */
+    /**
+     * สรุปหลักสูตรบังคับของหลายการลงทะเบียนจากความก้าวหน้าที่มีอยู่ (ไม่คำนวณใหม่ทีละหลักสูตร)
+     *
+     * @param list<int> $enrollmentIds
+     * @return array<int, array{total:int,passed:int,ready:bool,hours:float,percent:float}>
+     */
+    public function diplomaStandingsForEnrollments(array $enrollmentIds): array
+    {
+        $plans = db()->fetchAll(
+            'SELECT id, hours FROM learning_plans WHERE status = 1 AND is_required = 1 ORDER BY plan_no, id'
+        );
+        $total = count($plans);
+        $empty = [
+            'total' => $total,
+            'passed' => 0,
+            'ready' => false,
+            'hours' => 0.0,
+            'percent' => 0.0,
+        ];
+        $out = [];
+        foreach ($enrollmentIds as $id) {
+            $out[(int) $id] = $empty;
+        }
+        if ($enrollmentIds === [] || $plans === []) {
+            return $out;
+        }
+
+        $lms = new ModuleLearningService();
+        $settingsCache = [];
+        $planIds = [];
+        $hoursByPlan = [];
+        foreach ($plans as $plan) {
+            $pid = (int) $plan['id'];
+            $planIds[] = $pid;
+            $hoursByPlan[$pid] = (float) ($plan['hours'] ?? 0);
+            $settingsCache[$pid] = $lms->settings($pid);
+        }
+
+        $phE = implode(',', array_map('intval', $enrollmentIds));
+        $phP = implode(',', array_map('intval', $planIds));
+        $rows = db()->fetchAll(
+            "SELECT * FROM training_module_progress
+             WHERE enrollment_id IN ({$phE}) AND plan_id IN ({$phP})"
+        );
+        $byEnroll = [];
+        foreach ($rows as $row) {
+            $byEnroll[(int) $row['enrollment_id']][(int) $row['plan_id']] = $row;
+        }
+
+        foreach ($enrollmentIds as $eid) {
+            $eid = (int) $eid;
+            $passed = 0;
+            $hours = 0.0;
+            $progress = $byEnroll[$eid] ?? [];
+            foreach ($planIds as $pid) {
+                $p = $progress[$pid] ?? [];
+                if ($p !== [] && PlanProgress::certificateReady($p, [], $settingsCache[$pid])) {
+                    $passed++;
+                    $hours += $hoursByPlan[$pid];
+                }
+            }
+            $out[$eid] = [
+                'total' => $total,
+                'passed' => $passed,
+                'ready' => $total > 0 && $passed === $total,
+                'hours' => round($hours, 1),
+                'percent' => $total > 0 ? round(($passed / $total) * 100, 1) : 0.0,
+            ];
+        }
+
+        return $out;
+    }
+
+    /** เกียรติบัตรของหลักสูตรเดียว ออกได้เมื่อหลักสูตรนั้นผ่านเกณฑ์ */
     public function issuePlanCertificate(int $enrollmentId, int $planId, int $issuerId): ?array
     {
         $enroll = db()->fetch(
@@ -307,7 +381,7 @@ class TrainingService
             'plan_id' => $planId,
             'user_id' => (int) $enroll['user_id'],
             'org_unit_id' => $enroll['org_unit_id'] ?? null,
-            'title' => 'เกียรติบัตรแผนที่ ' . (int) $plan['plan_no'] . ' ' . $plan['title'],
+            'title' => 'เกียรติบัตรหลักสูตรที่ ' . (int) $plan['plan_no'] . ' ' . $plan['title'],
             'recipient_name' => $name,
             'org_name' => $enroll['org_name'] ?? null,
             'hours' => (float) ($plan['hours'] ?? 1),

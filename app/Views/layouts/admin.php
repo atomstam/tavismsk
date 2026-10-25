@@ -1,15 +1,18 @@
 <?php
 $user = auth()->user();
 $unread = 0;
+$navRoleKey = 'user';
 try {
     if ($user) {
         $uid = (int) $user['id'];
-        $role = (string) ($user['role'] ?? '');
+        $role = (string) (auth()->role() ?? ($user['role'] ?? ''));
+        $resolved = (string) (auth()->resolvedRole() ?? $role);
+        $navRoleKey = in_array($resolved, ['admin', 'trainer', 'user'], true) ? $resolved : 'user';
         // ซิงก์ภาระงานรอตรวจ → แจ้งเตือน (แอดมิน/วิทยากร)
-        if (in_array($role, ['admin', 'trainer'], true)) {
-            (new \App\Services\NotificationService())->syncPendingTaskReviewsForUser($uid, $role);
+        if (in_array($role, ['admin', 'trainer'], true) || in_array($resolved, ['admin', 'trainer'], true)) {
+            (new \App\Services\NotificationService())->syncPendingTaskReviewsForUser($uid, $resolved !== '' ? $resolved : $role);
         }
-        $unread = (int) db()->count('notifications', 'user_id = ? AND is_read = 0', [$uid]);
+        $unread = notification_new_count($uid);
     }
 } catch (Throwable $e) {}
 $flashData = $flash ?? null;
@@ -32,11 +35,11 @@ $sidebarItems = (new \App\Services\SidebarMenuService())->items(null, (int) $unr
   <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
   <link rel="stylesheet" href="<?= asset('vendor/overlayScrollbars/css/OverlayScrollbars.min.css') ?>">
-  <link rel="stylesheet" href="<?= asset('css/app.css') ?>?v=48">
+  <link rel="stylesheet" href="<?= asset('css/app.css') ?>?v=55">
   <link rel="stylesheet" href="<?= asset('css/learn.css') ?>?v=12">
   <link rel="stylesheet" href="<?= asset('css/image-crop.css') ?>?v=1">
   <script>
-    tailwind.config = { corePlugins: { preflight: false }, blocklist: ['collapse', 'container'] };
+    tailwind.config = { corePlugins: { preflight: false }, blocklist: ['collapse', 'container', 'dropdown'] };
   </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>window.APP_URL = <?= json_encode(rtrim((string) env('APP_URL', ''), '/')) ?>;</script>
@@ -56,7 +59,7 @@ $sidebarItems = (new \App\Services\SidebarMenuService())->items(null, (int) $unr
 
 <div class="admin-shell">
   <div class="sidebar-backdrop" id="sidebar-backdrop" data-close-sidebar hidden aria-hidden="true"></div>
-  <aside class="sidebar" id="sidebar">
+  <aside class="sidebar sidebar-role-<?= e($navRoleKey) ?>" id="sidebar" data-role="<?= e($navRoleKey) ?>">
     <div class="sidebar-brand">
       <a href="<?= url('/admin/dashboard') ?>" class="sidebar-brand-link">
         <?php if ($logo): ?>
@@ -162,7 +165,7 @@ $sidebarItems = (new \App\Services\SidebarMenuService())->items(null, (int) $unr
             <span class="notif-count"><?= (int) $unread > 99 ? '99+' : (int) $unread ?></span>
           <?php endif; ?>
         </a>
-        <div class="dropdown user-menu">
+        <div class="dropdown user-menu user-menu-role-<?= e($navRoleKey) ?>">
           <button class="user-chip user-menu-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="เมนูผู้ใช้">
             <div class="user-chip-avatar">
               <?php if (!empty($user['avatar'])): ?>
@@ -173,14 +176,15 @@ $sidebarItems = (new \App\Services\SidebarMenuService())->items(null, (int) $unr
             </div>
             <div class="user-chip-text">
               <strong><?= e(trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')) ?: 'ผู้ใช้') ?></strong>
-              <small><?= e(role_name($user['role'] ?? '')) ?></small>
+              <small><?= e(role_name((string) (auth()->role() ?? ($user['role'] ?? '')))) ?></small>
             </div>
             <i class="fa fa-chevron-down user-menu-caret"></i>
           </button>
-          <ul class="dropdown-menu dropdown-menu-end user-menu-panel shadow">
+          <ul class="dropdown-menu dropdown-menu-end user-menu-panel user-menu-panel--<?= e($navRoleKey) ?> shadow"
+              data-role="<?= e($navRoleKey) ?>">
             <li class="user-menu-head px-3 py-2">
               <div class="fw-semibold"><?= e(trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')) ?: 'ผู้ใช้') ?></div>
-              <div class="small text-muted"><?= e(role_name($user['role'] ?? '')) ?></div>
+              <div class="small user-menu-role-label"><?= e(role_name((string) (auth()->role() ?? ($user['role'] ?? '')))) ?></div>
             </li>
             <li><hr class="dropdown-divider my-1"></li>
             <li>

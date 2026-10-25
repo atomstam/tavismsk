@@ -18,7 +18,7 @@
 <div class="page-head">
   <div>
     <p class="page-kicker">CURRICULUM</p>
-    <h1>แผนการเรียนรู้ 14 ชั่วโมง</h1>
+    <h1>หลักสูตร 14 ชั่วโมง</h1>
   </div>
   <div class="d-flex flex-wrap gap-2 align-items-center">
     <div class="curriculum-view-switch" role="group" aria-label="รูปแบบการแสดง">
@@ -55,11 +55,11 @@
       <a href="<?= e($href) ?>" class="admin-plan-media">
         <div class="admin-plan-cover">
           <?php if ($hasCover): ?>
-            <img src="<?= asset($cover) ?>?v=4" alt="แผนที่ <?= $no ?>" loading="lazy" decoding="async">
+            <img src="<?= asset($cover) ?>?v=4" alt="หลักสูตรที่ <?= $no ?>" loading="lazy" decoding="async">
           <?php else: ?>
             <div class="admin-plan-cover-fallback"><i class="fa fa-shield-halved"></i></div>
           <?php endif; ?>
-          <span class="admin-plan-badge">แผนที่ <?= $no ?></span>
+          <span class="admin-plan-badge">หลักสูตรที่ <?= $no ?></span>
           <div class="admin-plan-cover-foot">
             <span class="learn-plan-track <?= $required ? 'is-required' : 'is-elective' ?>"><?= $required ? 'บังคับ' : 'ทั่วไป' ?></span>
           </div>
@@ -86,11 +86,11 @@
 
 <div class="card-soft curriculum-list"><div class="card-body">
   <form id="curriculum-filter" class="dt-filter-bar">
-    <input name="q" class="form-control" placeholder="ค้นหาแผน / กลุ่มหัวข้อ / วิทยากร">
+    <input name="q" class="form-control" placeholder="ค้นหาหลักสูตร / กลุ่มหัวข้อ / วิทยากร">
   </form>
   <table id="curriculum-datatable" class="table ab-datatable w-100" data-ajax-url="<?= e(url('/admin/curriculum/datatable')) ?>">
     <thead><tr>
-      <th>แผนที่</th><th>หัวข้อ</th><th>ชม.</th><th>วิทยากร</th><th>กลุ่มหัวข้อ</th><th class="col-actions">จัดการ</th>
+      <th>หลักสูตรที่</th><th>หัวข้อ</th><th>ชม.</th><th>วิทยากร</th><th>กลุ่มหัวข้อ</th><th class="col-actions">จัดการ</th>
     </tr></thead>
   </table>
 </div></div>

@@ -26,7 +26,7 @@ $statusMeta = static function (string $status): array {
   <div>
     <p class="page-kicker">TRAINER</p>
     <h1>สมัครเป็นเจ้าของหลักสูตร</h1>
-    <p class="text-muted mb-0">ส่งคำร้องเพื่อเป็นวิทยากรเจ้าของแผน Admin เป็นผู้อนุมัติ และหนึ่งแผนมีเจ้าของได้หลายคน</p>
+    <p class="text-muted mb-0">ส่งคำร้องเพื่อเป็นวิทยากรเจ้าของหลักสูตร Admin เป็นผู้อนุมัติ และหนึ่งหลักสูตรมีเจ้าของได้หลายคน</p>
   </div>
 </div>
 
@@ -35,7 +35,7 @@ $statusMeta = static function (string $status): array {
     <div class="metric-stat metric-stat--blue">
       <div class="metric-stat-icon"><i class="fa fa-layer-group"></i></div>
       <div class="metric-stat-body">
-        <span class="metric-stat-label">แผนทั้งหมด</span>
+        <span class="metric-stat-label">หลักสูตรทั้งหมด</span>
         <strong class="metric-stat-value"><?= count($plans) ?></strong>
       </div>
     </div>
@@ -73,7 +73,7 @@ $statusMeta = static function (string $status): array {
   <table id="trainer-apply-datatable" class="table datatable w-100" data-order='[[1,"asc"]]'>
     <thead>
       <tr>
-        <th class="col-primary">แผน</th>
+        <th class="col-primary">หลักสูตร</th>
         <th class="col-wrap">หลักสูตร</th>
         <th>สถานะ</th>
         <th class="col-actions"></th>
@@ -86,7 +86,7 @@ $statusMeta = static function (string $status): array {
     ?>
       <tr>
         <td data-order="<?= (int) $p['plan_no'] ?>">
-          <span class="enroll-plan-no">แผนที่ <?= (int) $p['plan_no'] ?></span>
+          <span class="enroll-plan-no">หลักสูตรที่ <?= (int) $p['plan_no'] ?></span>
         </td>
         <td class="col-wrap">
           <strong class="d-block"><?= e($p['title']) ?></strong>

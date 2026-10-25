@@ -1,4 +1,4 @@
--- กระดานสนทนาต่อแผน: ห้องรวม (group) + ตัวต่อตัว (direct)
+-- กระดานสนทนาต่อหลักสูตร: ห้องรวม (group) + ตัวต่อตัว (direct)
 -- ใช้กับฐานที่มีอยู่แล้ว (idempotent-ish — รันซ้ำอาจ error ถ้ามี object อยู่แล้ว)
 -- แนะนำ production: php scripts/apply_plan_chat.php
 -- หรือรันไฟล์นี้ด้วย:

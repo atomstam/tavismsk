@@ -23,7 +23,7 @@ $tagline = app_brand('tagline');
             <a class="ws-btn-ghost" href="<?= url('/admin/enrollments') ?>">ลงทะเบียน/เข้าเรียน</a>
           <?php else: ?>
             <a class="ws-btn-primary" href="<?= url('/login') ?>">เข้าสู่ระบบ <i class="fa fa-arrow-right"></i></a>
-            <a class="ws-btn-ghost" href="<?= url('/curriculum') ?>">ดูโมดูลการอบรม</a>
+            <a class="ws-btn-ghost" href="<?= url('/curriculum') ?>">ดูหลักสูตร</a>
           <?php endif; ?>
           <a class="ws-btn-ghost" href="<?= url('/certificate/verify') ?>">ตรวจสอบเกียรติบัตร</a>
         </div>
@@ -31,7 +31,7 @@ $tagline = app_brand('tagline');
           <div class="home-stat">
             <i class="fa fa-book-open" style="background:#7c3aed"></i>
             <strong><?= (int) $planCount ?></strong>
-            <span>โมดูลอบรม</span>
+            <span>หลักสูตร</span>
           </div>
           <div class="home-stat">
             <i class="fa fa-clock" style="background:#f59e0b"></i>
@@ -66,7 +66,7 @@ $tagline = app_brand('tagline');
 </section>
 
 <nav class="home-quick container" aria-label="ทางลัด">
-  <a href="<?= url('/curriculum') ?>"><i class="fa fa-book"></i><span>แผนการเรียนรู้</span></a>
+  <a href="<?= url('/curriculum') ?>"><i class="fa fa-book"></i><span>หลักสูตร</span></a>
   <a href="<?= url('/about') ?>"><i class="fa fa-info-circle"></i><span>เกี่ยวกับชมรม</span></a>
   <a href="<?= url('/news') ?>"><i class="fa fa-newspaper"></i><span>กิจกรรม</span></a>
   <a href="<?= url('/portfolios/gallery') ?>"><i class="fa fa-images"></i><span>แกลเลอรี่</span></a>
@@ -108,7 +108,7 @@ $tagline = app_brand('tagline');
   <div class="container">
     <div class="ws-section-head">
       <div>
-        <h2>แผนการจัดการเรียนรู้ 14 ชั่วโมง</h2>
+        <h2>หลักสูตร 14 ชั่วโมง</h2>
         <p>กิจกรรมพัฒนาผู้เรียน 1 ชั่วโมง/สัปดาห์</p>
       </div>
       <a class="ws-link-all" href="<?= url('/curriculum') ?>">ดูทั้งหมด <i class="fa fa-arrow-right"></i></a>
@@ -126,16 +126,16 @@ $tagline = app_brand('tagline');
           ?>
           <div class="thumb">
             <?php if (is_file($homeCoverFile)): ?>
-              <img src="<?= asset($homeCover) ?>?v=4" alt="แผนที่ <?= $planNo ?>" loading="lazy" decoding="async">
+              <img src="<?= asset($homeCover) ?>?v=4" alt="หลักสูตรที่ <?= $planNo ?>" loading="lazy" decoding="async">
             <?php else: ?>
               <div class="d-flex align-items-center justify-content-center h-100" style="background:linear-gradient(135deg,#4c1d95,#7c3aed);color:#fff">
                 <div class="text-center">
-                  <div class="small opacity-75">แผนที่</div>
+                  <div class="small opacity-75">หลักสูตรที่</div>
                   <div style="font-size:2rem;font-weight:700;font-family:var(--w-display)"><?= $planNo ?></div>
                 </div>
               </div>
             <?php endif; ?>
-            <span class="ws-home-plan-badge">แผนที่ <?= $planNo ?></span>
+            <span class="ws-home-plan-badge">หลักสูตรที่ <?= $planNo ?></span>
             <span class="learn-plan-track <?= $requiredPlan ? 'is-required' : 'is-elective' ?>"><?= $requiredPlan ? 'บังคับ' : 'ทั่วไป' ?></span>
           </div>
           <div class="body">

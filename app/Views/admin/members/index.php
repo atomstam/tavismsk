@@ -9,9 +9,9 @@ $stats = $stats ?? ['plans' => 0, 'learners' => 0, 'passed' => 0];
     <h1>ผู้เข้ารับการพัฒนา</h1>
     <p class="text-muted mb-0">
       <?php if ($role === 'trainer'): ?>
-        รายการผู้เรียนแยกตามแผนที่คุณรับผิดชอบ — ดูจำนวน ความก้าวหน้า และรายละเอียดรายแผน
+        รายการผู้เรียนแยกตามหลักสูตรที่คุณรับผิดชอบ — ดูจำนวน ความก้าวหน้า และรายละเอียดรายหลักสูตร
       <?php else: ?>
-        รายการผู้เรียนแยกตามแผนอบรม — ดูจำนวน ความก้าวหน้าเฉลี่ย และกดเข้าดูรายละเอียดแต่ละแผน
+        รายการผู้เรียนแยกตามหลักสูตร — ดูจำนวน ความก้าวหน้าเฉลี่ย และกดเข้าดูรายละเอียดแต่ละหลักสูตร
       <?php endif; ?>
     </p>
   </div>
@@ -25,7 +25,7 @@ $stats = $stats ?? ['plans' => 0, 'learners' => 0, 'passed' => 0];
     <div class="metric-stat metric-stat--blue">
       <div class="metric-stat-icon"><i class="fa fa-layer-group"></i></div>
       <div class="metric-stat-body">
-        <span class="metric-stat-label">แผนที่แสดง</span>
+        <span class="metric-stat-label">หลักสูตรที่แสดง</span>
         <strong class="metric-stat-value" id="members-stat-plans"><?= (int) $stats['plans'] ?></strong>
       </div>
     </div>
@@ -43,7 +43,7 @@ $stats = $stats ?? ['plans' => 0, 'learners' => 0, 'passed' => 0];
     <div class="metric-stat metric-stat--emerald">
       <div class="metric-stat-icon"><i class="fa fa-award"></i></div>
       <div class="metric-stat-body">
-        <span class="metric-stat-label">ผ่านแผนแล้ว</span>
+        <span class="metric-stat-label">ผ่านหลักสูตรแล้ว</span>
         <strong class="metric-stat-value" id="members-stat-passed"><?= (int) $stats['passed'] ?></strong>
       </div>
     </div>
@@ -54,8 +54,8 @@ $stats = $stats ?? ['plans' => 0, 'learners' => 0, 'passed' => 0];
   <div class="card-body">
     <form id="members-plans-filter" class="row g-2 mb-3 align-items-end">
       <div class="col-md-4">
-        <label class="form-label small mb-0">ค้นหาแผน</label>
-        <input type="search" name="q" class="form-control form-control-sm" placeholder="เลขแผน / หัวข้อ / กลุ่มหัวข้อ / วิทยากร" autocomplete="off">
+        <label class="form-label small mb-0">ค้นหาหลักสูตร</label>
+        <input type="search" name="q" class="form-control form-control-sm" placeholder="เลขหลักสูตร / หัวข้อ / กลุ่มหัวข้อ / วิทยากร" autocomplete="off">
       </div>
       <div class="col-md-2">
         <label class="form-label small mb-0">ประเภท</label>
@@ -93,13 +93,13 @@ $stats = $stats ?? ['plans' => 0, 'learners' => 0, 'passed' => 0];
       <div class="text-center text-muted py-4">
         <?= $role === 'trainer'
           ? 'ยังไม่มีหลักสูตรที่คุณได้รับมอบหมาย'
-          : 'ยังไม่มีแผนการเรียนรู้ในระบบ' ?>
+          : 'ยังไม่มีหลักสูตรในระบบ' ?>
       </div>
     <?php else: ?>
       <table id="members-plans-table" class="table datatable w-100" data-order='[[1,"asc"]]'>
         <thead>
           <tr>
-            <th class="col-primary">แผน</th>
+            <th class="col-primary">หลักสูตร</th>
             <th class="col-wrap">หัวข้อ</th>
             <th class="text-center">จำนวนผู้เรียน</th>
             <th class="text-center">ผ่าน</th>
@@ -130,7 +130,7 @@ $stats = $stats ?? ['plans' => 0, 'learners' => 0, 'passed' => 0];
             data-search="<?= e($hay) ?>"
           >
             <td data-order="<?= (int) $p['plan_no'] ?>">
-              <span class="enroll-plan-no">แผนที่ <?= (int) $p['plan_no'] ?></span>
+              <span class="enroll-plan-no">หลักสูตรที่ <?= (int) $p['plan_no'] ?></span>
               <span class="learn-plan-track <?= $required ? 'is-required' : 'is-elective' ?>"><?= $required ? 'บังคับ' : 'ทั่วไป' ?></span>
             </td>
             <td class="col-wrap">

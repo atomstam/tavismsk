@@ -439,7 +439,7 @@ class DataTableService
                 'title' => (string) $r['title'],
                 'slug_html' => '<a href="' . e(url('/forms/' . $r['slug'])) . '" target="_blank" rel="noopener">' . e($r['slug']) . '</a>',
                 'status_html' => ((int) $r['status'] === 1)
-                    ? '<span class="badge-pill-ok">เปิด</span>'
+                    ? '<span class="badge-pill-ok">เปิด · เมนูเว็บ</span>'
                     : '<span class="badge-pill-off">ปิด</span>',
                 'updated_at' => thai_date($r['updated_at'] ?? $r['created_at'] ?? null, true),
                 'actions' => dt_actions_wrap(
@@ -512,13 +512,19 @@ class DataTableService
         $data = [];
         foreach ($rows as $n) {
             $unread = (int) $n['is_read'] === 0;
+            $isNew = notification_is_new($n['created_at'] ?? null, $n['is_read'] ?? 1);
+            if ($isNew) {
+                $statusHtml = '<span class="badge-pill-warn">ใหม่</span>';
+            } elseif ($unread) {
+                $statusHtml = '<span class="badge-pill-muted">ยังไม่อ่าน</span>';
+            } else {
+                $statusHtml = '<span class="badge-pill-ok">อ่านแล้ว</span>';
+            }
             $data[] = [
                 'title_html' => ($unread ? '<strong>' : '') . e($n['title']) . ($unread ? '</strong>' : ''),
                 'message' => (string) ($n['message'] ?? ''),
                 'created_at' => time_ago($n['created_at'] ?? null),
-                'status_html' => $unread
-                    ? '<span class="badge-pill-warn">ใหม่</span>'
-                    : '<span class="badge-pill-ok">อ่านแล้ว</span>',
+                'status_html' => $statusHtml,
                 'actions' => dt_actions_wrap(dt_btn('view', url('/admin/notifications/' . $n['id']))),
             ];
         }
@@ -624,7 +630,7 @@ class DataTableService
         return dt_response($p['draw'], $total, $filtered, $data);
     }
 
-    /** ผู้เรียนในแผน (training_module_progress) — สำหรับหน้ารายละเอียดผู้เข้ารับการพัฒนา */
+    /** ผู้เรียนในหลักสูตร (training_module_progress) — สำหรับหน้ารายละเอียดผู้เข้ารับการพัฒนา */
     public static function planLearners(int $planId, array $p): array
     {
         $where = 'tmp.plan_id = ?';
@@ -834,7 +840,7 @@ class DataTableService
     {
         $where = '1=1';
         $params = [];
-        // แอดมินเท่านั้นที่ดูรายการลงทะเบียนหลักสูตรทั้งระบบ — วิทยากรใช้หน้ารายแผน
+        // แอดมินเท่านั้นที่ดูรายการลงทะเบียนหลักสูตรทั้งระบบ — วิทยากรใช้หน้ารายหลักสูตร
         if (auth()->role() === 'trainer') {
             $owned = (new PlanOwnerService())->approvedPlanIds((int) auth()->id());
             if ($owned === []) {
@@ -947,7 +953,7 @@ class DataTableService
 
     public static function certificates(array $p): array
     {
-        $where = '1=1';
+        $where = 'c.plan_id IS NOT NULL';
         $params = [];
         if (is_learner()) {
             $where .= ' AND c.user_id = ?';
@@ -959,10 +965,10 @@ class DataTableService
             array_push($params, $s, $s, $s, $s, $s);
         }
 
-        $totalSql = 'SELECT COUNT(*) AS c FROM certificates c';
+        $totalSql = 'SELECT COUNT(*) AS c FROM certificates c WHERE c.plan_id IS NOT NULL';
         $totalParams = [];
         if (is_learner()) {
-            $totalSql .= ' WHERE c.user_id = ?';
+            $totalSql .= ' AND c.user_id = ?';
             $totalParams[] = (int) auth()->id();
         }
         $total = (int) (db()->fetch($totalSql, $totalParams)['c'] ?? 0);

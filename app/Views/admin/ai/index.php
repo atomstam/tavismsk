@@ -11,7 +11,7 @@
       <p class="text-muted mb-3">ถามหลักสูตร<?= e(app_brand('full_name')) ?> สรุปรายงาน ร่างข่าว หรือวิเคราะห์แดชบอร์ด</p>
       <div class="mb-3">
         <label class="form-label" for="ai-message">ข้อความ / คำค้น / หัวข้อข่าว</label>
-        <textarea id="ai-message" class="form-control" rows="5" placeholder="เช่น อธิบาย SHELL Model ในแผนที่ 7 หรือ ร่างข่าวอบรมขับขี่ปลอดภัย"></textarea>
+        <textarea id="ai-message" class="form-control" rows="5" placeholder="เช่น อธิบาย SHELL Model ในหลักสูตรที่ 7 หรือ ร่างข่าวอบรมขับขี่ปลอดภัย"></textarea>
       </div>
       <div class="d-flex flex-wrap gap-2">
         <button type="button" class="btn-add" data-ai-action="chat"><i class="fa fa-comments"></i> สนทนา</button>
@@ -81,8 +81,8 @@ OPENAI_MODEL=gpt-4o-mini</pre>
       if (data.ok && data.content) {
         let extra = '';
         if (Array.isArray(data.matches) && data.matches.length) {
-          extra += '\n\n— แผนที่เกี่ยวข้อง —\n' + data.matches.map(m =>
-            `แผน ${m.plan_no}: ${m.title}`
+          extra += '\n\n— หลักสูตรที่เกี่ยวข้อง —\n' + data.matches.map(m =>
+            `หลักสูตร ${m.plan_no}: ${m.title}`
           ).join('\n');
         }
         if (data.model) extra += `\n\n(model: ${data.model})`;

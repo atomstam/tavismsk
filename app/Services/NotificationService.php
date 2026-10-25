@@ -83,7 +83,7 @@ class NotificationService
 
     /**
      * ผู้เรียนส่งภาระงานรอตรวจ
-     * Admin = ทุกแผน · Trainer = เฉพาะแผนที่รับผิดชอบ
+     * Admin = ทุกหลักสูตร · Trainer = เฉพาะหลักสูตรที่รับผิดชอบ
      */
     public function taskSubmitted(int $planId, int $taskId, int $submissionUserId, string $learnerName = ''): void
     {
@@ -96,14 +96,14 @@ class NotificationService
             $learnerName = $this->userName($submissionUserId);
         }
         $planNo = (int) ($plan['plan_no'] ?? 0);
-        $title = 'ภาระงานรอตรวจ · แผนที่ ' . $planNo;
-        $msg = $learnerName . ' ส่งงาน «' . (string) ($task['title'] ?? 'ภาระงาน') . '» ในแผน '
+        $title = 'ภาระงานรอตรวจ · หลักสูตรที่ ' . $planNo;
+        $msg = $learnerName . ' ส่งงาน «' . (string) ($task['title'] ?? 'ภาระงาน') . '» ในหลักสูตร '
             . (string) ($plan['title'] ?? '') . ' — รอวิทยากรให้คะแนน';
         $link = '/admin/training/' . $planId . '?tab=submissions';
 
         $admins = $this->adminUserIds();
         $owners = (new PlanOwnerService())->approvedOwnerUserIds($planId);
-        // แอดมินได้รับทุกแผนเสมอ (แม้เป็นคนส่งงานในฐานะผู้เรียน)
+        // แอดมินได้รับทุกหลักสูตรเสมอ (แม้เป็นคนส่งงานในฐานะผู้เรียน)
         foreach ($admins as $uid) {
             $this->send($uid, $title, $msg, 'task_review', $link);
         }
@@ -159,8 +159,8 @@ class NotificationService
             }
             $activePlanIds[] = $planId;
             $planNo = (int) ($row['plan_no'] ?? 0);
-            $title = 'ภาระงานรอตรวจ · แผนที่ ' . $planNo;
-            $msg = 'มี ' . $pending . ' รายการรอให้คะแนนในแผน «' . (string) ($row['plan_title'] ?? '') . '»';
+            $title = 'ภาระงานรอตรวจ · หลักสูตรที่ ' . $planNo;
+            $msg = 'มี ' . $pending . ' รายการรอให้คะแนนในหลักสูตร «' . (string) ($row['plan_title'] ?? '') . '»';
             $link = '/admin/training/' . $planId . '?tab=submissions';
             $this->upsertUnread($userId, $title, $msg, 'task_review', $link);
             $touched++;
@@ -184,7 +184,7 @@ class NotificationService
                 continue;
             }
             $pid = (int) $m[1];
-            // แผนนี้ไม่มีงานรอแล้ว — ปิดแจ้งเตือนค้าง
+            // หลักสูตรนี้ไม่มีงานรอแล้ว — ปิดแจ้งเตือนค้าง
             if (!in_array($pid, $activePlanIds, true)) {
                 db()->update('notifications', ['is_read' => 1], 'id = ?', [(int) $n['id']]);
             }
@@ -236,17 +236,17 @@ class NotificationService
         $score = $sub['score'] !== null ? number_format((float) $sub['score'], 1) : null;
 
         if ($status === 'approved') {
-            $title = 'ตรวจภาระงานแล้ว · แผนที่ ' . $planNo;
+            $title = 'ตรวจภาระงานแล้ว · หลักสูตรที่ ' . $planNo;
             $msg = 'วิทยากรให้คะแนน «' . $taskTitle . '» แล้ว'
                 . ($score !== null ? ' (' . $score . ' คะแนน)' : '')
-                . ' ในแผน ' . (string) ($sub['plan_title'] ?? '');
+                . ' ในหลักสูตร ' . (string) ($sub['plan_title'] ?? '');
             $type = 'task_graded';
         } elseif ($status === 'revision') {
-            $title = 'ขอแก้ไขภาระงาน · แผนที่ ' . $planNo;
+            $title = 'ขอแก้ไขภาระงาน · หลักสูตรที่ ' . $planNo;
             $msg = 'วิทยากรขอให้แก้ไข «' . $taskTitle . '» — กรุณาส่งใหม่';
             $type = 'task_revision';
         } else {
-            $title = 'ผลการตรวจภาระงาน · แผนที่ ' . $planNo;
+            $title = 'ผลการตรวจภาระงาน · หลักสูตรที่ ' . $planNo;
             $msg = 'ภาระงาน «' . $taskTitle . '» ไม่ผ่านการตรวจ';
             $type = 'task_rejected';
         }

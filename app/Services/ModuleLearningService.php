@@ -45,7 +45,7 @@ class ModuleLearningService
         ];
     }
 
-    /** แบบประเมินความพึงพอใจชุดเดียว ใช้ร่วมทุกแผน */
+    /** แบบประเมินความพึงพอใจชุดเดียว ใช้ร่วมทุกหลักสูตร */
     public function centralSatisfactionId(int $userId = 0): int
     {
         $row = db()->fetch(
@@ -93,7 +93,7 @@ class ModuleLearningService
         return $en ?: [];
     }
 
-    /** ลงทะเบียนแผนบังคับ 1–12 ให้ผู้เรียนใหม่ */
+    /** ลงทะเบียนหลักสูตรบังคับ 1–12 ให้ผู้เรียนใหม่ */
     public function enrollRequiredPlans(int $userId): void
     {
         $en = $this->ensureEnrollment($userId);
@@ -211,7 +211,7 @@ class ModuleLearningService
             $draw = 10;
         }
         $shuffle = (int) ($settings['quiz_shuffle'] ?? 1) === 1;
-        // สุ่มจากคลังแผนก่อน ถ้าไม่ครบจำนวนที่ตั้งไว้ ให้เติมจากคลังรวม (ไม่ซ้ำข้อความ)
+        // สุ่มจากคลังหลักสูตรก่อน ถ้าไม่ครบจำนวนที่ตั้งไว้ ให้เติมจากคลังรวม (ไม่ซ้ำข้อความ)
         $pre = $this->drawUniqueQuestionIds($planId, $draw, $shuffle);
         $post = $shuffle ? $this->differentOrder($pre) : $pre;
         $post = array_values(array_unique(array_map('intval', $post)));
@@ -319,7 +319,7 @@ class ModuleLearningService
     }
 
     /**
-     * สุ่มข้อไม่ซ้ำข้อความ ให้ได้จำนวนตามที่ตั้ง (เติมจากคลังรวมถ้าคลังแผนไม่พอ)
+     * สุ่มข้อไม่ซ้ำข้อความ ให้ได้จำนวนตามที่ตั้ง (เติมจากคลังรวมถ้าคลังหลักสูตรไม่พอ)
      * @return list<int>
      */
     private function drawUniqueQuestionIds(int $planId, int $draw, bool $shuffle): array
@@ -437,7 +437,7 @@ class ModuleLearningService
             }
             $q = $byId[$qid];
             unset($q['explanation']);
-            // ผู้เรียนเห็นเฉพาะคำถาม ไม่โชว์ที่มาจากคลัง (เช่น "แผนที่ 1 ข้อ 8: …")
+            // ผู้เรียนเห็นเฉพาะคำถาม ไม่โชว์ที่มาจากคลัง (เช่น "หลักสูตรที่ 1 ข้อ 8: …")
             $q['question_text'] = $this->learnerFacingQuestionText((string) ($q['question_text'] ?? ''));
             $textKey = $this->questionDedupeKey((string) $q['question_text']);
             if ($textKey !== '' && isset($seenText[$textKey])) {
@@ -982,7 +982,7 @@ class ModuleLearningService
         ];
     }
 
-    /** มีการส่งภาระงานอย่างน้อย 1 รายการในแผนนี้หรือไม่ */
+    /** มีการส่งภาระงานอย่างน้อย 1 รายการในหลักสูตรนี้หรือไม่ */
     private function hasTaskSubmissions(int $planId, int $enrollmentId): bool
     {
         $row = db()->fetch(
@@ -998,7 +998,7 @@ class ModuleLearningService
 
     /**
      * หลังสอบหลังครบครั้งแล้วยังไม่ผ่าน:
-     * - ล้างการเปิดดูเนื้อหาของแผนนี้
+     * - ล้างการเปิดดูเนื้อหาของหลักสูตรนี้
      * - ปิดรอบ attempt เดิม (expired) เพื่อให้เริ่มนับใหม่หลังเรียนเนื้อหาครบ
      */
     private function resetPosttestForRetake(int $planId, int $quizId, int $enrollmentId): void
@@ -1164,7 +1164,7 @@ class ModuleLearningService
 
     /**
      * ตรวจผ่านหลายรายการพร้อมกัน (ค่าเริ่มต้น = คะแนนเต็มของแต่ละภาระงาน)
-     * @param list<int>|null $submissionIds ถ้าว่าง = ทุกงานที่รอตรวจในแผน
+     * @param list<int>|null $submissionIds ถ้าว่าง = ทุกงานที่รอตรวจในหลักสูตร
      * @return int จำนวนที่ตรวจ
      */
     public function bulkApproveSubmissions(int $planId, int $reviewerId, ?array $submissionIds = null, ?int $enrollmentId = null): int

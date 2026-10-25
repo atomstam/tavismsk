@@ -19,7 +19,7 @@ class ClubMemberController extends Controller
         $this->manage = new EnrollmentManageService();
     }
 
-    /** ผู้เข้ารับการพัฒนา — รายการแยกแผน + จำนวน/% progress */
+    /** ผู้เข้ารับการพัฒนา — รายการแยกหลักสูตร + จำนวน/% progress */
     public function index(): void
     {
         $this->requirePerm('members');
@@ -46,7 +46,7 @@ class ClubMemberController extends Controller
         $pid = (int) $planId;
         $plan = $this->manage->plan($pid);
         if (!$plan || !$this->manage->canViewPlan($pid, $role, $uid)) {
-            $this->flash('error', 'ไม่พบแผน หรือไม่มีสิทธิ์เข้าดู');
+            $this->flash('error', 'ไม่พบหลักสูตร หรือไม่มีสิทธิ์เข้าดู');
             $this->redirect('/admin/members');
         }
 
@@ -61,8 +61,8 @@ class ClubMemberController extends Controller
         );
 
         $this->view('admin/members/plan', [
-            'title' => 'ผู้เรียน · แผนที่ ' . (int) ($plan['plan_no'] ?? 0),
-            'breadcrumb' => 'หน้าหลัก / ผู้เข้ารับการพัฒนา / รายละเอียดแผน',
+            'title' => 'ผู้เรียน · หลักสูตรที่ ' . (int) ($plan['plan_no'] ?? 0),
+            'breadcrumb' => 'หน้าหลัก / ผู้เข้ารับการพัฒนา / รายละเอียดหลักสูตร',
             'role' => $role,
             'plan' => $plan,
             'orgs' => $orgs,

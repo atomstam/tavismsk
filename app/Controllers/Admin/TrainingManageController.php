@@ -245,7 +245,7 @@ class TrainingManageController extends Controller
             $path = (string) (parse_url((string) $preview['frame_src'], PHP_URL_PATH) ?: '');
             $preview['file_name'] = basename($path) ?: 'content.pdf';
             $preview['info_text'] = 'ไฟล์เนื้อหา: ' . (string) ($content['title'] ?? '')
-                . ' — แผนที่ ' . (int) ($plan['plan_no'] ?? 0)
+                . ' — หลักสูตรที่ ' . (int) ($plan['plan_no'] ?? 0)
                 . ' — ' . $preview['file_name'];
         }
         $this->view('admin/training/content_view', [
@@ -333,7 +333,7 @@ class TrainingManageController extends Controller
         $this->redirect('/admin/training/' . $planId . '?tab=submissions');
     }
 
-    /** ตรวจผ่านหลายรายการ / ทั้งแผน / รายผู้เรียน — คะแนนเริ่มต้น = คะแนนเต็ม */
+    /** ตรวจผ่านหลายรายการ / ทั้งหลักสูตร / รายผู้เรียน — คะแนนเริ่มต้น = คะแนนเต็ม */
     public function bulkReview(string $planId): void
     {
         $this->requirePerm('assessments', 'edit');

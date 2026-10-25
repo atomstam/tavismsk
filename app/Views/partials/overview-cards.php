@@ -33,8 +33,8 @@ $card = static function (
 </div>
 <div class="ov-grid ov-grid--3 mb-3">
   <?php
-  $card('my_progress', 'ความก้าวหน้าเฉลี่ย', 'ร้อยละเฉลี่ยทุกแผน', 'fa-chart-line', 'violet', url('/admin/learn'));
-  $card('my_modules_done', 'โมดูลที่เรียนจบ', 'แผนที่ครบขั้นตอนแล้ว', 'fa-book-open-reader', 'blue', url('/admin/learn'));
+  $card('my_progress', 'ความก้าวหน้าเฉลี่ย', 'ร้อยละเฉลี่ยทุกหลักสูตร', 'fa-chart-line', 'violet', url('/admin/learn'));
+  $card('my_modules_done', 'โมดูลที่เรียนจบ', 'หลักสูตรที่ครบขั้นตอนแล้ว', 'fa-book-open-reader', 'blue', url('/admin/learn'));
   $card('enrollments', 'การลงทะเบียน', 'สถานะหลักสูตรของฉัน', 'fa-clipboard-list', 'indigo', url('/admin/enrollments'));
   ?>
 </div>
@@ -43,8 +43,8 @@ $card = static function (
 </div>
 <div class="ov-grid ov-grid--2 mb-4">
   <?php
-  $card('my_certificates', 'เกียรติบัตร', 'เกียรติบัตรรายแผนที่ออกแล้ว', 'fa-certificate', 'rose', url('/admin/certificates'));
-  $card('my_diplomas', 'วุฒิบัตร', 'เมื่อผ่านแผนบังคับครบ', 'fa-award', 'amber', url('/admin/certificates'));
+  $card('my_certificates', 'เกียรติบัตร', 'เกียรติบัตรรายหลักสูตรที่ออกแล้ว', 'fa-certificate', 'rose', url('/admin/certificates'));
+  $card('my_diplomas', 'วุฒิบัตร', 'เมื่อผ่านหลักสูตรบังคับครบ', 'fa-award', 'amber', url('/admin/diplomas'));
   ?>
 </div>
 
@@ -56,12 +56,12 @@ $card = static function (
 <div class="ov-grid ov-grid--4 mb-3">
   <?php
   $card('learners', 'ผู้เข้ารับการพัฒนา', 'บัญชีผู้เรียนในระบบ', 'fa-user-graduate', 'blue', can_perm('members', 'view') ? url('/admin/members') : null);
-  $card('enrollments', 'ลงทะเบียนอบรม', 'จำนวนการลงทะเบียนทั้งหมด', 'fa-clipboard-list', 'indigo', can_perm('enrollments', 'view') ? url('/admin/plan-enrollments') : null);
+  $card('enrollments', 'ลงทะเบียนหลักสูตร', 'จำนวนการลงทะเบียนทั้งหมด', 'fa-clipboard-list', 'indigo', can_perm('enrollments', 'view') ? url('/admin/plan-enrollments') : null);
   $card('pending', 'รออนุมัติ', 'คำขอลงทะเบียนที่รอตรวจ', 'fa-hourglass-half', 'amber', can_perm('enrollments', 'view') ? url('/admin/plan-enrollments') : null);
   if ($isAdmin) {
       $card('org_units', 'หน่วยงาน', 'หน่วยงานในโครงสร้าง', 'fa-sitemap', 'teal', can_perm('org_units', 'view') ? url('/admin/org-units') : null);
   } else {
-      $card('plans_owned', 'แผนที่ดูแล', 'หลักสูตรที่ได้รับมอบหมาย', 'fa-chalkboard-user', 'teal', url('/admin/curriculum'));
+      $card('plans_owned', 'หลักสูตรที่ดูแล', 'หลักสูตรที่ได้รับมอบหมาย', 'fa-chalkboard-user', 'teal', url('/admin/curriculum'));
   }
   ?>
 </div>
@@ -71,9 +71,9 @@ $card = static function (
 </div>
 <div class="ov-grid ov-grid--4 mb-4">
   <?php
-  $card('plan_certificates', 'เกียรติบัตร', 'ออกแล้ว · รายแผน', 'fa-certificate', 'rose', can_perm('certificates', 'view') ? url('/admin/certificates') : null);
-  $card('diplomas', 'วุฒิบัตร', 'ออกแล้ว · ผ่านบังคับครบ', 'fa-award', 'emerald', can_perm('certificates', 'view') ? url('/admin/certificates') : null);
-  $card('cert_ready', 'พร้อมออกเกียรติบัตร', 'ผ่านแผนแล้ว ยังไม่ออกเอกสาร', 'fa-circle-check', 'orange', can_perm('certificates', 'view') ? url('/admin/certificates') : null);
+  $card('plan_certificates', 'เกียรติบัตร', 'ออกแล้ว · รายหลักสูตร', 'fa-certificate', 'rose', can_perm('certificates', 'view') ? url('/admin/certificates') : null);
+  $card('diplomas', 'วุฒิบัตร', 'ออกแล้ว · ผ่านบังคับครบ', 'fa-award', 'emerald', can_perm('certificates', 'view') ? url('/admin/diplomas') : null);
+  $card('cert_ready', 'พร้อมออกเกียรติบัตร', 'ผ่านหลักสูตรแล้ว ยังไม่ออกเอกสาร', 'fa-circle-check', 'orange', can_perm('certificates', 'view') ? url('/admin/certificates') : null);
   $card('task_pending', 'งานรอตรวจ', 'ภาระงานที่รอให้คะแนน', 'fa-list-check', 'pink', can_perm('assessments', 'edit') ? url('/admin/task-reviews') : null);
   ?>
 </div>

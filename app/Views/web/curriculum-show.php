@@ -44,18 +44,18 @@ $stageLabel = match ($stage) {
     <div class="ws-page-hero-copy">
       <div class="crumb">
         <a href="<?= url('/') ?>">หน้าแรก</a> ›
-        <a href="<?= url('/curriculum') ?>">แผนการเรียนรู้</a> ›
-        แผนที่ <?= $no ?>
+        <a href="<?= url('/curriculum') ?>">หลักสูตร</a> ›
+        หลักสูตรที่ <?= $no ?>
       </div>
-      <div class="ws-plan-hero-badge">แผนที่ <?= $no ?></div>
-      <h1><?= e($cfg['title'] ?? ('แผนที่ ' . $no)) ?></h1>
+      <div class="ws-plan-hero-badge">หลักสูตรที่ <?= $no ?></div>
+      <h1><?= e($cfg['title'] ?? ('หลักสูตรที่ ' . $no)) ?></h1>
       <p><?= e($cfg['topic_group'] ?? '') ?><?= !empty($cfg['topic_group']) ? ' · ' : '' ?><?= e((string) ($cfg['hours'] ?? 1)) ?> ชั่วโมง</p>
       <?php if ($planId > 0): ?>
         <div class="ws-plan-learn-cta">
           <?php if ($loggedIn): ?>
             <a class="btn btn-learn-primary btn-lg" href="<?= e($learnUrl) ?>">
               <i class="fa fa-play"></i>
-              <?= $pct > 0 ? 'เข้าเรียนต่อ' : 'เริ่มเรียนแผนนี้' ?>
+              <?= $pct > 0 ? 'เข้าเรียนต่อ' : 'เริ่มเรียนหลักสูตรนี้' ?>
             </a>
             <?php if ($progress): ?>
               <span class="ws-plan-learn-meta"><?= number_format($pct, 0) ?>%<?= $stageLabel ? ' · ' . e($stageLabel) : '' ?></span>
@@ -68,12 +68,12 @@ $stageLabel = match ($stage) {
           <p class="ws-plan-learn-flow mb-0">ลำดับการเรียน: ทดสอบก่อน → เนื้อหา → ภาระงาน → สอบหลัง → ประเมินความพึงพอใจ</p>
         </div>
       <?php else: ?>
-        <p class="ws-plan-learn-flow mt-3 mb-0">แผนนี้ยังไม่เปิดให้เรียนในระบบ LMS</p>
+        <p class="ws-plan-learn-flow mt-3 mb-0">หลักสูตรนี้ยังไม่เปิดให้เรียนในระบบ LMS</p>
       <?php endif; ?>
     </div>
     <?php if ($hasCover): ?>
       <div class="ws-page-hero-media">
-        <img src="<?= asset($coverRel) ?>?v=4" alt="แผนที่ <?= $no ?> — <?= e($cfg['title'] ?? '') ?>" loading="eager" decoding="async">
+        <img src="<?= asset($coverRel) ?>?v=4" alt="หลักสูตรที่ <?= $no ?> — <?= e($cfg['title'] ?? '') ?>" loading="eager" decoding="async">
         <span class="learn-plan-track <?= $no <= 12 ? 'is-required' : 'is-elective' ?>"><?= $no <= 12 ? 'บังคับ' : 'ทั่วไป' ?></span>
       </div>
     <?php endif; ?>
@@ -115,7 +115,7 @@ $stageLabel = match ($stage) {
               <?php endforeach; ?>
             </ul>
           <?php else: ?>
-            <p class="ws-plan-empty">ยังไม่มีเนื้อหาในระบบสำหรับแผนนี้</p>
+            <p class="ws-plan-empty">ยังไม่มีเนื้อหาในระบบสำหรับหลักสูตรนี้</p>
           <?php endif; ?>
         </section>
 
@@ -128,7 +128,7 @@ $stageLabel = match ($stage) {
               <?php endforeach; ?>
             </ul>
           <?php else: ?>
-            <p class="ws-plan-empty">ยังไม่มีภาระงานในระบบสำหรับแผนนี้</p>
+            <p class="ws-plan-empty">ยังไม่มีภาระงานในระบบสำหรับหลักสูตรนี้</p>
           <?php endif; ?>
         </section>
 
@@ -139,7 +139,7 @@ $stageLabel = match ($stage) {
               <?php foreach ($sections['knowledge'] as $ks): ?><li><?= e($ks) ?></li><?php endforeach; ?>
             </ul>
           <?php else: ?>
-            <p class="ws-plan-empty">ยังไม่มีใบความรู้ในแผนนี้</p>
+            <p class="ws-plan-empty">ยังไม่มีใบความรู้ในหลักสูตรนี้</p>
           <?php endif; ?>
         </section>
 
@@ -150,9 +150,9 @@ $stageLabel = match ($stage) {
               <?php foreach ($sections['worksheets'] as $ws): ?><li><?= e($ws) ?></li><?php endforeach; ?>
             </ul>
           <?php elseif (!empty($sections['worksheets_covered_by_tasks'])): ?>
-            <p class="ws-plan-empty mb-0">ใบงานของแผนนี้ดำเนินการผ่าน <strong>ภาระงานในระบบเรียน</strong> ด้านบนแล้ว ไม่แสดงซ้ำ</p>
+            <p class="ws-plan-empty mb-0">ใบงานของหลักสูตรนี้ดำเนินการผ่าน <strong>ภาระงานในระบบเรียน</strong> ด้านบนแล้ว ไม่แสดงซ้ำ</p>
           <?php else: ?>
-            <p class="ws-plan-empty">ยังไม่มีใบงานแยกต่างหากในแผนนี้</p>
+            <p class="ws-plan-empty">ยังไม่มีใบงานแยกต่างหากในหลักสูตรนี้</p>
           <?php endif; ?>
         </section>
 
@@ -174,7 +174,7 @@ $stageLabel = match ($stage) {
               <?php endforeach; ?>
             </ul>
           <?php else: ?>
-            <p class="ws-plan-empty">ยังไม่มีสื่อเพิ่มเติมในแผนนี้ (เนื้อหาหลักอยู่ในระบบเรียนด้านบน)</p>
+            <p class="ws-plan-empty">ยังไม่มีสื่อเพิ่มเติมในหลักสูตรนี้ (เนื้อหาหลักอยู่ในระบบเรียนด้านบน)</p>
           <?php endif; ?>
         </section>
       </article>
@@ -198,8 +198,8 @@ $stageLabel = match ($stage) {
       </aside>
 
       <aside class="card-soft ws-plan-aside">
-        <h2 class="ws-plan-aside-title">แผนอื่นในหลักสูตร</h2>
-        <nav class="ws-plan-nav" aria-label="แผนการเรียนรู้">
+        <h2 class="ws-plan-aside-title">หลักสูตรอื่นในชุด</h2>
+        <nav class="ws-plan-nav" aria-label="หลักสูตร">
           <?php foreach (($plans ?? []) as $p):
             $pn = (int) $p['plan_no'];
             $active = $pn === $no;
@@ -209,7 +209,7 @@ $stageLabel = match ($stage) {
                <?= $active ? 'aria-current="page"' : '' ?>>
               <span class="ws-plan-nav-num"><?= $pn ?></span>
               <span class="ws-plan-nav-text">
-                <strong>แผนที่ <?= $pn ?></strong>
+                <strong>หลักสูตรที่ <?= $pn ?></strong>
                 <small><?= e($p['title']) ?></small>
               </span>
             </a>

@@ -6,7 +6,7 @@ $trainers = $trainers ?? [];
   <div>
     <p class="page-kicker">PLAN CHAT</p>
     <h1>เลือกวิทยากร</h1>
-    <p class="text-muted mb-0">แผนที่ <?= (int) ($plan['plan_no'] ?? 0) ?> · <?= e($plan['title'] ?? '') ?></p>
+    <p class="text-muted mb-0">หลักสูตรที่ <?= (int) ($plan['plan_no'] ?? 0) ?> · <?= e($plan['title'] ?? '') ?></p>
   </div>
   <a class="btn btn-learn-outline" href="<?= url('/admin/learn/' . (int) ($plan['id'] ?? 0)) ?>">กลับบทเรียน</a>
 </div>

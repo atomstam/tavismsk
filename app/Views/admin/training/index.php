@@ -12,7 +12,7 @@
   <table id="training-datatable" class="table ab-datatable w-100" data-ajax-url="<?= e(url('/admin/training/datatable')) ?>">
     <thead>
       <tr>
-        <th>แผนที่</th>
+        <th>หลักสูตรที่</th>
         <th>ชื่อโมดูล</th>
         <th>Pretest</th>
         <th>เนื้อหา</th>

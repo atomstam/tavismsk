@@ -11,7 +11,7 @@ foreach ($rows as $row) {
   <div>
     <p class="page-kicker">TRAINER</p>
     <h1>ตรวจภาระงาน</h1>
-    <p class="text-muted mb-0">ตรวจให้คะแนนภาระงานของผู้เรียนในแผนที่คุณรับผิดชอบ · ค่าเริ่มต้น = คะแนนเต็มของแต่ละภาระงาน</p>
+    <p class="text-muted mb-0">ตรวจให้คะแนนภาระงานของผู้เรียนในหลักสูตรที่คุณรับผิดชอบ · ค่าเริ่มต้น = คะแนนเต็มของแต่ละภาระงาน</p>
   </div>
   <div class="d-flex flex-wrap gap-2">
     <a class="btn btn-outline-secondary" href="<?= url('/admin/training') ?>"><i class="fa fa-chalkboard-user"></i> จัดการบทเรียน LMS</a>
@@ -23,7 +23,7 @@ foreach ($rows as $row) {
     <div class="metric-stat metric-stat--blue">
       <div class="metric-stat-icon"><i class="fa fa-layer-group"></i></div>
       <div class="metric-stat-body">
-        <span class="metric-stat-label">แผนที่ดูแล</span>
+        <span class="metric-stat-label">หลักสูตรที่ดูแล</span>
         <strong class="metric-stat-value"><?= $totalPlans ?></strong>
       </div>
     </div>
@@ -51,17 +51,17 @@ foreach ($rows as $row) {
 <div class="card-soft"><div class="card-body">
   <?php if (!$rows): ?>
     <div class="text-center text-muted py-4">
-      ยังไม่มีแผนที่รับผิดชอบ
+      ยังไม่มีหลักสูตรที่รับผิดชอบ
       <?php if (auth()->role() === 'trainer'): ?>
-        — <a href="<?= url('/admin/trainer-apply') ?>">สมัครเป็นวิทยากรของแผน</a>
+        — <a href="<?= url('/admin/trainer-apply') ?>">สมัครเป็นวิทยากรของหลักสูตร</a>
       <?php endif; ?>
     </div>
   <?php else: ?>
     <table id="task-reviews-datatable" class="table datatable w-100" data-order='[[4,"desc"]]'>
       <thead>
         <tr>
-          <th class="col-primary">แผนที่</th>
-          <th class="col-wrap">ชื่อแผน</th>
+          <th class="col-primary">หลักสูตรที่</th>
+          <th class="col-wrap">ชื่อหลักสูตร</th>
           <th class="text-center">ภาระงาน</th>
           <th class="text-center">รอตรวจ</th>
           <th class="text-center">ตรวจแล้ว</th>

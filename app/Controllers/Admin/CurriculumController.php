@@ -39,8 +39,8 @@ class CurriculumController extends Controller
         }
 
         $this->view('admin/curriculum/index', [
-            'title' => 'แผนการเรียนรู้',
-            'breadcrumb' => 'หน้าหลัก / แผนการเรียนรู้',
+            'title' => 'หลักสูตร',
+            'breadcrumb' => 'หน้าหลัก / หลักสูตร',
             'plans' => $plans,
             'dbPlans' => $dbPlans,
         ]);
@@ -76,7 +76,7 @@ class CurriculumController extends Controller
             }
         }
         if (!$row) {
-            $this->flash('error', 'ไม่พบแผนการเรียนรู้');
+            $this->flash('error', 'ไม่พบหลักสูตร');
             $this->redirect('/admin/curriculum');
         }
         if (auth()->role() === 'trainer' && !(new \App\Services\PlanOwnerService())->isApproved((int) auth()->id(), (int) ($row['id'] ?? 0))) {
@@ -118,8 +118,8 @@ class CurriculumController extends Controller
         $sections = curriculum_plan_sections($cfg ?? [], $lmsContents, $lmsTasks, $resources, $worksheets);
 
         $this->view('admin/curriculum/show', [
-            'title' => 'แผนที่ ' . (int) ($row['plan_no'] ?? 0),
-            'breadcrumb' => 'หน้าหลัก / แผนการเรียนรู้ / รายละเอียด',
+            'title' => 'หลักสูตรที่ ' . (int) ($row['plan_no'] ?? 0),
+            'breadcrumb' => 'หน้าหลัก / หลักสูตร / รายละเอียด',
             'row' => $row,
             'cfg' => $cfg,
             'sections' => $sections,
@@ -134,7 +134,7 @@ class CurriculumController extends Controller
         $planId = (int) $id;
         $plan = $this->plans->find($planId);
         if (!$plan) {
-            $this->flash('error', 'ไม่พบแผนการเรียนรู้');
+            $this->flash('error', 'ไม่พบหลักสูตร');
             $this->redirect('/admin/curriculum');
         }
 
@@ -176,7 +176,7 @@ class CurriculumController extends Controller
             db()->insert('learning_progress', $payload);
         }
 
-        activity_log('update', 'curriculum', 'บันทึกความก้าวหน้าแผนที่ ' . $plan['plan_no']);
+        activity_log('update', 'curriculum', 'บันทึกความก้าวหน้าหลักสูตรที่ ' . $plan['plan_no']);
         $this->flash('success', 'บันทึกความก้าวหน้าแล้ว');
         $this->redirect('/admin/curriculum/' . $planId);
     }

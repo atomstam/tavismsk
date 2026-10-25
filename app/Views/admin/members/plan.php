@@ -11,7 +11,7 @@ $avg = $summary['avg_percent'] ?? null;
 <div class="page-head">
   <div>
     <p class="page-kicker">PLAN LEARNERS</p>
-    <h1>ผู้เรียน · แผนที่ <?= (int) ($plan['plan_no'] ?? 0) ?></h1>
+    <h1>ผู้เรียน · หลักสูตรที่ <?= (int) ($plan['plan_no'] ?? 0) ?></h1>
     <p class="text-muted mb-0">
       <?= e($plan['title'] ?? '') ?>
       · <?= number_format((float) ($plan['hours'] ?? 0), 1) ?> ชม.
@@ -37,7 +37,7 @@ $avg = $summary['avg_percent'] ?? null;
     <div class="metric-stat metric-stat--blue">
       <div class="metric-stat-icon"><i class="fa fa-user-graduate"></i></div>
       <div class="metric-stat-body">
-        <span class="metric-stat-label">ผู้เรียนในแผน</span>
+        <span class="metric-stat-label">ผู้เรียนในหลักสูตร</span>
         <strong class="metric-stat-value"><?= $learners ?></strong>
       </div>
     </div>
@@ -46,7 +46,7 @@ $avg = $summary['avg_percent'] ?? null;
     <div class="metric-stat metric-stat--emerald">
       <div class="metric-stat-icon"><i class="fa fa-award"></i></div>
       <div class="metric-stat-body">
-        <span class="metric-stat-label">ผ่านแผนแล้ว</span>
+        <span class="metric-stat-label">ผ่านหลักสูตรแล้ว</span>
         <strong class="metric-stat-value"><?= $passed ?></strong>
       </div>
     </div>
@@ -72,7 +72,7 @@ $avg = $summary['avg_percent'] ?? null;
 </div>
 
 <div class="card-soft"><div class="card-body">
-  <h2 class="h6 mb-3">ตารางผู้เรียนเฉพาะแผนนี้</h2>
+  <h2 class="h6 mb-3">ตารางผู้เรียนเฉพาะหลักสูตรนี้</h2>
   <form id="plan-learners-filter" class="row g-2 mb-3 align-items-end">
     <div class="col-md-3">
       <label class="form-label small mb-0">ค้นหา</label>
@@ -91,7 +91,7 @@ $avg = $summary['avg_percent'] ?? null;
       </select>
     </div>
     <div class="col-md-2">
-      <label class="form-label small mb-0">ผลแผน</label>
+      <label class="form-label small mb-0">ผลหลักสูตร</label>
       <select name="passed" class="form-select form-select-sm">
         <option value="">ทั้งหมด</option>
         <option value="1">ผ่าน</option>

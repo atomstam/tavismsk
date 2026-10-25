@@ -17,19 +17,19 @@ learning_objectives (master วัตถุประสงค์หลักส�
 ```
 
 ### learning_plans
-แผนการเรียนรู้ 14 ชั่วโมง (`plan_no` UNIQUE)
+หลักสูตร 14 ชั่วโมง (`plan_no` UNIQUE)
 
 ### learning_resources
-สื่อ/ลิงก์/วิดีโอ/PDF ของแต่ละแผน
+สื่อ/ลิงก์/วิดีโอ/PDF ของแต่ละหลักสูตร
 
 ### worksheets
-ใบงานของแต่ละแผน
+ใบงานของแต่ละหลักสูตร
 
 ### club_members
 สมาชิกชมรม (นักเรียน) — เชื่อม `personnel_id` ได้ (optional)
 
 ### learning_progress
-สถานะเรียนของสมาชิกต่อแผน — UNIQUE(`member_id`,`plan_id`)  
+สถานะเรียนของสมาชิกต่อหลักสูตร — UNIQUE(`member_id`,`plan_id`)  
 status: pending | in_progress | completed | absent
 
 ### learning_objectives

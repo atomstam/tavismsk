@@ -60,7 +60,7 @@ class CertificatePdfService
 
         $courseTitle = trim((string) ($cert['title'] ?? ''));
         if (!$isDiploma && $courseTitle === '' && $plan !== []) {
-            $courseTitle = 'แผนที่ ' . (int) ($plan['plan_no'] ?? 0) . ' ' . (string) ($plan['title'] ?? '');
+            $courseTitle = 'หลักสูตรที่ ' . (int) ($plan['plan_no'] ?? 0) . ' ' . (string) ($plan['title'] ?? '');
         }
         if ($courseTitle === '') {
             $courseTitle = (string) ($training['course_title'] ?? app_brand('full_name'));
