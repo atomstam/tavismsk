@@ -77,9 +77,9 @@ body.auth-dark .auth-wrap {
 body.auth-dark .auth-visual {
   position: relative;
   color: #fff;
-  display: grid;
-  place-items: center;
-  padding: 48px;
+  display: flex;
+  align-items: stretch;
+  padding: 28px 32px 32px;
   background:
     linear-gradient(145deg, rgba(124, 58, 237, .65) 0%, rgba(107, 33, 168, .5) 45%, rgba(15, 23, 42, .25) 100%);
   border-right: 1px solid rgba(124, 58, 237, .25);
@@ -105,7 +105,8 @@ body.auth-dark .auth-visual p { color: rgba(255,255,255,.82); }
 body.auth-dark .auth-panel {
   display: grid;
   place-items: center;
-  padding: 40px 48px;
+  justify-items: stretch;
+  padding: 28px 32px 36px;
   background: #070b16;
   min-height: 100%;
 }
@@ -175,9 +176,9 @@ body.auth-light .auth-wrap {
 body.auth-light .auth-visual {
   position: relative;
   color: #fff;
-  display: grid;
-  place-items: center;
-  padding: 48px;
+  display: flex;
+  align-items: stretch;
+  padding: 28px 32px 32px;
   background:
     linear-gradient(145deg, #7c3aed 0%, #6b21a8 55%, #4c1d95 100%);
   border-right: 1px solid rgba(124, 58, 237, .15);
@@ -205,7 +206,8 @@ body.auth-light .auth-visual p { color: rgba(255,255,255,.88); }
 body.auth-light .auth-panel {
   display: grid;
   place-items: center;
-  padding: 40px 48px;
+  justify-items: stretch;
+  padding: 28px 32px 36px;
   background: #ffffff;
   min-height: 100%;
   box-shadow: inset 1px 0 0 #e2e8f0;
@@ -259,12 +261,36 @@ body.auth-light .auth-form .text-muted { color: #64748b !important; }
 body.auth-light .auth-form .text-primary { color: #7c3aed !important; }
 
 /* Shared structure */
-.auth-visual > div { position: relative; z-index: 1; max-width: 28rem; }
+.auth-visual-inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: none;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  text-align: left;
+}
+/* หน้า auth อื่นที่ยังไม่แยก center block */
+.auth-visual > div:not(.auth-visual-inner) {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: min(100%, 42rem);
+  margin-block: auto;
+  text-align: left;
+}
+.auth-visual-center {
+  width: 100%;
+  max-width: min(100%, 42rem);
+}
 .auth-brand {
   display: inline-flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 20px;
+  margin: 0 0 1.15rem;
 }
 .auth-brand-icon {
   width: 44px;
@@ -290,24 +316,53 @@ body.auth-light .auth-form .text-primary { color: #7c3aed !important; }
   letter-spacing: .08em;
   text-transform: uppercase;
 }
+.auth-visual-org {
+  margin: 0 0 0.7rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  opacity: .92;
+  max-width: 100%;
+}
 .auth-visual h1 {
   font-family: 'Prompt', sans-serif;
-  font-size: clamp(1.6rem, 2.6vw, 2.2rem);
+  font-size: clamp(1.55rem, 2.5vw, 2.2rem);
   font-weight: 700;
-  line-height: 1.3;
-  max-width: 18ch;
-  margin: 12px 0;
+  line-height: 1.35;
+  max-width: 100%;
+  margin: 0 0 0.75rem;
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
+.auth-visual-desc {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.7;
+  max-width: 100%;
+  opacity: .92;
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
+.auth-visual-note {
+  margin: 0.85rem 0 0;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  max-width: 100%;
+  opacity: .82;
+  overflow-wrap: normal;
+  word-break: keep-all;
 }
 .auth-form {
   width: 100%;
-  max-width: 440px;
+  max-width: 520px;
+  margin-inline: auto;
   background: transparent;
   border: 0;
   padding: 0;
   box-sizing: border-box;
 }
 .auth-form.auth-form--register {
-  max-width: min(520px, 100%);
+  max-width: min(560px, 100%);
 }
 .auth-fields {
   width: 100%;
@@ -679,9 +734,82 @@ body.auth-dark .login-oauth-btn:hover {
   cursor: not-allowed;
   pointer-events: none;
 }
+
+/* ThaID / EduID — same row with official logos */
+.login-gov-oauth {
+  margin-top: 1rem;
+}
+.login-gov-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  width: 100%;
+}
+.login-gov-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-width: 0;
+  width: 100%;
+  min-height: 74px;
+  padding: 0.65rem 0.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid transparent;
+  text-decoration: none;
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, .1);
+  transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+}
+.login-gov-btn:hover {
+  color: #fff;
+  text-decoration: none;
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, .14);
+}
+.login-gov-btn__logo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, .12);
+  flex-shrink: 0;
+}
+.login-gov-btn__text {
+  min-width: 0;
+  line-height: 1.15;
+  text-align: center;
+}
+.login-gov-btn__text strong {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: .01em;
+}
+.login-gov-btn--thaid {
+  background: linear-gradient(160deg, #0b1f4d 0%, #163a7a 100%);
+  border-color: #1e3a8a;
+}
+.login-gov-btn--eduid {
+  background: linear-gradient(160deg, #166534 0%, #16a34a 100%);
+  border-color: #15803d;
+}
+body.auth-dark .login-gov-btn--thaid {
+  background: linear-gradient(160deg, #0a1838 0%, #1e3a8a 100%);
+}
+body.auth-dark .login-gov-btn--eduid {
+  background: linear-gradient(160deg, #14532d 0%, #15803d 100%);
+}
+
 @media (max-width: 420px) {
   .login-oauth-buttons { gap: 0.4rem; }
   .login-oauth-btn { font-size: 0.625rem; padding: 0.5rem 0.25rem; }
+  .login-gov-btn { min-height: 68px; padding: 0.55rem 0.35rem; }
+  .login-gov-btn__logo { width: 32px; height: 32px; }
+  .login-gov-btn__text strong { font-size: 0.72rem; }
 }
 
 /* Searchable selects — match textbox; search input at top of dropdown */

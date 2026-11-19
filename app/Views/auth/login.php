@@ -3,8 +3,11 @@ $sys = (string) app_brand('short_name');
 $org = (string) setting('org_name');
 $aff = (string) setting('org_affiliation');
 $oauthProviders = $oauthProviders ?? [];
-$oauthBtn = static function (string $providerId, string $label, string $cssClass) use ($oauthProviders): void {
-    $on = isset($oauthProviders[$providerId]);
+$oauthConfigured = static function (string $providerId) use ($oauthProviders): bool {
+    return isset($oauthProviders[$providerId]);
+};
+$oauthBtn = static function (string $providerId, string $label, string $cssClass) use ($oauthConfigured): void {
+    $on = $oauthConfigured($providerId);
     $href = $on ? url('/auth/' . $providerId) : '#';
     $cls = 'login-oauth-btn ' . $cssClass . ($on ? '' : ' login-oauth-btn--disabled');
     $attr = $on ? '' : ' aria-disabled="true" title="ยังไม่ได้ตั้งค่า OAuth ใน .env"';
@@ -18,20 +21,33 @@ $oauthBtn = static function (string $providerId, string $label, string $cssClass
     }
     echo e($label) . '</a>';
 };
+$govBtn = static function (string $providerId, string $label, string $cssClass, string $logoFile) use ($oauthConfigured): void {
+    $on = $oauthConfigured($providerId);
+    $href = $on ? url('/auth/' . $providerId) : '#';
+    $cls = 'login-gov-btn ' . $cssClass . ($on ? '' : ' login-oauth-btn--disabled');
+    $attr = $on ? '' : ' aria-disabled="true" title="ยังไม่ได้ตั้งค่า Client ID ใน .env"';
+    $logo = asset('img/oauth/' . $logoFile);
+    echo '<a href="' . e($href) . '" class="' . e($cls) . '"' . $attr . '>';
+    echo '<img class="login-gov-btn__logo" src="' . e($logo) . '" alt="' . e($label) . '" width="28" height="28" loading="lazy" decoding="async">';
+    echo '<span class="login-gov-btn__text"><strong>' . e($label) . '</strong></span>';
+    echo '</a>';
+};
 ?>
 <div class="auth-wrap">
   <div class="auth-visual">
-    <div>
-      <div class="auth-brand">
-        <span class="auth-brand-icon"><i class="fa fa-shield-halved"></i></span>
-        <span class="auth-brand-text">
-          <span class="name"><?= e($sys) ?></span>
-          <span class="tag"><?= e(app_brand('nav_tag')) ?></span>
-        </span>
+    <div class="auth-visual-inner">
+      <div class="auth-visual-center">
+        <div class="auth-brand">
+          <span class="auth-brand-icon"><i class="fa fa-shield-halved"></i></span>
+          <span class="auth-brand-text">
+            <span class="name"><?= e($sys) ?></span>
+            <span class="tag"><?= e(app_brand('nav_tag')) ?></span>
+          </span>
+        </div>
+        <p class="auth-visual-org"><?= e($org) ?><?= $aff !== '' ? ' · ' . e($aff) : '' ?></p>
+        <h1><?= e(app_brand('name')) ?></h1>
+        <p class="auth-visual-desc"><?= e(app_brand('full_name')) ?></p>
       </div>
-      <p class="mb-2"><?= e($org) ?><?= $aff !== '' ? ' · ' . e($aff) : '' ?></p>
-      <h1><?= e(app_brand('name')) ?></h1>
-      <p class="mt-3"><?= e(app_brand('full_name')) ?></p>
     </div>
   </div>
   <div class="auth-panel">
@@ -101,6 +117,15 @@ $oauthBtn = static function (string $providerId, string $label, string $cssClass
           <?php $oauthBtn('line', 'LINE', 'login-oauth-btn--line'); ?>
         </div>
         <p class="login-oauth-hint">ต้องมีบัญชีในระบบและอีเมลตรงกับที่ลงทะเบียนไว้</p>
+      </div>
+
+      <div class="login-gov-oauth">
+        <p class="login-oauth-divider"><span>ยืนยันตัวตนด้วยบัตรประชาชน</span></p>
+        <div class="login-gov-buttons">
+          <?php $govBtn('thaid', 'ThaID', 'login-gov-btn--thaid', 'thaid.png'); ?>
+          <?php $govBtn('eduid', 'EduID', 'login-gov-btn--eduid', 'eduid.png'); ?>
+        </div>
+        <p class="login-oauth-hint">ใช้บัญชี ThaID หรือ EduID — เลขบัตรประชาชนต้องตรงกับที่ลงทะเบียนในระบบ</p>
       </div>
 
       <p class="mt-3 mb-0 text-center"><a href="<?= url('/register') ?>">ยังไม่มีบัญชี? สมัครสมาชิก</a></p>

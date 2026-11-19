@@ -3,15 +3,19 @@
 declare(strict_types=1);
 
 /**
- * OAuth Social Login — Facebook / Google / LINE
+ * OAuth Social + Government Login — Facebook / Google / LINE / ThaID / EduID
  * ว่าง Client ID = ปิดปุ่มบนหน้า login
  *
  * Callback URL ตัวอย่าง (local):
  *   http://localhost/traffic_vaccine/auth/facebook/cb
  *   http://localhost/traffic_vaccine/auth/google/cb
  *   http://localhost/traffic_vaccine/auth/line/cb
+ *   http://localhost/traffic_vaccine/auth/thaid/cb
+ *   http://localhost/traffic_vaccine/auth/eduid/cb
  *
  * Production: ตั้ง OAUTH_CANONICAL_BASE_URL ให้ตรงโดเมนในแอปผู้ให้บริการ
+ * ThaID: ลงทะเบียน RP กับ กรมการปกครอง (imauth.bora.dopa.go.th)
+ * EduID: ลงทะเบียนแอปกับ Education ID (edu.id.th)
  */
 
 $env = static function (string $key, string $default = ''): string {
@@ -74,6 +78,8 @@ $fbId = $env('OAUTH_FACEBOOK_CLIENT_ID');
 $googleId = $env('OAUTH_GOOGLE_CLIENT_ID') ?: $env('GOOGLE_CLIENT_ID');
 $googleSecret = $env('OAUTH_GOOGLE_CLIENT_SECRET') ?: $env('GOOGLE_CLIENT_SECRET');
 $lineId = $env('OAUTH_LINE_CHANNEL_ID');
+$thaidId = $env('OAUTH_THAID_CLIENT_ID');
+$eduidId = $env('OAUTH_EDUID_CLIENT_ID');
 
 return [
     'facebook' => [
@@ -82,6 +88,7 @@ return [
         'client_secret' => $env('OAUTH_FACEBOOK_CLIENT_SECRET'),
         'redirect_uri' => $resolveRedirect('facebook', 'OAUTH_FACEBOOK_REDIRECT_URI'),
         'label' => 'Facebook',
+        'group' => 'social',
     ],
     'google' => [
         'enabled' => $googleId !== '',
@@ -90,6 +97,7 @@ return [
         'redirect_uri' => $resolveRedirect('google', 'OAUTH_GOOGLE_REDIRECT_URI')
             ?: ($env('GOOGLE_REDIRECT_URI') ?: $buildPublicUrl('/auth/google/cb')),
         'label' => 'Google',
+        'group' => 'social',
     ],
     'line' => [
         'enabled' => $lineId !== '',
@@ -97,5 +105,32 @@ return [
         'client_secret' => $env('OAUTH_LINE_CHANNEL_SECRET'),
         'redirect_uri' => $resolveRedirect('line', 'OAUTH_LINE_REDIRECT_URI'),
         'label' => 'LINE',
+        'group' => 'social',
+    ],
+    'thaid' => [
+        'enabled' => $thaidId !== '',
+        'client_id' => $thaidId,
+        'client_secret' => $env('OAUTH_THAID_CLIENT_SECRET'),
+        'redirect_uri' => $resolveRedirect('thaid', 'OAUTH_THAID_REDIRECT_URI'),
+        'label' => 'ThaID',
+        'group' => 'gov',
+        'authorize_url' => 'https://imauth.bora.dopa.go.th/api/v2/oauth2/auth/',
+        'token_url' => 'https://imauth.bora.dopa.go.th/api/v2/oauth2/token/',
+        'userinfo_url' => 'https://imauth.bora.dopa.go.th/api/v2/oauth2/userinfo/',
+        'scope' => $env('OAUTH_THAID_SCOPE', 'openid pid name given_name family_name birthdate'),
+        'token_auth' => 'basic',
+    ],
+    'eduid' => [
+        'enabled' => $eduidId !== '',
+        'client_id' => $eduidId,
+        'client_secret' => $env('OAUTH_EDUID_CLIENT_SECRET'),
+        'redirect_uri' => $resolveRedirect('eduid', 'OAUTH_EDUID_REDIRECT_URI'),
+        'label' => 'EduID',
+        'group' => 'gov',
+        'authorize_url' => 'https://edu.id.th/oauth2/v1/authorize',
+        'token_url' => 'https://edu.id.th/oauth2/v1/token',
+        'userinfo_url' => 'https://edu.id.th/oauth2/v1/userinfo',
+        'scope' => $env('OAUTH_EDUID_SCOPE', 'person_id prefix first_name last_name birth_date'),
+        'token_auth' => 'basic',
     ],
 ];

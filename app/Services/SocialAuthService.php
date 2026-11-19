@@ -9,7 +9,7 @@ use App\Models\UserOAuth;
 
 final class SocialAuthService
 {
-    private const PROVIDERS = ['facebook', 'google', 'line'];
+    private const PROVIDERS = ['facebook', 'google', 'line', 'thaid', 'eduid'];
 
     /** @return array<string,array<string,mixed>> */
     public static function providersForLogin(): array
@@ -19,6 +19,19 @@ final class SocialAuthService
         foreach (self::PROVIDERS as $p) {
             if (!empty($cfg[$p]['enabled'])) {
                 $out[$p] = $cfg[$p];
+            }
+        }
+
+        return $out;
+    }
+
+    /** @return array<string,array<string,mixed>> */
+    public static function providersForLoginGroup(string $group): array
+    {
+        $out = [];
+        foreach (self::providersForLogin() as $id => $cfg) {
+            if (($cfg['group'] ?? 'social') === $group) {
+                $out[$id] = $cfg;
             }
         }
 
@@ -110,6 +123,7 @@ final class SocialAuthService
             'facebook' => $this->facebookAuthorizeUrl($c, $state),
             'google' => $this->googleAuthorizeUrl($c, $state),
             'line' => $this->lineAuthorizeUrl($c, $state),
+            'thaid', 'eduid' => $this->oidcAuthorizeUrl($c, $state),
             default => throw new \InvalidArgumentException('unknown'),
         };
 
@@ -141,6 +155,8 @@ final class SocialAuthService
             'facebook' => $this->facebookProfile($c, $code),
             'google' => $this->googleProfile($c, $code),
             'line' => $this->lineProfile($c, $code),
+            'thaid' => $this->thaidProfile($c, $code),
+            'eduid' => $this->eduidProfile($c, $code),
             default => throw new \InvalidArgumentException('unknown'),
         };
 
@@ -152,6 +168,7 @@ final class SocialAuthService
         $pid = trim((string) ($profile['id'] ?? ''));
         $email = strtolower(trim((string) ($profile['email'] ?? '')));
         $name = trim((string) ($profile['name'] ?? ''));
+        $idCard = preg_replace('/\D+/', '', (string) ($profile['id_card'] ?? '')) ?: '';
 
         if ($pid === '') {
             throw new \RuntimeException('ไม่ได้รับรหัสผู้ใช้จาก ' . $provider . ' — ตรวจสอบ Client ID/Secret และ Callback URL');
@@ -176,10 +193,19 @@ final class SocialAuthService
                 $user = null;
             }
         }
+        if ($user === null && $idCard !== '' && in_array($provider, ['thaid', 'eduid'], true)) {
+            $user = $this->findUserByIdCard($um, $idCard);
+        }
         if ($user === null) {
             if ($provider === 'line' && $email === '') {
                 throw new \RuntimeException(
                     'ไม่พบบัญชีที่ผูกกับ LINE นี้ — ให้เข้าสู่ระบบด้วยชื่อผู้ใช้/รหัสผ่านก่อน แล้วเชื่อม LINE ที่ข้อมูลส่วนตัว'
+                );
+            }
+            if (in_array($provider, ['thaid', 'eduid'], true)) {
+                $label = $provider === 'thaid' ? 'ThaID' : 'EduID';
+                throw new \RuntimeException(
+                    'ไม่พบบัญชีที่ผูกกับ ' . $label . ' — ให้เข้าสู่ระบบด้วยชื่อผู้ใช้/รหัสผ่านก่อน หรือลงทะเบียนด้วยเลขบัตรประชาชนให้ตรงกัน'
                 );
             }
             throw new \RuntimeException('ไม่พบบัญชีในระบบ — อีเมลต้องตรงกับที่ลงทะเบียนไว้');
@@ -286,6 +312,165 @@ final class SocialAuthService
         ]);
 
         return 'https://access.line.me/oauth2/v2.1/authorize?' . $q;
+    }
+
+    /** @param array<string,mixed> $c */
+    private function oidcAuthorizeUrl(array $c, string $state): string
+    {
+        $base = rtrim((string) ($c['authorize_url'] ?? ''), '?&');
+        if ($base === '') {
+            throw new \RuntimeException('ยังไม่ได้ตั้งค่า authorize URL');
+        }
+        $q = http_build_query([
+            'response_type' => 'code',
+            'client_id' => (string) ($c['client_id'] ?? ''),
+            'redirect_uri' => (string) ($c['redirect_uri'] ?? ''),
+            'scope' => (string) ($c['scope'] ?? 'openid'),
+            'state' => $state,
+        ], '', '&', PHP_QUERY_RFC3986);
+
+        return $base . (str_contains($base, '?') ? '&' : '?') . $q;
+    }
+
+    /**
+     * @param array<string,mixed> $c
+     * @return array{id: string, email: string, name: string, id_card: string}
+     */
+    private function thaidProfile(array $c, string $code): array
+    {
+        $token = $this->oidcToken($c, $code);
+        $access = trim((string) ($token['access_token'] ?? ''));
+        if ($access === '') {
+            throw new \RuntimeException('ThaID ไม่ส่ง access token — ตรวจสอบ Client ID/Secret และ Callback URL');
+        }
+
+        $me = [];
+        $userinfoUrl = trim((string) ($c['userinfo_url'] ?? ''));
+        if ($userinfoUrl !== '') {
+            try {
+                $me = $this->httpGetAuth($userinfoUrl, $access);
+            } catch (\Throwable) {
+                $me = [];
+            }
+        }
+
+        if ($me === [] && !empty($token['id_token'])) {
+            $me = $this->decodeJwtPayload((string) $token['id_token']);
+        }
+
+        $pid = preg_replace('/\D+/', '', (string) ($me['pid'] ?? $me['sub'] ?? '')) ?: '';
+        $given = trim((string) ($me['given_name'] ?? ''));
+        $family = trim((string) ($me['family_name'] ?? ''));
+        $name = trim((string) ($me['name'] ?? ''));
+        if ($name === '') {
+            $name = trim($given . ' ' . $family);
+        }
+
+        return [
+            'id' => $pid !== '' ? $pid : trim((string) ($me['sub'] ?? '')),
+            'email' => '',
+            'name' => $name,
+            'id_card' => $pid,
+        ];
+    }
+
+    /**
+     * @param array<string,mixed> $c
+     * @return array{id: string, email: string, name: string, id_card: string}
+     */
+    private function eduidProfile(array $c, string $code): array
+    {
+        $token = $this->oidcToken($c, $code);
+        $access = trim((string) ($token['access_token'] ?? ''));
+        if ($access === '') {
+            throw new \RuntimeException('EduID ไม่ส่ง access token — ตรวจสอบ Client ID/Secret และ Callback URL');
+        }
+
+        $me = [];
+        $userinfoUrl = trim((string) ($c['userinfo_url'] ?? ''));
+        if ($userinfoUrl !== '') {
+            try {
+                $me = $this->httpGetAuth($userinfoUrl, $access);
+            } catch (\Throwable) {
+                $me = [];
+            }
+        }
+
+        if ($me === [] && !empty($token['id_token'])) {
+            $me = $this->decodeJwtPayload((string) $token['id_token']);
+        }
+
+        $personId = preg_replace('/\D+/', '', (string) ($me['person_id'] ?? '')) ?: '';
+        $sub = trim((string) ($me['sub'] ?? ''));
+        $prefix = trim((string) ($me['prefix'] ?? ''));
+        $first = trim((string) ($me['first_name'] ?? ''));
+        $last = trim((string) ($me['last_name'] ?? ''));
+        $name = trim($prefix . ' ' . $first . ' ' . $last);
+        $name = preg_replace('/\s+/', ' ', $name) ?: '';
+
+        return [
+            'id' => $personId !== '' ? $personId : ($sub !== '' ? $sub : $personId),
+            'email' => strtolower(trim((string) ($me['email'] ?? ''))),
+            'name' => $name,
+            'id_card' => $personId,
+        ];
+    }
+
+    /**
+     * @param array<string,mixed> $c
+     * @return array<string,mixed>
+     */
+    private function oidcToken(array $c, string $code): array
+    {
+        $tokenUrl = trim((string) ($c['token_url'] ?? ''));
+        if ($tokenUrl === '') {
+            throw new \RuntimeException('ยังไม่ได้ตั้งค่า token URL');
+        }
+
+        $body = [
+            'grant_type' => 'authorization_code',
+            'code' => $code,
+            'redirect_uri' => (string) ($c['redirect_uri'] ?? ''),
+        ];
+
+        $authMode = (string) ($c['token_auth'] ?? 'basic');
+        if ($authMode === 'basic') {
+            return $this->httpPostFormBasic(
+                $tokenUrl,
+                $body,
+                (string) ($c['client_id'] ?? ''),
+                (string) ($c['client_secret'] ?? '')
+            );
+        }
+
+        $body['client_id'] = (string) ($c['client_id'] ?? '');
+        $body['client_secret'] = (string) ($c['client_secret'] ?? '');
+
+        return $this->httpPostForm($tokenUrl, $body);
+    }
+
+    /** @return array<string,mixed>|null */
+    private function findUserByIdCard(User $um, string $idCard): ?array
+    {
+        if ($idCard === '') {
+            return null;
+        }
+        try {
+            $user = db()->fetch(
+                'SELECT * FROM users
+                 WHERE deleted_at IS NULL
+                   AND REPLACE(REPLACE(REPLACE(COALESCE(id_card, ""), "-", ""), " ", ""), "/", "") = ?
+                 LIMIT 1',
+                [$idCard]
+            );
+        } catch (\Throwable) {
+            $user = $um->findBy('id_card', $idCard);
+        }
+        if ($user && !empty($user['deleted_at'])) {
+            return null;
+        }
+
+        return is_array($user) ? $user : null;
     }
 
     /**
@@ -461,6 +646,20 @@ final class SocialAuthService
     {
         return $this->requestJson('POST', $url, $params, [
             'Content-Type' => 'application/x-www-form-urlencoded',
+        ]);
+    }
+
+    /**
+     * @param array<string,string> $params
+     * @return array<string,mixed>
+     */
+    private function httpPostFormBasic(string $url, array $params, string $clientId, string $clientSecret): array
+    {
+        $basic = base64_encode($clientId . ':' . $clientSecret);
+
+        return $this->requestJson('POST', $url, $params, [
+            'Content-Type' => 'application/x-www-form-urlencoded',
+            'Authorization' => 'Basic ' . $basic,
         ]);
     }
 

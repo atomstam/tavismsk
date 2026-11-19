@@ -29,17 +29,19 @@ $isGeneral = $memberType === 'general';
 ?>
 <div class="auth-wrap">
   <div class="auth-visual">
-    <div>
-      <div class="auth-brand">
-        <span class="auth-brand-icon"><i class="fa fa-shield-halved"></i></span>
-        <span class="auth-brand-text">
-          <span class="name"><?= e(app_brand('short_name')) ?></span>
-          <span class="tag"><?= e(app_brand('nav_tag')) ?></span>
-        </span>
+    <div class="auth-visual-inner">
+      <div class="auth-visual-center">
+        <div class="auth-brand">
+          <span class="auth-brand-icon"><i class="fa fa-shield-halved"></i></span>
+          <span class="auth-brand-text">
+            <span class="name"><?= e(app_brand('short_name')) ?></span>
+            <span class="tag"><?= e(app_brand('nav_tag')) ?></span>
+          </span>
+        </div>
+        <h1>สมัครสมาชิก</h1>
+        <p class="auth-visual-desc">สำหรับ<strong>ผู้ใช้งานทั่วไป</strong> — เลือกสังกัด สพม.มหาสารคาม แล้วเลือกโรงเรียน หรือเลือก “อื่นๆ” แล้วกรอกหน่วยงานเอง</p>
+        <p class="auth-visual-note">บัญชีผู้ดูแลระบบ และวิทยากร จัดการโดย Admin ในระบบหลังบ้านเท่านั้น</p>
       </div>
-      <h1>สมัครสมาชิก</h1>
-      <p class="mt-3">สำหรับ<strong>ผู้ใช้งานทั่วไป</strong> — เลือกสังกัด สพม.มหาสารคาม แล้วเลือกโรงเรียน หรือเลือก “อื่นๆ” แล้วกรอกหน่วยงานเอง</p>
-      <p class="mt-2" style="opacity:.85;font-size:.95rem">บัญชีผู้ดูแลระบบ และวิทยากร จัดการโดย Admin ในระบบหลังบ้านเท่านั้น</p>
     </div>
   </div>
   <div class="auth-panel">
