@@ -2,17 +2,19 @@
 # -*- coding: utf-8 -*-
 """
 freebsd_php2shell_update_v2.py — อัปเดต PHP บนเซิร์ฟเวอร์ FreeBSD จริง (เชิงป้องกัน)
+ครอบคลุม PHP2Shell + ThaiCERT Critical Nov 2026 (เกณฑ์ 8.5.13/8.4.28/8.3.37/8.2.36)
 
 ใช้เอนจินจาก freebsd_php2shell_update.py แต่บังคับนโยบายที่ปลอดภัยกว่า:
 
   • เลือกเวอร์ชันปลอดภัยที่ใกล้สาขาปัจจุบันที่สุดเท่านั้น
-    ตัวอย่าง: 8.2.30 → 8.2.35  ไม่กระโดดไป 8.3/8.4
+    ตัวอย่าง: 8.2.30 → 8.2.36  ไม่กระโดดไป 8.3/8.4
   • ประเมินผลกระทบก่อนอัปเดต (CLI / FPM / เว็บ / ส่วนขยาย / ดาวน์ไทม์)
   • สำรอง php.ini และคอนฟิก Apache ก่อนแก้
   • ไม่สลับ FreeBSD package set เป็น latest โดยอัตโนมัติ
   • ไม่เปลี่ยนสาขา PHP เว้นแต่ใส่ --allow-branch-change
-  • แพตช์ฝั่งเว็บ (FPM/mod_php) เป็นหลัก เพราะ PHP2Shell ยิงผ่านเว็บ
-  • ใส่ mitigation session.upload_progress.enabled=Off ก่อนอัปเกรด
+  • แพตช์ฝั่งเว็บ (FPM/mod_php) เป็นหลัก เพราะช่องโหว่ยิงผ่านเว็บ
+  • ใส่ mitigation (upload_progress Off + exception_ignore_args + fatal_error_backtraces=0)
+    และเตือน FastCGI keep-alive ก่อนอัปเกรด
 
 ไม่ส่ง exploit / payload / ไม่ทำ PoC
 
@@ -38,15 +40,15 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 
 SCRIPT_NAME = "freebsd_php2shell_update_v2.py"
-SCRIPT_VERSION = "2.1.3"
+SCRIPT_VERSION = "2.2.0"
 V1_NAME = "freebsd_php2shell_update.py"
 BACKUP_ROOT = Path("/var/backups/php2shell-v2")
 
 SAFE_MIN: Dict[Tuple[int, int], Tuple[int, int, int]] = {
-    (8, 5): (8, 5, 12),
-    (8, 4): (8, 4, 27),
-    (8, 3): (8, 3, 36),
-    (8, 2): (8, 2, 35),
+    (8, 5): (8, 5, 13),
+    (8, 4): (8, 4, 28),
+    (8, 3): (8, 3, 37),
+    (8, 2): (8, 2, 36),
 }
 
 
@@ -97,7 +99,7 @@ def closest_safe(ver: Any, v1: Any) -> Tuple[Optional[Any], str, bool]:
             return target, f"สาขา {ver.major}.{ver.minor} ผ่านเกณฑ์แล้ว", True
         return target, f"อัปในสาขาเดิม {ver} → {target}", True
     if branch < (8, 2):
-        target = v1.Version(8, 2, 35)
+        target = v1.Version(8, 2, 36)
         return (
             target,
             f"สาขา {ver} เป็น EOL — จะอัปเป็น {target} (ใกล้ที่สุดที่มีแพตช์ ไม่แพตช์ 7.4 ต่อ)",
@@ -127,7 +129,7 @@ def build_impact(v1: Any, installs: list, allow_branch_change: bool) -> Impact:
         needs = bool(target and inst.version.as_tuple() < target.as_tuple())
         if not same:
             impact.needs_branch_change = True
-            # PHP 7.4 / 8.0 / 8.1 → 8.2.35 เป็นเส้นทางมาตรฐาน ไม่ต้องรอ --allow-branch-change
+            # PHP 7.4 / 8.0 / 8.1 → 8.2.36 เป็นเส้นทางมาตรฐาน ไม่ต้องรอ --allow-branch-change
             if inst.version.branch() < (8, 2):
                 needs = True
                 note += " — อนุญาตอัตโนมัติเพราะสาขาเดิมไม่มีแพตช์"
@@ -439,12 +441,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--allow-branch-change",
         action="store_true",
-        help="ยอมให้ย้ายสาขาอื่นนอกเหนือจาก 7.4/8.0/8.1 → 8.2.35",
+        help="ยอมให้ย้ายสาขาอื่นนอกเหนือจาก 7.4/8.0/8.1 → 8.2.36",
     )
     p.add_argument(
         "--remove-eol",
         action="store_true",
-        help="หลังย้าย 7.4 ไป 8.2.35 แล้ว ลบแพ็กเกจ php74-* ที่ค้าง",
+        help="หลังย้าย 7.4 ไป 8.2.36 แล้ว ลบแพ็กเกจ php74-* ที่ค้าง",
     )
     p.add_argument("--fpm-addr", default="", help="ที่อยู่ php-fpm ถ้าต้องสลับจาก mod_php")
     p.add_argument("--json-report", metavar="FILE", help="เขียนรายงาน JSON")

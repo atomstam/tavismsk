@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 php2shell_scan.py — ตัวตรวจความเสี่ยง PHP2Shell (เชิงป้องกัน / ไม่โจมตี)
-CVE-2026-109618 / CVE-2026-109619
+CVE-2026-109618 / CVE-2026-109619 + ThaiCERT Critical Nov 2026
 
 สคริปต์นี้ "ตรวจเวอร์ชัน" ของเซิร์ฟเวอร์ที่คุณดูแล เพื่อบอกว่ายังเสี่ยง
 PHP2Shell อยู่หรือไม่ โดย:
@@ -48,14 +48,14 @@ from dataclasses import dataclass, field, asdict
 from typing import Dict, List, Optional, Tuple
 
 SCRIPT_NAME = "php2shell_scan.py"
-SCRIPT_VERSION = "1.1.1"
+SCRIPT_VERSION = "1.2.0"
 
 # (major, minor) -> minimum safe (major, minor, patch)  [upstream PHP]
 SAFE_MIN: Dict[Tuple[int, int], Tuple[int, int, int]] = {
-    (8, 5): (8, 5, 12),
-    (8, 4): (8, 4, 27),
-    (8, 3): (8, 3, 36),
-    (8, 2): (8, 2, 35),
+    (8, 5): (8, 5, 13),
+    (8, 4): (8, 4, 28),
+    (8, 3): (8, 3, 37),
+    (8, 2): (8, 2, 36),
 }
 
 PHP_VER_RE = re.compile(r"PHP/(\d+)\.(\d+)\.(\d+)", re.I)
@@ -201,8 +201,8 @@ def evaluate(
         if branch < (8, 2):
             return (
                 "vulnerable",
-                "8.2.35",
-                f"PHP {vtext} เป็นสาขา EOL — จะอัปเป็น 8.2.35 (ใกล้ที่สุดที่มีแพตช์)",
+                "8.2.36",
+                f"PHP {vtext} เป็นสาขา EOL — จะอัปเป็น 8.2.36 (ใกล้ที่สุดที่มีแพตช์)",
             )
         return ("unknown", None, f"ไม่รู้เกณฑ์ของสาขา {branch[0]}.{branch[1]}")
     need_text = ".".join(map(str, need))

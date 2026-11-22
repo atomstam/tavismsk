@@ -2,18 +2,19 @@
 # -*- coding: utf-8 -*-
 """
 FreeBSD PHP2Shell hardening & update helper
-CVE-2026-109618 / CVE-2026-109619
+CVE-2026-109618 / CVE-2026-109619 + ThaiCERT Critical (Nov 2026)
 
 อัปเดต / ตรวจ / mitigation PHP หลายเวอร์ชันบน FreeBSD (pkg)
-ให้พ้นช่องโหว่ PHP2Shell ตามประกาศ PHP ฉุกเฉิน
+ให้พ้นช่องโหว่ PHP2Shell และชุด Critical รอบ 19 พ.ย. 2569
+(HTTP Request Smuggling / UAF / Session deserialization → RCE)
 
-เวอร์ชันขั้นต่ำที่ปลอดภัย (upstream PHP):
-  8.5 >= 8.5.12
-  8.4 >= 8.4.27
-  8.3 >= 8.3.36
-  8.2 >= 8.2.35
-  8.1 / 7.4 และเก่ากว่า: EOL — สคริปต์จะย้ายไป 8.2.35 (ใกล้ที่สุดที่มีแพตช์)
-    ไม่พยายามแพตช์ 7.4 ต่อ เพราะไม่มีแพตช์ PHP2Shell
+เวอร์ชันขั้นต่ำที่ปลอดภัย (upstream PHP — รวมแพตช์ ThaiCERT):
+  8.5 >= 8.5.13
+  8.4 >= 8.4.28
+  8.3 >= 8.3.37
+  8.2 >= 8.2.36
+  8.1 / 7.4 และเก่ากว่า: EOL — สคริปต์จะย้ายไป 8.2.36 (ใกล้ที่สุดที่มีแพตช์)
+    ไม่พยายามแพตช์ 7.4 ต่อ เพราะไม่มีแพตช์ Critical ชุดนี้
 
 ตัวอย่างใช้งาน:
   # ตรวจสถานะอย่างเดียว (ยังไม่อัปเดต)
@@ -63,25 +64,27 @@ CVE-2026-109618 / CVE-2026-109619
   # บังคับสร้าง mod_php (libphp.so) ใหม่ให้ตรงเวอร์ชัน (ทางเลือกแทน --use-fpm)
   sudo python3 freebsd_php2shell_update.py --rebuild-modphp --yes --restart
 
-  # ครบสำหรับโฮสต์ที่ CLI/FPM เป็น 8.2.35 แต่ Apache ยังเสิร์ฟ 7.4 (libphp7.so พัง)
+  # ครบสำหรับโฮสต์ที่ CLI/FPM เป็น 8.2.36 แต่ Apache ยังเสิร์ฟ 7.4 (libphp7.so พัง)
   sudo python3 freebsd_php2shell_update.py --from-source --yes --clean-ext-dups --remove-eol
 
   # Apache สตาร์ทไม่ได้เพราะ php_flag ค้างหลังปิด mod_php
   sudo python3 freebsd_php2shell_update.py --fix-apache --yes
 
-หมายเหตุสำคัญ (PHP2Shell ยิงผ่านเว็บ):
+หมายเหตุสำคัญ (PHP2Shell / ThaiCERT Critical ยิงผ่านเว็บ):
   CLI (php -v) กับ mod_php/FPM ที่เว็บเสิร์ฟ อาจคนละเวอร์ชันกัน
   ถ้าหน้าเว็บเป็น nginx จะใช้ php-fpm เป็นตัวตัดสิน (nginx มักไม่โชว์ X-Powered-By)
   และจะรีสตาร์ทเฉพาะ nginx ไม่ไปยุ่ง apache24 ที่ไม่ได้เสิร์ฟไซต์
-  ถ้า Apache ยัง LoadModule libphp7.so / เสิร์ฟ PHP 7.4 ขณะที่ FPM เป็น 8.2.35
+  ถ้า Apache ยัง LoadModule libphp7.so / เสิร์ฟ PHP 7.4 ขณะที่ FPM เป็น 8.2.36
   สคริปต์จะปิดโมดูลเก่า แล้วสลับไป php-fpm ก่อนรีสตาร์ท (ไม่ติดตั้ง mod_php82 ทับ libphp7)
   ตรวจเทียบกับ php2shell_scan_v2.py ได้
   nginx/Apache ที่ซ่อนเวอร์ชัน PHP (expose_php=Off / FPM) จะขึ้น HIDDEN ไม่ใช่ UNKNOWN
   ให้ตรวจ FPM บนเครื่องด้วย --check หรือ php2shell_scan_v2.py --local
+  หลังแพตช์ต้องรีสตาร์ท PHP-FPM master + worker ทั้งชุด (อย่าให้รุ่นเก่ารันค้าง)
 
 อ้างอิง:
-  https://thehackernews.com/2026/10/php-issues-emergency-patches-for-two.html
   https://www.php.net/
+  ThaiCERT Critical PHP (Nov 2026): 8.5.13 / 8.4.28 / 8.3.37 / 8.2.36
+  CVE-2026-129289, 129474, 129182, 129496, 126714, 115560, 129481 (+ PHP2Shell)
 """
 
 from __future__ import annotations
@@ -109,7 +112,7 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 
 SCRIPT_NAME = "freebsd_php2shell_update.py"
-SCRIPT_VERSION = "1.9.2"
+SCRIPT_VERSION = "1.10.0"
 
 LATEST_REPO_FILE = Path("/usr/local/etc/pkg/repos/FreeBSD-latest-php2shell.conf")
 REPAIR_REPO_FILE = Path("/usr/local/etc/pkg/repos/FreeBSD-php2shell-repair.conf")
@@ -131,15 +134,31 @@ PHP_SOURCE_MIRRORS = (
 )
 
 # (major, minor) -> minimum safe (major, minor, patch)
+# รวมแพตช์ ThaiCERT Critical Nov 2026 (สูงกว่ารอบ PHP2Shell เดิมหนึ่งแพตช์)
 SAFE_MIN: Dict[Tuple[int, int], Tuple[int, int, int]] = {
-    (8, 5): (8, 5, 12),
-    (8, 4): (8, 4, 27),
-    (8, 3): (8, 3, 36),
-    (8, 2): (8, 2, 35),
+    (8, 5): (8, 5, 13),
+    (8, 4): (8, 4, 28),
+    (8, 3): (8, 3, 37),
+    (8, 2): (8, 2, 36),
 }
 
-# สาขา EOL (7.4 / 8.0 / 8.1) ไม่มีแพตช์ PHP2Shell — ย้ายไปสาขาใกล้ที่สุดที่มีแพตช์
-EOL_MIGRATE_TARGET: Tuple[int, int, int] = (8, 2, 35)
+# สาขา EOL (7.4 / 8.0 / 8.1) ไม่มีแพตช์ Critical — ย้ายไปสาขาใกล้ที่สุดที่มีแพตช์
+EOL_MIGRATE_TARGET: Tuple[int, int, int] = (8, 2, 36)
+
+# mitigation ชั่วคราวก่อน/ระหว่างอัปเดต (ไม่ทดแทนแพตช์)
+MITIGATION_DROPIN = (
+    "; PHP Critical mitigation — PHP2Shell + ThaiCERT Nov 2026\n"
+    "; CVE-2026-109618/109619, 129289, 129474, 129182, 129496, 126714, 115560, 129481\n"
+    "session.upload_progress.enabled = Off\n"
+    "zend.exception_ignore_args = 1\n"
+    "; PHP 8.5+: ลดเส้นทาง UAF ใน fatal backtrace (directive เก่ากว่าอาจถูก ignore)\n"
+    "fatal_error_backtraces = 0\n"
+)
+MITIGATION_KEYS: Tuple[Tuple[str, str], ...] = (
+    ("session.upload_progress.enabled", "Off"),
+    ("zend.exception_ignore_args", "1"),
+    ("fatal_error_backtraces", "0"),
+)
 
 # FreeBSD pkg / binary naming helpers: php82, php83, ...
 FLAVOR_RE = re.compile(r"^php(\d{2})$")
@@ -392,7 +411,7 @@ def parse_version(text: str) -> Optional[Version]:
     text = (text or "").strip()
     m = VERSION_RE.search(text)
     if not m:
-        # also accept "8.2.35"
+        # also accept "8.2.36"
         m2 = re.search(r"(\d+)\.(\d+)\.(\d+)", text)
         if not m2:
             return None
@@ -455,7 +474,7 @@ def list_pkg_php_packages() -> List[str]:
     pkgs = []
     for line in (cp.stdout or "").splitlines():
         name = line.strip().split("-")[0] if line.strip() else ""
-        # FreeBSD package names look like php82-8.2.35 or php82-extensions-...
+        # FreeBSD package names look like php82-8.2.36 or php82-extensions-...
         full = line.strip()
         if not full:
             continue
@@ -698,8 +717,24 @@ def backup_file(path: Path, dry_run: bool = False) -> Optional[Path]:
     return bak
 
 
+def _ini_key_re(key: str) -> re.Pattern:
+    return re.compile(rf"^\s*;?\s*{re.escape(key)}\s*=")
+
+
+def _desired_ini_line(key: str, value: str) -> str:
+    return f"{key} = {value}\n"
+
+
+def _ini_value_matches(line: str, value: str) -> bool:
+    m = re.search(r"=\s*(.+?)\s*(?:;.*)?$", line)
+    if not m:
+        return False
+    got = m.group(1).strip().strip("\"'")
+    return got.lower() == value.lower()
+
+
 def mitigate_ini(path: str, dry_run: bool = False) -> ActionResult:
-    """Set session.upload_progress.enabled=Off in a php.ini-like file."""
+    """ตั้ง mitigation ชั่วคราวตาม ThaiCERT (upload_progress / exception args / fatal backtraces)."""
     p = Path(path)
     if not p.is_file():
         return ActionResult(False, f"ไม่พบไฟล์ {path}")
@@ -710,47 +745,49 @@ def mitigate_ini(path: str, dry_run: bool = False) -> ActionResult:
         return ActionResult(False, f"อ่านไม่ได้ {path}: {e}")
 
     lines = text.splitlines(keepends=True)
-    key_re = re.compile(r"^\s*;?\s*session\.upload_progress\.enabled\s*=")
-    new_line = "session.upload_progress.enabled = Off\n"
     changed = False
-    out_lines: List[str] = []
-    found = False
-    for line in lines:
-        if key_re.match(line):
-            found = True
-            # Preserve newline style
-            nl = "\n" if line.endswith("\n") else ""
-            if line.lstrip().startswith(";"):
-                # uncomment / replace
-                out_lines.append(new_line if nl == "\n" else new_line.rstrip("\n"))
-                changed = True
-            elif re.search(r"=\s*Off\b", line, re.I):
-                out_lines.append(line)
-            else:
-                out_lines.append(new_line if nl == "\n" else new_line.rstrip("\n"))
-                changed = True
-        else:
-            out_lines.append(line)
+    applied: List[str] = []
 
-    if not found:
-        if out_lines and not out_lines[-1].endswith("\n"):
-            out_lines[-1] = out_lines[-1] + "\n"
-        out_lines.append("\n; PHP2Shell mitigation (CVE-2026-109618 / CVE-2026-109619)\n")
-        out_lines.append(new_line)
-        changed = True
+    for key, value in MITIGATION_KEYS:
+        key_re = _ini_key_re(key)
+        new_line = _desired_ini_line(key, value)
+        found = False
+        out_lines: List[str] = []
+        for line in lines:
+            if key_re.match(line):
+                found = True
+                if line.lstrip().startswith(";") or not _ini_value_matches(line, value):
+                    nl = "\n" if line.endswith("\n") else ""
+                    out_lines.append(new_line if nl == "\n" else new_line.rstrip("\n"))
+                    changed = True
+                else:
+                    out_lines.append(line)
+            else:
+                out_lines.append(line)
+        if not found:
+            if out_lines and not out_lines[-1].endswith("\n"):
+                out_lines[-1] = out_lines[-1] + "\n"
+            if key == MITIGATION_KEYS[0][0]:
+                out_lines.append(
+                    "\n; PHP Critical mitigation (PHP2Shell + ThaiCERT Nov 2026)\n"
+                )
+            out_lines.append(new_line)
+            changed = True
+        lines = out_lines
+        applied.append(f"{key}={value}")
 
     if not changed:
         return ActionResult(True, f"มี mitigation แล้ว: {path}")
 
     backup_file(p, dry_run=dry_run)
     if dry_run:
-        return ActionResult(True, f"DRY-RUN จะตั้ง Off ที่ {path}", ["session.upload_progress.enabled = Off"])
+        return ActionResult(True, f"DRY-RUN จะตั้ง mitigation ที่ {path}", applied)
 
     try:
-        p.write_text("".join(out_lines), encoding="utf-8")
+        p.write_text("".join(lines), encoding="utf-8")
     except OSError as e:
         return ActionResult(False, f"เขียนไม่ได้ {path}: {e}")
-    return ActionResult(True, f"ตั้ง session.upload_progress.enabled=Off ที่ {path}")
+    return ActionResult(True, f"ตั้ง mitigation ที่ {path}: {', '.join(applied)}")
 
 
 def should_mitigate_ini(path: str) -> bool:
@@ -760,7 +797,12 @@ def should_mitigate_ini(path: str) -> bool:
         return True
     if "session" in name:
         return True
-    if name in {"zzz-php2shell.ini", "php2shell.ini", "99-php2shell.ini"}:
+    if name in {
+        "zzz-php2shell.ini",
+        "php2shell.ini",
+        "99-php2shell.ini",
+        "99-php2shell-mitigation.ini",
+    }:
         return True
     return False
 
@@ -795,11 +837,7 @@ def mitigate_all(installs: List[PhpInstall], dry_run: bool = False) -> List[Acti
                 log(results[-1].message, "warn")
                 continue
             Path(t).parent.mkdir(parents=True, exist_ok=True)
-            Path(t).write_text(
-                "; PHP2Shell mitigation CVE-2026-109618 / CVE-2026-109619\n"
-                "session.upload_progress.enabled = Off\n",
-                encoding="utf-8",
-            )
+            Path(t).write_text(MITIGATION_DROPIN, encoding="utf-8")
             results.append(ActionResult(True, f"สร้าง drop-in mitigation: {t}"))
             log(results[-1].message, "ok")
             continue
@@ -814,7 +852,63 @@ def mitigate_all(installs: List[PhpInstall], dry_run: bool = False) -> List[Acti
         "หมายเหตุ: mitigation ลดความเสี่ยงบางเส้นทางเท่านั้น — ต้องอัปเดต PHP จึงปลอดภัยจริง",
         "warn",
     )
+    warn_persistent_fastcgi()
     return results
+
+
+def warn_persistent_fastcgi() -> List[str]:
+    """เตือนการตั้งค่า FastCGI keep-alive ที่เกี่ยวกับ CVE-2026-129289 (ไม่แก้ไฟล์อัตโนมัติ)."""
+    patterns = (
+        (re.compile(r"fastcgi_keep_conn\s+on", re.I), "nginx fastcgi_keep_conn on"),
+        (re.compile(r"enablereuse\s*=\s*on", re.I), "Apache mod_proxy_fcgi enablereuse=on"),
+        (re.compile(r"ProxyPassMatch\s+.*enablereuse=on", re.I), "Apache ProxyPassMatch enablereuse=on"),
+    )
+    roots = [
+        Path("/usr/local/etc/nginx"),
+        Path("/etc/nginx"),
+        Path("/usr/local/etc/apache24"),
+        Path("/usr/local/etc/apache22"),
+        Path("/etc/httpd"),
+        Path("/etc/apache2"),
+        Path("/usr/local/directadmin/data/users"),
+    ]
+    hits: List[str] = []
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for path in root.rglob("*"):
+            if not path.is_file():
+                continue
+            if path.suffix.lower() not in {".conf", ".include", ""} and "nginx" not in str(path):
+                name = path.name.lower()
+                if not (name.endswith(".conf") or "vhost" in name or "httpd" in name):
+                    continue
+            try:
+                if path.stat().st_size > 2_000_000:
+                    continue
+                text = path.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            for cre, label in patterns:
+                if cre.search(text):
+                    hits.append(f"{label} @ {path}")
+                    break
+            if len(hits) >= 12:
+                break
+        if len(hits) >= 12:
+            break
+
+    if hits:
+        log(
+            "พบ FastCGI persistent connection (CVE-2026-129289) — "
+            "ปิด fastcgi_keep_conn / enablereuse จนกว่าจะแพตช์ PHP แล้วรีสตาร์ท FPM",
+            "warn",
+        )
+        for h in hits[:8]:
+            log(f"  {h}", "warn")
+    else:
+        log("ไม่พบ fastcgi_keep_conn/enablereuse ในคอนฟิกที่สแกน (หรือไม่มีไฟล์)", "info")
+    return hits
 
 
 def pkg_update(dry_run: bool = False) -> ActionResult:
@@ -980,7 +1074,7 @@ def pkg_remote_php_version(flavor: str) -> Optional[Version]:
             line = line.strip()
             if not line:
                 continue
-            # formats: "8.2.35" or "php82-8.2.35" or "php82-8.2.35         PHP ..."
+            # formats: "8.2.36" or "php82-8.2.36" or "php82-8.2.36         PHP ..."
             m = re.search(rf"(?:^|php{flavor}-)(\d+\.\d+\.\d+)\b", line)
             if not m:
                 m = re.search(r"\b(\d+\.\d+\.\d+)\b", line)
@@ -1229,7 +1323,7 @@ def find_patched_php_binary() -> Optional[str]:
 
 def migrate_eol_to_safe(dry_run: bool = False, remove_eol: bool = False) -> ActionResult:
     """
-    ย้ายค่าเริ่มต้นจาก PHP 7.4/8.0/8.1 ไป 8.2.35
+    ย้ายค่าเริ่มต้นจาก PHP 7.4/8.0/8.1 ไป 8.2.36
     ถ้ามี php82 อยู่แล้วจะไม่คอมไพล์ซ้ำ — ชี้ php/php-fpm ไปสาขาที่แพตช์
     """
     details: List[str] = []
@@ -1707,7 +1801,7 @@ def build_php_from_source(
             if already:
                 log(
                     f"php{inst.flavor} {inst.version} เป็น EOL — "
-                    f"มี {already.version} แล้ว จะย้ายค่าเริ่มต้นไป 8.2.35 ไม่คอมไพล์ซ้ำ",
+                    f"มี {already.version} แล้ว จะย้ายค่าเริ่มต้นไป 8.2.36 ไม่คอมไพล์ซ้ำ",
                     "step",
                 )
                 mr = migrate_eol_to_safe(dry_run=dry_run, remove_eol=False)
@@ -1921,11 +2015,7 @@ def build_php_from_source(
         # Ensure mitigation drop-in remains
         drop = Path("/usr/local/etc/php/99-php2shell.ini")
         drop.parent.mkdir(parents=True, exist_ok=True)
-        drop.write_text(
-            "; PHP2Shell mitigation CVE-2026-109618 / CVE-2026-109619\n"
-            "session.upload_progress.enabled = Off\n",
-            encoding="utf-8",
-        )
+        drop.write_text(MITIGATION_DROPIN, encoding="utf-8")
 
         new_ver = php_version_of(inst.binary if Path(inst.binary).exists() else (which("php") or "/usr/local/bin/php"))
         details.append(f"php after source build: {new_ver or '-'}")
@@ -3309,7 +3399,7 @@ def complete_eol_web_cutover(
     dry_run: bool = False, fpm_addr: Optional[str] = None
 ) -> ActionResult:
     """
-    เมื่อ CLI/FPM เป็น 8.2.35 แล้วแต่ Apache ยังโหลด libphp7.so หรือเสิร์ฟ 7.4:
+    เมื่อ CLI/FPM เป็น 8.2.36 แล้วแต่ Apache ยังโหลด libphp7.so หรือเสิร์ฟ 7.4:
     ปิดโมดูลเก่าแล้วสลับไป php-fpm — ไม่ย้อนกลับไป libphp7 ที่พังอยู่แล้ว
     """
     details: List[str] = []
@@ -4056,7 +4146,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--from-source",
         action="store_true",
-        help="คอมไพล์ PHP จากทarball ทางการ แล้วปิด leftover libphp7 / สลับ Apache ไป php-fpm 8.2.35",
+        help="คอมไพล์ PHP จากทarball ทางการ แล้วปิด leftover libphp7 / สลับ Apache ไป php-fpm 8.2.36",
     )
     p.add_argument(
         "--clean-ext-dups",
@@ -4106,7 +4196,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--remove-eol",
         action="store_true",
-        help="หลังย้าย 7.4/8.0/8.1 ไป 8.2.35 แล้ว ลบแพ็กเกจ EOL ที่ค้าง (php74-* เป็นต้น)",
+        help="หลังย้าย 7.4/8.0/8.1 ไป 8.2.36 แล้ว ลบแพ็กเกจ EOL ที่ค้าง (php74-* เป็นต้น)",
     )
     p.add_argument("--dry-run", action="store_true", help="จำลอง ไม่แก้ระบบ")
     p.add_argument("--json-report", metavar="FILE", help="เขียนรายงาน JSON")
@@ -4210,6 +4300,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     installs = discover_installs(flavors)
     code = print_report(installs)
+    warn_persistent_fastcgi()
     if find_custombuild():
         log("พบ DirectAdmin CustomBuild — แนะนำอัปเดตด้วย --custombuild หรือ --all --yes", "info")
 
@@ -4542,7 +4633,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             "err",
         )
         log(
-            "เกณฑ์ปลอดภัย: 8.2.35+ / 8.3.36+ / 8.4.27+ / 8.5.12+",
+            "เกณฑ์ปลอดภัย: 8.2.36+ / 8.3.37+ / 8.4.28+ / 8.5.13+",
             "warn",
         )
         return 2
@@ -4578,7 +4669,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     eol = [i for i in installs if is_eol_branch(i.version)]
     if eol:
         log(
-            "ยังมี PHP 7.4/EOL — จะย้ายไป 8.2.35 "
+            "ยังมี PHP 7.4/EOL — จะย้ายไป 8.2.36 "
             f"(sudo python3 {SCRIPT_NAME} --from-source --yes --remove-eol)",
             "warn",
         )

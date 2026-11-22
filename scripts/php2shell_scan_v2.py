@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-php2shell_scan_v2.py — ตรวจความเสี่ยง PHP2Shell เชิงป้องกัน (สอดคล้อง updater v2)
-CVE-2026-109618 / CVE-2026-109619
+php2shell_scan_v2.py — ตรวจความเสี่ยง PHP Critical เชิงป้องกัน (สอดคล้อง updater v2)
+CVE-2026-109618 / 109619 + ThaiCERT Nov 2026 (8.5.13 / 8.4.28 / 8.3.37 / 8.2.36)
 
 ปรับจาก php2shell_scan.py:
   - เกณฑ์เดียวกับ freebsd_php2shell_update_v2.py
-  - แนะนำเวอร์ชันปลอดภัยที่ใกล้สาขาปัจจุบัน (8.2.30 → 8.2.35 ไม่กระโดด 8.3)
+  - แนะนำเวอร์ชันปลอดภัยที่ใกล้สาขาปัจจุบัน (8.2.30 → 8.2.36 ไม่กระโดด 8.3)
   - โหมด --local เทียบ CLI / FPM / โมดูลเว็บ
   - เลือก IP แบบโต้ตอบได้เหมือนเดิม
   - ไม่ส่ง exploit / payload
@@ -35,14 +35,14 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 
 SCRIPT_NAME = "php2shell_scan_v2.py"
-SCRIPT_VERSION = "2.1.1"
+SCRIPT_VERSION = "2.2.0"
 UPDATER_V2 = "freebsd_php2shell_update_v2.py"
 
 SAFE_MIN: Dict[Tuple[int, int], Tuple[int, int, int]] = {
-    (8, 5): (8, 5, 12),
-    (8, 4): (8, 4, 27),
-    (8, 3): (8, 3, 36),
-    (8, 2): (8, 2, 35),
+    (8, 5): (8, 5, 13),
+    (8, 4): (8, 4, 28),
+    (8, 3): (8, 3, 37),
+    (8, 2): (8, 2, 36),
 }
 
 PHP_VER_RE = re.compile(r"PHP/?\s*(\d+)\.(\d+)\.(\d+)", re.I)
@@ -139,9 +139,9 @@ def closest_safe(
     if branch < (8, 2):
         return (
             "vulnerable",
-            "8.2.35",
+            "8.2.36",
             False,
-            f"PHP {vtext} เป็น EOL — จะอัปเป็น 8.2.35 (ใกล้ที่สุดที่มีแพตช์ ไม่แพตช์ 7.4 ต่อ)",
+            f"PHP {vtext} เป็น EOL — จะอัปเป็น 8.2.36 (ใกล้ที่สุดที่มีแพตช์ ไม่แพตช์ 7.4 ต่อ)",
         )
     return ("unknown", None, True, f"ไม่รู้เกณฑ์ของสาขา {branch[0]}.{branch[1]}")
 
@@ -424,7 +424,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Optional[List[str]] = None) -> int:
     args = build_parser().parse_args(argv)
     log(f"{SCRIPT_NAME} v{SCRIPT_VERSION} — ตรวจเวอร์ชันเชิงป้องกัน ไม่ส่ง payload", "step")
-    log("เกณฑ์: 8.5.12 / 8.4.27 / 8.3.36 / 8.2.35 — เลือกสาขาเดิมที่ใกล้ปัจจุบัน", "info")
+    log("เกณฑ์: 8.5.13 / 8.4.28 / 8.3.37 / 8.2.36 — เลือกสาขาเดิมที่ใกล้ปัจจุบัน", "info")
 
     paths = [args.path]
     if args.paths:

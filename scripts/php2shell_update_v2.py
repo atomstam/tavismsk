@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-php2shell_update_v2.py — อัปเดต PHP เชิงป้องกันตามคู่มือ CVE-2026-109618 / 109619
+php2shell_update_v2.py — อัปเดต PHP เชิงป้องกัน
+CVE-2026-109618 / 109619 + ThaiCERT Critical Nov 2026
+(CVE-2026-129289, 129474, 129182, 129496, 126714, 115560, 129481)
 
-ทำตาม 4 ขั้นตอนในโพสต์ (ตรวจบน EL8 / ใช้ได้กับ RHEL, Alma, Rocky, Ubuntu, Debian, FreeBSD):
+ทำตาม 4 ขั้นตอน (RHEL/Alma/Rocky/Ubuntu/Debian/FreeBSD/macOS):
   1) เช็กเวอร์ชัน: php -v และ php-fpm -v
   2) อัปเดตแพ็กเกจ PHP (dnf / apt / pkg ตาม OS)
-  3) restart + enable php-fpm และเว็บเซิร์ฟเวอร์
+  3) restart + enable php-fpm และเว็บเซิร์ฟเวอร์ (master + worker ทั้งชุด)
   4) ตรวจผล: เวอร์ชันปลอดภัย + php-fpm active + โมดูล PHP ถูกโหลด
 
-เวอร์ชันขั้นต่ำที่ปลอดภัย (upstream PHP):
-  8.5.12 / 8.4.27 / 8.3.36 / 8.2.35
+เวอร์ชันขั้นต่ำที่ปลอดภัย (upstream PHP — รวมแพตช์ ThaiCERT):
+  8.5.13 / 8.4.28 / 8.3.37 / 8.2.36
   สาขาเก่ากว่า 8.2 ไม่มีแพตช์ — ต้องย้ายสาขา
 
 สคริปต์นี้ไม่ส่ง exploit / payload / ไม่ทำ PoC
@@ -40,14 +42,21 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 
 SCRIPT_NAME = "php2shell_update_v2.py"
-SCRIPT_VERSION = "2.0.1"
+SCRIPT_VERSION = "2.1.0"
 
 SAFE_MIN: Dict[Tuple[int, int], Tuple[int, int, int]] = {
-    (8, 5): (8, 5, 12),
-    (8, 4): (8, 4, 27),
-    (8, 3): (8, 3, 36),
-    (8, 2): (8, 2, 35),
+    (8, 5): (8, 5, 13),
+    (8, 4): (8, 4, 28),
+    (8, 3): (8, 3, 37),
+    (8, 2): (8, 2, 36),
 }
+
+MITIGATION_DROPIN = (
+    "; PHP Critical mitigation — PHP2Shell + ThaiCERT Nov 2026\n"
+    "session.upload_progress.enabled=Off\n"
+    "zend.exception_ignore_args=1\n"
+    "fatal_error_backtraces=0\n"
+)
 
 VERSION_RE = re.compile(r"(?:PHP\s+)?(\d+)\.(\d+)\.(\d+)", re.I)
 OS_RELEASE = Path("/etc/os-release")
@@ -131,7 +140,7 @@ def classify(ver: Optional[Version]) -> Tuple[str, str]:
     need = SAFE_MIN.get(ver.branch())
     if need is None:
         if ver.branch() < (8, 2):
-            return "eol", "8.2.35+"
+            return "eol", "8.2.36+"
         return "unknown", ""
     need_text = ".".join(map(str, need))
     if ver.as_tuple() >= need:
@@ -241,7 +250,7 @@ def collect_bins() -> List[BinVersion]:
         "/usr/local/opt/php@8.4/bin/php",
         "/opt/homebrew/opt/php@8.2/bin/php",
         str(Path.home() / ".local/php-override/php"),
-        str(Path.home() / ".local/php-8.2.35/bin/php"),
+        str(Path.home() / ".local/php-8.2.36/bin/php"),
     ]
     extra_globs = [
         "/usr/sbin/php-fpm",
@@ -474,7 +483,11 @@ def apply_mitigation(dry_run: bool) -> List[str]:
             dropins.append(Path(d) / "99-php2shell-mitigation.ini")
 
     changed: List[str] = []
-    line = "session.upload_progress.enabled=Off\n"
+    settings = (
+        ("session.upload_progress.enabled", "Off"),
+        ("zend.exception_ignore_args", "1"),
+        ("fatal_error_backtraces", "0"),
+    )
     target = next((p for p in dropins if p.parent.is_dir()), None)
     if target is None and files:
         target = files[0]
@@ -485,23 +498,25 @@ def apply_mitigation(dry_run: bool) -> List[str]:
         log(f"DRY-RUN จะเขียน {target}", "warn")
         return [str(target)]
     if target.suffix == ".ini" and target.name.startswith("99-"):
-        target.write_text(line, encoding="utf-8")
+        target.write_text(MITIGATION_DROPIN, encoding="utf-8")
         changed.append(str(target))
-        log(f"ตั้ง session.upload_progress.enabled=Off ที่ {target}", "ok")
+        log(f"ตั้ง mitigation ThaiCERT ที่ {target}", "ok")
         return changed
     text = target.read_text(encoding="utf-8", errors="replace")
-    if re.search(r"^\s*session\.upload_progress\.enabled\s*=", text, re.M):
-        text = re.sub(
-            r"^\s*session\.upload_progress\.enabled\s*=.*$",
-            "session.upload_progress.enabled=Off",
-            text,
-            flags=re.M,
-        )
-    else:
-        text += "\n" + line
+    for key, value in settings:
+        line = f"{key}={value}"
+        if re.search(rf"^\s*{re.escape(key)}\s*=", text, re.M):
+            text = re.sub(
+                rf"^\s*{re.escape(key)}\s*=.*$",
+                line,
+                text,
+                flags=re.M,
+            )
+        else:
+            text += "\n" + line + "\n"
     target.write_text(text, encoding="utf-8")
     changed.append(str(target))
-    log(f"ตั้ง session.upload_progress.enabled=Off ที่ {target}", "ok")
+    log(f"ตั้ง mitigation ThaiCERT ที่ {target}", "ok")
     return changed
 
 
@@ -581,7 +596,7 @@ def macos_point_cli_to_brew(dry_run: bool) -> List[str]:
 
 
 def macos_switch_xampp_to_fpm(dry_run: bool) -> int:
-    """ปิด XAMPP libphp 8.2.4 แล้วส่ง *.php ไป brew php-fpm 8.2.35"""
+    """ปิด XAMPP libphp 8.2.4 แล้วส่ง *.php ไป brew php-fpm 8.2.36"""
     conf = Path("/Applications/XAMPP/xamppfiles/etc/extra/httpd-xampp.conf")
     if not conf.is_file():
         log("ไม่พบ httpd-xampp.conf — ข้ามการสลับ Apache", "warn")
@@ -610,7 +625,7 @@ def macos_switch_xampp_to_fpm(dry_run: bool) -> int:
             shutil.copy2(conf, backup)
         text = re.sub(
             r"^(\s*LoadModule\s+php_module\s+modules/libphp\.so\s*)$",
-            r"#\1  # disabled by php2shell — ใช้ brew php-fpm 8.2.35",
+            r"#\1  # disabled by php2shell — ใช้ brew php-fpm 8.2.36",
             text,
             flags=re.M,
         )
@@ -738,7 +753,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--restart", action="store_true", help="ขั้นตอน 3: restart + enable")
     p.add_argument("--verify", action="store_true", help="ขั้นตอน 4: ตรวจผล")
     p.add_argument("--all", action="store_true", help="ทำครบ 1–4 ตามรูป")
-    p.add_argument("--mitigate", action="store_true", help="ตั้ง session.upload_progress.enabled=Off")
+    p.add_argument(
+        "--mitigate",
+        action="store_true",
+        help="ตั้ง mitigation ThaiCERT (upload_progress Off, exception_ignore_args, fatal_error_backtraces=0)",
+    )
     p.add_argument("--yes", action="store_true", help="ไม่ถามยืนยัน")
     p.add_argument("--dry-run", action="store_true", help="จำลอง ไม่แก้ระบบ")
     p.add_argument("--version", action="version", version=f"%(prog)s {SCRIPT_VERSION}")
@@ -770,7 +789,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     log(f"{SCRIPT_NAME} v{SCRIPT_VERSION} — เชิงป้องกัน ไม่ส่ง exploit", "step")
     log(f"OS: {osinfo.pretty}  family={osinfo.family}  pkg={osinfo.pkg}", "info")
-    log("เกณฑ์ปลอดภัย: 8.5.12 / 8.4.27 / 8.3.36 / 8.2.35", "info")
+    log("เกณฑ์ปลอดภัย (ThaiCERT): 8.5.13 / 8.4.28 / 8.3.37 / 8.2.36", "info")
+    log(
+        "mitigation ชั่วคราว: upload_progress=Off, zend.exception_ignore_args=1, "
+        "fatal_error_backtraces=0 — และปิด fastcgi_keep_conn/enablereuse ถ้ามี",
+        "info",
+    )
 
     rows = collect_bins()
     if do_check:
@@ -780,7 +804,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         log("เวอร์ชันที่ตรวจได้ผ่านเกณฑ์แล้ว — ไม่บังคับอัปเดต เว้นแต่เว็บ SAPI คนละตัวกับ CLI", "ok")
     if needed(rows):
         log("จำเป็นต้องอัปเดต: มี CLI หรือ FPM ต่ำกว่าเกณฑ์ในรูป", "warn")
-        log("PHP2Shell ยิงผ่านเว็บ — ต้องแพตช์ FPM/mod_php ไม่ใช่แค่ php -v", "warn")
+        log("ช่องโหว่ Critical ยิงผ่านเว็บ — ต้องแพตช์ FPM/mod_php ไม่ใช่แค่ php -v", "warn")
     elif do_check and not do_update:
         log("จากไบนารีบนเครื่องนี้ ยังไม่จำเป็นต้องอัปเดต — ตรวจฝั่งเว็บด้วย php2shell_scan_v2.py ด้วย", "ok")
         if args.mitigate:
