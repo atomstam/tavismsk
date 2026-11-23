@@ -67,7 +67,7 @@ CVE-2026-109618 / CVE-2026-109619 + ThaiCERT Critical (Nov 2026)
   # ครบสำหรับโฮสต์ที่ CLI/FPM เป็น 8.2.36 แต่ Apache ยังเสิร์ฟ 7.4 (libphp7.so พัง)
   sudo python3 freebsd_php2shell_update.py --from-source --yes --clean-ext-dups --remove-eol
 
-  # Apache สตาร์ทไม่ได้เพราะ php_flag ค้างหลังปิด mod_php
+  # Apache / หน้าขาวเพราะ php_flag ค้างใน .htaccess หลังปิด mod_php (ใช้ FPM)
   sudo python3 freebsd_php2shell_update.py --fix-apache --yes
 
 หมายเหตุสำคัญ (PHP2Shell / ThaiCERT Critical ยิงผ่านเว็บ):
@@ -112,7 +112,7 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 
 SCRIPT_NAME = "freebsd_php2shell_update.py"
-SCRIPT_VERSION = "1.10.0"
+SCRIPT_VERSION = "1.12.0"
 
 LATEST_REPO_FILE = Path("/usr/local/etc/pkg/repos/FreeBSD-latest-php2shell.conf")
 REPAIR_REPO_FILE = Path("/usr/local/etc/pkg/repos/FreeBSD-php2shell-repair.conf")
@@ -3273,40 +3273,157 @@ def _apache_conf_files(base: Path) -> List[Path]:
     return files
 
 
+def _htaccess_candidates(max_files: int = 800) -> List[Path]:
+    """
+    หา .htaccess ในเว็บรูทของผู้ใช้ — จุดที่ทำให้หน้าขาวหลังสลับ FPM
+    (เช่น /home/secon/public_html/newweb/.htaccess มี php_flag)
+    """
+    roots: List[Path] = []
+    for p in (
+        Path("/home"),
+        Path("/usr/home"),
+        Path("/usr/local/www"),
+        Path("/var/www"),
+        Path("/usr/local/directadmin/data/users"),
+    ):
+        if p.is_dir():
+            roots.append(p)
+    found: List[Path] = []
+    seen = set()
+    for root in roots:
+        # DirectAdmin / shared hosting: /home/*/public_html/**/.htaccess
+        patterns = [
+            "*/public_html/.htaccess",
+            "*/public_html/*/.htaccess",
+            "*/public_html/*/*/.htaccess",
+            "*/domains/*/public_html/.htaccess",
+            "*/domains/*/public_html/*/.htaccess",
+            "*/.htaccess",
+            "*/*/.htaccess",
+        ]
+        if root.name in {"www", "htdocs"} or str(root).endswith("/www"):
+            patterns = [".htaccess", "*/.htaccess", "*/*/.htaccess", "*/*/*/.htaccess"]
+        for pat in patterns:
+            try:
+                for path in root.glob(pat):
+                    if not path.is_file():
+                        continue
+                    key = str(path.resolve()) if path.exists() else str(path)
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    found.append(path)
+                    if len(found) >= max_files:
+                        return found
+            except OSError:
+                continue
+    return found
+
+
+def _comment_modphp_directives_in_file(path: Path, dry_run: bool = False) -> Optional[str]:
+    try:
+        txt = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    if not MODPHP_ONLY_DIR_RE.search(txt):
+        return None
+    if dry_run:
+        return f"DRY-RUN จะปิด php_flag/php_value ใน {path}"
+    backup_file(path, dry_run=False)
+    txt2 = MODPHP_ONLY_DIR_COMMENT_RE.sub(
+        r"\1#\2  # disabled by php2shell (mod_php only; ใช้ php.ini / FPM)",
+        txt,
+    )
+    if txt2 == txt:
+        return None
+    path.write_text(txt2, encoding="utf-8")
+    return f"ปิด php_flag/php_value ใน {path}"
+
+
 def sanitize_modphp_directives(dry_run: bool = False) -> ActionResult:
     """
     ปิด php_flag / php_value / php_admin_* ที่เหลือจาก mod_php
-    (เช่น extra/httpd-ssl.conf) เพื่อให้ Apache ขึ้นได้หลังสลับไป php-fpm
+    ทั้งใน Apache conf และ .htaccess ของเว็บไซต์
+    (หลังสลับไป php-fpm คำสั่งเหล่านี้ทำให้ 500 / หน้าขาว)
     ค่าเหล่านี้ย้ายไปใส่ใน php.ini หรือ php-fpm pool
     """
-    base = _apache_base()
-    if not base:
-        return ActionResult(True, "ไม่พบ Apache — ไม่มี php_flag ให้ปิด")
     details: List[str] = []
     changed: List[str] = []
-    for f in _apache_conf_files(base):
+    targets: List[Path] = []
+
+    base = _apache_base()
+    if base:
+        targets.extend(_apache_conf_files(base))
+    targets.extend(_htaccess_candidates())
+
+    # จาก error_log: ชี้ไฟล์ .htaccess ที่พังจริงแล้ว (เช่น newweb/.htaccess)
+    for hint in _htaccess_paths_from_error_log():
+        if hint not in targets:
+            targets.append(hint)
+
+    for f in targets:
+        msg = _comment_modphp_directives_in_file(f, dry_run=dry_run)
+        if not msg:
+            continue
+        changed.append(str(f))
+        details.append(msg)
+
+    if not changed:
+        return ActionResult(
+            True,
+            "ไม่มี php_flag/php_value ของ mod_php ค้าง (conf + .htaccess)",
+            details,
+        )
+    return ActionResult(
+        True,
+        f"ปิดคำสั่ง mod_php ใน {len(changed)} ไฟล์ (รวม .htaccess ถ้ามี)",
+        details,
+    )
+
+
+def _htaccess_paths_from_error_log(max_hits: int = 40) -> List[Path]:
+    """อ่าน path .htaccess จาก error_log ที่รายงาน Invalid command php_flag"""
+    logs = [
+        Path("/var/log/httpd-error.log"),
+        Path("/var/log/apache24/error_log"),
+        Path("/var/log/httpd-error.log"),
+        Path("/usr/local/apache2/logs/error_log"),
+        Path("/var/log/httpd/error_log"),
+    ]
+    # DirectAdmin / custom
+    for p in Path("/var/log").glob("**/error_log"):
+        logs.append(p)
+    for p in Path("/usr/local/directadmin/data/users").glob("*/domains/*/logs/error.log"):
+        logs.append(p)
+
+    hits: List[Path] = []
+    seen = set()
+    path_re = re.compile(
+        r"(/[^\s:]+\.htaccess):\s*Invalid command ['\"]php_(?:flag|value|admin_flag|admin_value)",
+        re.I,
+    )
+    for logpath in logs:
+        if not logpath.is_file():
+            continue
         try:
-            txt = f.read_text(encoding="utf-8", errors="replace")
+            # อ่านท้ายไฟล์พอ
+            data = logpath.read_bytes()
+            if len(data) > 400_000:
+                data = data[-400_000:]
+            text = data.decode("utf-8", errors="replace")
         except OSError:
             continue
-        if not MODPHP_ONLY_DIR_RE.search(txt):
-            continue
-        if dry_run:
-            details.append(f"DRY-RUN จะปิด php_flag/php_value ใน {f}")
-            changed.append(str(f))
-            continue
-        backup_file(f, dry_run=False)
-        txt2 = MODPHP_ONLY_DIR_COMMENT_RE.sub(
-            r"\1#\2  # disabled by php2shell (mod_php only; ใช้ php.ini / FPM)",
-            txt,
-        )
-        if txt2 != txt:
-            f.write_text(txt2, encoding="utf-8")
-            changed.append(str(f))
-            details.append(f"ปิด php_flag/php_value ใน {f}")
-    if not changed:
-        return ActionResult(True, "ไม่มี php_flag/php_value ของ mod_php ค้าง", details)
-    return ActionResult(True, f"ปิดคำสั่ง mod_php ใน {len(changed)} ไฟล์", details)
+        for m in path_re.finditer(text):
+            p = Path(m.group(1))
+            key = str(p)
+            if key in seen:
+                continue
+            seen.add(key)
+            if p.is_file():
+                hits.append(p)
+            if len(hits) >= max_hits:
+                return hits
+    return hits
 
 
 def fpm_is_safe() -> bool:
@@ -3407,7 +3524,17 @@ def complete_eol_web_cutover(
         return ActionResult(True, "หน้าเว็บเป็น nginx — ไม่แตะ Apache leftover", details)
     ct = apache_config_test()
     ct_text = ((ct.stderr or "") + "\n" + (ct.stdout or "")) if ct else ""
+    # แม้ conf สะอาดแล้ว ยังต้องปิด php_flag ใน .htaccess (หน้าขาว / AH00126)
+    ht = sanitize_modphp_directives(dry_run=dry_run)
+    details.append(ht.message)
+    details.extend(ht.details[:12])
     if not (apache_has_legacy_modphp(ct_text) or web_serves_eol()):
+        if ht.details:
+            return ActionResult(
+                True,
+                "ปิด php_flag ใน .htaccess/conf แล้ว (ไม่มี leftover PHP 7 ในโมดูล)",
+                details,
+            )
         return ActionResult(True, "Apache ไม่ได้โหลด PHP 7 ค้าง", details)
     if not fpm_is_safe():
         return ActionResult(
@@ -3654,18 +3781,24 @@ def apache_config_test() -> Optional[subprocess.CompletedProcess]:
 
 def fix_apache_runtime(dry_run: bool = False) -> ActionResult:
     """
-    ซ่อม Apache ที่สตาร์ทไม่ได้หลังปิด libphp7:
-    ปิด php_flag/php_value ค้าง แล้ว start apache24
+    ซ่อม Apache / หน้าขาวหลังปิด libphp7 แล้วใช้ php-fpm:
+    ปิด php_flag/php_value ค้างใน conf และ .htaccess แล้ว start/restart apache24
     """
     details: List[str] = []
     rd = disable_legacy_modphp_loads(dry_run=dry_run)
     details.append(rd.message)
     details.extend(rd.details[:8])
+    # รันสองรอบ: รอบแรกกวาดเว็บรูท รอบสองตาม path จาก error_log
     rs = sanitize_modphp_directives(dry_run=dry_run)
     details.append(rs.message)
-    details.extend(rs.details[:12])
+    details.extend(rs.details[:20])
+    if not dry_run:
+        rs2 = sanitize_modphp_directives(dry_run=False)
+        if rs2.details:
+            details.append(rs2.message)
+            details.extend(rs2.details[:12])
     if dry_run:
-        return ActionResult(True, "DRY-RUN ซ่อม Apache leftover mod_php", details)
+        return ActionResult(True, "DRY-RUN ซ่อม Apache leftover mod_php + .htaccess", details)
     ct = apache_config_test()
     if ct is not None and ct.returncode != 0:
         err = (ct.stderr or "") + "\n" + (ct.stdout or "")
@@ -3681,20 +3814,24 @@ def fix_apache_runtime(dry_run: bool = False) -> ActionResult:
                 details + [err[-800:]],
             )
     details.append("apache configtest: ผ่าน")
-    cp = run(["service", "apache24", "start"], dry_run=False, check=False, capture=True)
+    cp = run(["service", "apache24", "restart"], dry_run=False, check=False, capture=True)
+    if cp.returncode != 0:
+        cp = run(["service", "apache24", "start"], dry_run=False, check=False, capture=True)
     if cp.returncode != 0:
         sc = Path("/usr/local/etc/rc.d/apache24")
         if sc.exists():
-            cp = run([str(sc), "start"], dry_run=False, check=False, capture=True)
-    if cp.returncode != 0:
-        cp = run(["service", "apache24", "restart"], dry_run=False, check=False, capture=True)
+            cp = run([str(sc), "restart"], dry_run=False, check=False, capture=True)
     if cp.returncode != 0:
         return ActionResult(
             False,
-            "config ผ่านแล้วแต่ start apache24 ไม่สำเร็จ",
+            "config ผ่านแล้วแต่ start/restart apache24 ไม่สำเร็จ",
             details + [((cp.stderr or cp.stdout or "")[-400:])],
         )
-    return ActionResult(True, "Apache ขึ้นแล้วหลังปิด leftover php_flag/libphp7", details)
+    return ActionResult(
+        True,
+        "ซ่อมแล้ว: ปิด php_flag ใน conf/.htaccess และ restart Apache",
+        details,
+    )
 
 
 def restart_services(
@@ -3932,6 +4069,14 @@ def finalize_php_runtime(
             for d in cut.details[:12]:
                 print(Color.DIM + str(d)[:500] + Color.RESET)
             record("eol_web_cutover", cut)
+        else:
+            # FPM อยู่แล้วแต่ .htaccess ยังมี php_flag → หน้าขาว (configtest มองไม่เห็น)
+            log("กวาด php_flag/php_value ใน .htaccess ของเว็บไซต์ (กันหน้าขาวหลังใช้ FPM)", "step")
+            hs = sanitize_modphp_directives(dry_run=False)
+            log(hs.message, "ok" if hs.ok else "warn")
+            for d in hs.details[:15]:
+                print(Color.DIM + str(d)[:500] + Color.RESET)
+            record("sanitize_htaccess_modphp", hs)
 
     # 2) safe dedupe of 'already loaded' duplicates (never removes needed ones)
     if do_clean_dups:
@@ -4043,42 +4188,282 @@ def finalize_php_runtime(
     return health.ok and web_worst != 2
 
 
+def detect_fpm_binaries(flavors: Optional[Sequence[str]] = None) -> List[str]:
+    """หา php-fpm ที่ใช้ตรวจ config จริงตามคู่มือ (php-fpm -i | grep upload_progress)."""
+    names = [
+        "php-fpm",
+        "php82-fpm",
+        "php83-fpm",
+        "php84-fpm",
+        "php85-fpm",
+        "php-fpm8.2",
+        "php-fpm8.3",
+        "php-fpm8.4",
+        "php-fpm8.5",
+        "php8.2-fpm",
+        "php8.3-fpm",
+        "php8.4-fpm",
+        "php8.5-fpm",
+    ]
+    found: List[str] = []
+    for name in names:
+        p = which(name)
+        if p and p not in found:
+            found.append(p)
+    local_sbin = Path("/usr/local/sbin")
+    if local_sbin.is_dir():
+        for p in sorted(local_sbin.iterdir()):
+            if p.is_file() and os.access(p, os.X_OK) and "php" in p.name and "fpm" in p.name:
+                s = str(p)
+                if s not in found:
+                    found.append(s)
+    if flavors:
+        wanted = set(flavors)
+        filtered = []
+        for b in found:
+            name = Path(b).name
+            m = re.search(r"php(\d{2})", name)
+            if m and m.group(1) in wanted:
+                filtered.append(b)
+            elif re.search(r"php-?fpm$", name, re.I):
+                filtered.append(b)
+        found = filtered or found
+    return found
+
+
+def _parse_upload_progress(text: str) -> Tuple[Optional[str], Optional[str]]:
+    m = re.search(
+        r"session\.upload_progress\.enabled\s*=>\s*(\S+)\s*=>\s*(\S+)",
+        text or "",
+        re.I,
+    )
+    if m:
+        return m.group(1), m.group(2)
+    if re.search(r"session\.upload_progress\.enabled\s*=>\s*Off", text or "", re.I):
+        return "Off", "Off"
+    if re.search(r"session\.upload_progress\.enabled\s*=>\s*On", text or "", re.I):
+        return "On", "On"
+    return None, None
+
+
+def _is_upload_progress_off(local: Optional[str], master: Optional[str]) -> bool:
+    def off(v: Optional[str]) -> bool:
+        return bool(v) and v.lower() in {"off", "0", "false"}
+
+    return off(local) and off(master)
+
+
+def verify_upload_progress_binary(binary: str) -> ActionResult:
+    if not Path(binary).exists():
+        return ActionResult(False, f"ไม่พบ {binary}")
+    cp = run([binary, "-i"], dry_run=False, check=False, capture=True)
+    text = (cp.stdout or "") + "\n" + (cp.stderr or "")
+    local, master = _parse_upload_progress(text)
+    if local is None:
+        return ActionResult(False, f"{binary}: อ่านค่า upload_progress ไม่ได้จาก -i")
+    ok = _is_upload_progress_off(local, master)
+    return ActionResult(
+        ok,
+        f"{binary}: session.upload_progress.enabled => {local} => {master}",
+    )
+
+
 def verify_mitigation(installs: List[PhpInstall]) -> List[ActionResult]:
-    results = []
+    """ตรวจ upload_progress จริงทั้ง CLI และ PHP-FPM (ตามบทความ: php-fpm -i | grep)."""
+    results: List[ActionResult] = []
+    seen = set()
+    binaries: List[str] = []
     for i in installs:
-        if not Path(i.binary).exists():
-            continue
-        cp = run(
-            [i.binary, "-i"],
-            dry_run=False,
-            check=False,
-            capture=True,
-        )
-        text = cp.stdout or ""
-        m = re.search(
-            r"session\.upload_progress\.enabled\s*=>\s*(\S+)\s*=>\s*(\S+)",
-            text,
-            re.I,
-        )
-        if not m:
-            # fallback parse
-            on = "session.upload_progress.enabled => On" in text
-            off = "session.upload_progress.enabled => Off" in text
-            if off and not on:
-                results.append(ActionResult(True, f"{i.binary}: upload_progress=Off"))
+        if i.binary and i.binary not in seen:
+            seen.add(i.binary)
+            binaries.append(i.binary)
+    for fpm in detect_fpm_binaries([i.flavor for i in installs if i.flavor] or None):
+        if fpm not in seen:
+            seen.add(fpm)
+            binaries.append(fpm)
+    if not binaries:
+        results.append(ActionResult(False, "ไม่พบ php/php-fpm สำหรับตรวจ upload_progress"))
+    for binary in binaries:
+        results.append(verify_upload_progress_binary(binary))
+    for r in results:
+        log(r.message, "ok" if r.ok else "warn")
+    return results
+
+
+SERIALIZE_SWITCH_RE = re.compile(
+    r"ini_set\s*\(\s*['\"]session\.serialize_handler['\"]\s*,\s*['\"]php['\"]\s*\)",
+    re.I,
+)
+SERIALIZE_ANY_INI_SET_RE = re.compile(
+    r"ini_set\s*\(\s*['\"]session\.serialize_handler['\"]",
+    re.I,
+)
+SERIALIZE_BINARY_CONF_RE = re.compile(
+    r"session\.serialize_handler\s*=\s*(php_binary|php_serialize)\b",
+    re.I,
+)
+
+
+def default_web_roots() -> List[Path]:
+    roots: List[Path] = []
+    # โปรเจกต์นี้ก่อน แล้วค่อยเว็บรูทมาตรฐาน (ไม่กวาดทั้ง XAMPP htdocs)
+    candidates = [
+        Path(__file__).resolve().parents[1],  # traffic_vaccine
+        Path("/var/www"),
+        Path("/usr/local/www"),
+        Path("/usr/local/www/apache24/data"),
+        Path("/home"),
+    ]
+    for c in candidates:
+        if c.is_dir():
+            roots.append(c)
+    return roots
+
+
+def scan_serialize_handler_risk(
+    roots: Optional[Sequence[Path]] = None,
+    max_hits: int = 30,
+) -> List[ActionResult]:
+    """
+    สแกนเงื่อนไข CVE-2026-115560 ตามบทความ IT Training:
+    - ini_set('session.serialize_handler', 'php') ในแอป = ความเสี่ยงสูง
+    - session.serialize_handler = php_binary|php_serialize ใน config = เงื่อนไขร่วม
+    """
+    results: List[ActionResult] = []
+    hits_high: List[str] = []
+    hits_conf: List[str] = []
+    scanned = 0
+    skip_dirs = {
+        "vendor",
+        "node_modules",
+        ".git",
+        "__pycache__",
+        "cache",
+        "tmp",
+        "temp",
+        "storage",
+        "uploads",
+    }
+    root_list = list(roots or default_web_roots())
+    rg = which("rg")
+    if rg:
+        for root in root_list:
+            if root.name == "home":
+                bases = [
+                    p / "public_html"
+                    for p in root.iterdir()
+                    if p.is_dir() and (p / "public_html").is_dir()
+                ][:40]
             else:
-                results.append(ActionResult(False, f"{i.binary}: อ่านค่า upload_progress ไม่ได้"))
-            continue
-        local, master = m.group(1), m.group(2)
-        ok = local.lower() == "off" and master.lower() == "off"
+                bases = [root]
+            for base in bases:
+                if not base.is_dir():
+                    continue
+                for pattern, bucket in (
+                    (r"ini_set\s*\(\s*['\"]session\.serialize_handler['\"]", hits_high),
+                    (r"session\.serialize_handler\s*=\s*(php_binary|php_serialize)\b", hits_conf),
+                ):
+                    cp = run(
+                        [
+                            rg,
+                            "-n",
+                            "--glob",
+                            "*.{php,inc,ini,conf}",
+                            "--glob",
+                            "!vendor/**",
+                            "--glob",
+                            "!node_modules/**",
+                            "--glob",
+                            "!.git/**",
+                            "-m",
+                            str(max_hits),
+                            pattern,
+                            str(base),
+                        ],
+                        dry_run=False,
+                        check=False,
+                        capture=True,
+                    )
+                    for line in (cp.stdout or "").splitlines():
+                        if line.strip():
+                            bucket.append(line.strip()[:200])
+                        if len(hits_high) + len(hits_conf) >= max_hits:
+                            break
+                if len(hits_high) + len(hits_conf) >= max_hits:
+                    break
+            if len(hits_high) + len(hits_conf) >= max_hits:
+                break
+    else:
+        for root in root_list:
+            if not root.is_dir():
+                continue
+            walk_roots = [root]
+            if root.name == "home":
+                walk_roots = [
+                    p / "public_html"
+                    for p in root.iterdir()
+                    if p.is_dir() and (p / "public_html").is_dir()
+                ][:40]
+            for base in walk_roots:
+                for dirpath, dirnames, filenames in os.walk(base):
+                    dirnames[:] = [d for d in dirnames if d.lower() not in skip_dirs]
+                    for name in filenames:
+                        if not name.lower().endswith((".php", ".inc", ".module", ".ini", ".conf")):
+                            continue
+                        path = Path(dirpath) / name
+                        try:
+                            if path.stat().st_size > 1_500_000:
+                                continue
+                            text = path.read_text(encoding="utf-8", errors="replace")
+                        except OSError:
+                            continue
+                        scanned += 1
+                        for i, line in enumerate(text.splitlines(), 1):
+                            if SERIALIZE_SWITCH_RE.search(line) or SERIALIZE_ANY_INI_SET_RE.search(line):
+                                hits_high.append(f"{path}:{i}: {line.strip()[:160]}")
+                            elif SERIALIZE_BINARY_CONF_RE.search(line):
+                                hits_conf.append(f"{path}:{i}: {line.strip()[:160]}")
+                            if len(hits_high) + len(hits_conf) >= max_hits:
+                                break
+                        if scanned >= 5000 or len(hits_high) + len(hits_conf) >= max_hits:
+                            break
+                    if scanned >= 5000 or len(hits_high) + len(hits_conf) >= max_hits:
+                        break
+                if scanned >= 5000 or len(hits_high) + len(hits_conf) >= max_hits:
+                    break
+            if scanned >= 5000 or len(hits_high) + len(hits_conf) >= max_hits:
+                break
+
+    if hits_high:
         results.append(
             ActionResult(
-                ok,
-                f"{i.binary}: session.upload_progress.enabled => {local} => {master}",
+                False,
+                f"CVE-2026-115560: พบการเปลี่ยน session.serialize_handler ในโค้ด ({len(hits_high)} จุด) "
+                "— ปิด upload_progress และอัปเดต PHP ทันที",
+                hits_high[:20],
+            )
+        )
+    else:
+        results.append(
+            ActionResult(
+                True,
+                f"ไม่พบ ini_set(session.serialize_handler) ใน web root ที่สแกน"
+                + (f" ({scanned} ไฟล์)" if scanned else " (rg)"),
+            )
+        )
+    if hits_conf:
+        results.append(
+            ActionResult(
+                False,
+                f"พบ session.serialize_handler=php_binary|php_serialize ({len(hits_conf)} จุด) "
+                "— เสี่ยงเมื่อแอปสลับกลับเป็น php + upload_progress เปิด",
+                hits_conf[:10],
             )
         )
     for r in results:
         log(r.message, "ok" if r.ok else "warn")
+        for d in r.details[:8]:
+            print(Color.DIM + "   " + str(d) + Color.RESET)
     return results
 
 
@@ -4116,7 +4501,16 @@ def build_arg_parser() -> argparse.ArgumentParser:
         epilog=__doc__,
     )
     p.add_argument("--check", action="store_true", help="ตรวจเวอร์ชันและความเสี่ยง (ยังไม่อัปเดต)")
-    p.add_argument("--mitigate", action="store_true", help="ตั้ง session.upload_progress.enabled=Off")
+    p.add_argument(
+        "--mitigate",
+        action="store_true",
+        help="ตั้ง mitigation (upload_progress=Off + exception_ignore_args + fatal_error_backtraces=0)",
+    )
+    p.add_argument(
+        "--scan-apps",
+        action="store_true",
+        help="สแกนโค้ดแอปหา session.serialize_handler (CVE-2026-115560)",
+    )
     p.add_argument("--update", action="store_true", help="pkg update + สลับ latest ถ้าจำเป็น + upgrade/install PHP")
     p.add_argument("--restart", action="store_true", help="รีสตาร์ท php-fpm/apache/nginx")
     p.add_argument("--verify", action="store_true", help="ตรวจค่า mitigation หลังแก้")
@@ -4181,7 +4575,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--fix-apache",
         action="store_true",
-        help="ซ่อม Apache ที่สตาร์ทไม่ได้: ปิด libphp7 + php_flag/php_value แล้ว start apache24",
+        help="ซ่อมหน้าขาว/Apache: ปิด libphp7 + php_flag/php_value ใน conf และ .htaccess แล้ว restart apache24",
     )
     p.add_argument(
         "--align-ext-dir",
@@ -4242,6 +4636,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             args.fix_apache,
             args.align_ext_dir,
             args.remove_eol,
+            args.scan_apps,
         ]
     ):
         args.check = True
@@ -4249,6 +4644,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if args.all:
         args.mitigate = args.update = args.restart = args.verify = args.audit = True
         args.check = True
+        args.scan_apps = True
         # After updating PHP, tidy duplicate ext inis safely by default
         args.clean_ext_dups = True
         # Auto-use CustomBuild when present (typical FreeBSD + DirectAdmin)
@@ -4301,6 +4697,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     installs = discover_installs(flavors)
     code = print_report(installs)
     warn_persistent_fastcgi()
+    if args.check or args.scan_apps or args.all or args.verify:
+        log("สแกนเงื่อนไข CVE-2026-115560 (serialize_handler + upload progress)", "step")
+        scan_serialize_handler_risk()
+        if args.check or args.verify or args.all:
+            log("ตรวจค่า upload_progress จริงจาก php/php-fpm -i", "step")
+            verify_mitigation(installs)
     if find_custombuild():
         log("พบ DirectAdmin CustomBuild — แนะนำอัปเดตด้วย --custombuild หรือ --all --yes", "info")
 
@@ -4314,6 +4716,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             args.all,
             args.repair_repo,
             args.from_source,
+            args.scan_apps,
             args.clean_ext_dups,
             args.restore_ext,
             args.use_fpm,
@@ -4607,11 +5010,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             report["actions"].append({"action": "restart", **asdict(r)})
 
     if args.verify:
-        log("ตรวจสอบ mitigation", "step")
+        log("ตรวจสอบ mitigation (CLI + PHP-FPM -i)", "step")
         # refresh installs for current binaries
         installs = discover_installs(flavors)
         for r in verify_mitigation(installs):
             report["actions"].append({"action": "verify", **asdict(r)})
+        for r in scan_serialize_handler_risk():
+            report["actions"].append({"action": "scan_serialize_handler", **asdict(r)})
 
     if args.audit:
         log("pkg audit", "step")

@@ -31,11 +31,12 @@ import sys
 import urllib.error
 import urllib.request
 from dataclasses import asdict, dataclass, field
+from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
 
 SCRIPT_NAME = "php2shell_scan_v2.py"
-SCRIPT_VERSION = "2.2.0"
+SCRIPT_VERSION = "2.3.0"
 UPDATER_V2 = "freebsd_php2shell_update_v2.py"
 
 SAFE_MIN: Dict[Tuple[int, int], Tuple[int, int, int]] = {
@@ -258,6 +259,71 @@ def run_out(cmd: Sequence[str]) -> str:
         return ""
 
 
+def scan_serialize_handler_local(max_hits: int = 10) -> Tuple[int, List[str]]:
+    """สแกนเร็ว: ใช้ rg ถ้ามี ไม่กวาดทั้ง XAMPP htdocs."""
+    roots = [Path(__file__).resolve().parents[1]]
+    for extra in ("/var/www", "/usr/local/www"):
+        p = Path(extra)
+        if p.is_dir():
+            roots.append(p)
+    pattern = r"ini_set\s*\(\s*['\"]session\.serialize_handler['\"]"
+    hits: List[str] = []
+    rg = shutil.which("rg")
+    if rg:
+        for root in roots:
+            out = run_out(
+                [
+                    rg,
+                    "-n",
+                    "--glob",
+                    "*.php",
+                    "--glob",
+                    "!vendor/**",
+                    "--glob",
+                    "!node_modules/**",
+                    "--glob",
+                    "!.git/**",
+                    "-m",
+                    str(max_hits),
+                    pattern,
+                    str(root),
+                ]
+            )
+            for line in out.splitlines():
+                if line.strip():
+                    hits.append(line.strip()[:200])
+                if len(hits) >= max_hits:
+                    return len(hits), hits
+        return len(hits), hits
+
+    switch_re = re.compile(pattern, re.I)
+    skip = {"vendor", "node_modules", ".git", "__pycache__", "storage", "uploads", "cache"}
+    scanned = 0
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for dirpath, dirnames, filenames in os.walk(root):
+            dirnames[:] = [d for d in dirnames if d.lower() not in skip]
+            for name in filenames:
+                if not name.endswith(".php"):
+                    continue
+                path = Path(dirpath) / name
+                try:
+                    if path.stat().st_size > 800_000:
+                        continue
+                    text = path.read_text(encoding="utf-8", errors="replace")
+                except OSError:
+                    continue
+                scanned += 1
+                if switch_re.search(text):
+                    hits.append(str(path))
+                    if len(hits) >= max_hits:
+                        return len(hits), hits
+                if scanned >= 4000:
+                    return len(hits), hits
+    return len(hits), hits
+
+
 def local_scan() -> ScanResult:
     res = ScanResult(target="local")
     log("โหมด --local: เช็ก php / php-fpm ตาม SAPI ที่เว็บใช้", "step")
@@ -290,6 +356,42 @@ def local_scan() -> ScanResult:
         log(f"php-fpm -v => {res.fpm_version or '?'}", "info")
     else:
         res.evidence.append("ไม่พบไบนารี php-fpm")
+
+    # ตามบทความ: php-fpm -i | grep upload_progress.enabled
+    for label, binary in (("cli", cli), ("fpm", fpm)):
+        if not binary:
+            continue
+        info = run_out([binary, "-i"])
+        m = re.search(
+            r"session\.upload_progress\.enabled\s*=>\s*(\S+)\s*=>\s*(\S+)",
+            info,
+            re.I,
+        )
+        if m:
+            local, master = m.group(1), m.group(2)
+            off = {local.lower(), master.lower()} <= {"off", "0", "false"}
+            msg = f"{label} upload_progress.enabled => {local} => {master}"
+            res.evidence.append(msg)
+            log(msg, "ok" if off else "warn")
+            if not off:
+                res.note = (res.note + " | " if res.note else "") + (
+                    "upload_progress ยังเปิด — ตั้ง Off แล้ว restart FPM (CVE-2026-115560)"
+                )
+        else:
+            res.evidence.append(f"{label}: อ่าน upload_progress จาก -i ไม่ได้")
+
+    # สแกน serialize_handler ในโปรเจกต์ปัจจุบัน (ไม่กวาดทั้ง htdocs)
+    ser_hits, ser_paths = scan_serialize_handler_local()
+    if ser_hits:
+        log(
+            f"พบ ini_set(session.serialize_handler) {ser_hits} ไฟล์ — ความเสี่ยง CVE-2026-115560 สูง",
+            "warn",
+        )
+        for p in ser_paths[:8]:
+            res.evidence.append(f"serialize_handler: {p}")
+        res.note = (res.note + " | " if res.note else "") + "พบการสลับ serialize_handler ในแอป"
+    else:
+        log("ไม่พบ ini_set(session.serialize_handler) ในโปรเจกต์ที่สแกน", "ok")
 
     if shutil.which("systemctl"):
         for unit in ("php-fpm", "php8.3-fpm", "php8.2-fpm", "httpd", "apache2", "nginx"):

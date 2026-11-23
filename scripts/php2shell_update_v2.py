@@ -42,7 +42,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 
 SCRIPT_NAME = "php2shell_update_v2.py"
-SCRIPT_VERSION = "2.1.0"
+SCRIPT_VERSION = "2.2.0"
 
 SAFE_MIN: Dict[Tuple[int, int], Tuple[int, int, int]] = {
     (8, 5): (8, 5, 13),
@@ -693,6 +693,145 @@ def step_restart(osinfo: OsInfo, plan: Plan) -> int:
     return 0 if failed < len(names) else 1
 
 
+def _fpm_binaries() -> List[str]:
+    names = (
+        "php-fpm",
+        "php82-fpm",
+        "php83-fpm",
+        "php84-fpm",
+        "php85-fpm",
+        "php-fpm8.2",
+        "php-fpm8.3",
+        "php-fpm8.4",
+        "php-fpm8.5",
+        "php8.2-fpm",
+        "php8.3-fpm",
+        "php8.4-fpm",
+        "php8.5-fpm",
+    )
+    return which_all(*names)
+
+
+def verify_upload_progress() -> int:
+    """ตรวจ session.upload_progress.enabled จาก php -i และ php-fpm -i ตามบทความ IT Training."""
+    log("ตรวจ upload_progress จาก php/php-fpm -i", "step")
+    bins = which_all("php") + _fpm_binaries()
+    if not bins:
+        log("ไม่พบ php/php-fpm สำหรับตรวจ -i", "warn")
+        return 1
+    bad = 0
+    for binary in bins:
+        code, out = run([binary, "-i"], timeout=30)
+        text = out or ""
+        m = re.search(
+            r"session\.upload_progress\.enabled\s*=>\s*(\S+)\s*=>\s*(\S+)",
+            text,
+            re.I,
+        )
+        if not m:
+            log(f"{binary}: อ่าน upload_progress ไม่ได้", "warn")
+            bad += 1
+            continue
+        local, master = m.group(1), m.group(2)
+        off = {local.lower(), master.lower()} <= {"off", "0", "false"}
+        log(
+            f"{binary}: session.upload_progress.enabled => {local} => {master}",
+            "ok" if off else "warn",
+        )
+        if not off:
+            bad += 1
+    return 1 if bad else 0
+
+
+def scan_serialize_handler(roots: Optional[Sequence[str]] = None) -> int:
+    """สแกน ini_set(session.serialize_handler) — เงื่อนไข CVE-2026-115560 ในบทความ."""
+    log("สแกนโค้ดแอปหา session.serialize_handler (CVE-2026-115560)", "step")
+    pattern = r"ini_set\s*\(\s*['\"]session\.serialize_handler['\"]|session\.serialize_handler\s*=\s*(php_binary|php_serialize)\b"
+    candidates = list(roots or [])
+    if not candidates:
+        for p in (
+            str(Path(__file__).resolve().parents[1]),
+            "/var/www",
+            "/usr/local/www",
+        ):
+            if Path(p).is_dir():
+                candidates.append(p)
+    hits = 0
+    scanned = 0
+    rg = shutil.which("rg")
+    if rg:
+        for root in candidates:
+            code, out = run(
+                [
+                    rg,
+                    "-n",
+                    "--glob",
+                    "*.{php,inc,ini}",
+                    "--glob",
+                    "!vendor/**",
+                    "--glob",
+                    "!node_modules/**",
+                    "-m",
+                    "20",
+                    pattern,
+                    root,
+                ],
+                timeout=60,
+            )
+            for line in (out or "").splitlines():
+                if not line.strip():
+                    continue
+                hits += 1
+                log(f"เสี่ยง: {line.strip()[:160]}", "warn")
+                if hits >= 20:
+                    break
+            if hits >= 20:
+                break
+    else:
+        switch_re = re.compile(pattern, re.I)
+        skip = {"vendor", "node_modules", ".git", "__pycache__", "cache", "uploads"}
+        for root in candidates:
+            base = Path(root)
+            if not base.is_dir():
+                continue
+            for dirpath, dirnames, filenames in os.walk(base):
+                dirnames[:] = [d for d in dirnames if d.lower() not in skip]
+                for name in filenames:
+                    if not name.lower().endswith((".php", ".inc", ".ini")):
+                        continue
+                    path = Path(dirpath) / name
+                    try:
+                        if path.stat().st_size > 1_500_000:
+                            continue
+                        text = path.read_text(encoding="utf-8", errors="replace")
+                    except OSError:
+                        continue
+                    scanned += 1
+                    for i, line in enumerate(text.splitlines(), 1):
+                        if switch_re.search(line):
+                            hits += 1
+                            log(f"เสี่ยง: {path}:{i}: {line.strip()[:140]}", "warn")
+                            if hits >= 20:
+                                break
+                    if hits >= 20 or scanned >= 5000:
+                        break
+                if hits >= 20 or scanned >= 5000:
+                    break
+            if hits >= 20 or scanned >= 5000:
+                break
+    if hits:
+        log(
+            f"พบ {hits} จุดที่เกี่ยวกับ serialize_handler — ปิด upload_progress และอัปเดต PHP",
+            "warn",
+        )
+        return 1
+    log(
+        f"ไม่พบ serialize_handler ที่น่าสงสัย"
+        + (f" ({scanned} ไฟล์)" if scanned else " (rg)"),
+        "ok",
+    )
+    return 0
+
 def step_verify(osinfo: OsInfo, after: List[BinVersion]) -> int:
     log("ขั้นตอน 4 — ตรวจผลเวอร์ชัน / สถานะบริการ / โมดูล PHP", "step")
     bad = 0
@@ -730,10 +869,14 @@ def step_verify(osinfo: OsInfo, after: List[BinVersion]) -> int:
         log(detail, "warn")
         log("ถ้าใช้ nginx/apache + php-fpm การไม่มี mod_php ไม่ถือว่าพัง — สำคัญที่ FPM ต้องแพตช์แล้ว", "info")
 
+    if verify_upload_progress():
+        bad += 1
+    scan_serialize_handler()
+
     if bad:
-        log("ยังไม่ครบเกณฑ์ — อย่าเพิ่งถือว่าพ้น PHP2Shell", "err")
+        log("ยังไม่ครบเกณฑ์ — อย่าเพิ่งถือว่าพ้น Critical / PHP2Shell", "err")
         return 2
-    log("ผ่านเกณฑ์เวอร์ชันปลอดภัยของ PHP2Shell (CLI/FPM ที่ตรวจได้)", "ok")
+    log("ผ่านเกณฑ์เวอร์ชันปลอดภัย (CLI/FPM ที่ตรวจได้) + ตรวจ upload_progress แล้ว", "ok")
     return 0
 
 
@@ -799,16 +942,24 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     rows = collect_bins()
     if do_check:
         print_bin_table(rows)
+        verify_upload_progress()
+        scan_serialize_handler()
 
     if not needed(rows) and do_update and not args.all:
         log("เวอร์ชันที่ตรวจได้ผ่านเกณฑ์แล้ว — ไม่บังคับอัปเดต เว้นแต่เว็บ SAPI คนละตัวกับ CLI", "ok")
     if needed(rows):
         log("จำเป็นต้องอัปเดต: มี CLI หรือ FPM ต่ำกว่าเกณฑ์ในรูป", "warn")
         log("ช่องโหว่ Critical ยิงผ่านเว็บ — ต้องแพตช์ FPM/mod_php ไม่ใช่แค่ php -v", "warn")
+        log(
+            "หมายเหตุ: เกณฑ์บทความ IT Training (8.5.12/8.4.27/8.3.36/8.2.35) เป็นขั้นต่ำ PHP2Shell — "
+            "สคริปต์นี้ใช้เกณฑ์ ThaiCERT ที่สูงกว่า (8.5.13/8.4.28/8.3.37/8.2.36)",
+            "info",
+        )
     elif do_check and not do_update:
         log("จากไบนารีบนเครื่องนี้ ยังไม่จำเป็นต้องอัปเดต — ตรวจฝั่งเว็บด้วย php2shell_scan_v2.py ด้วย", "ok")
         if args.mitigate:
             apply_mitigation(plan.dry_run)
+            verify_upload_progress()
         return 0
 
     if do_update:

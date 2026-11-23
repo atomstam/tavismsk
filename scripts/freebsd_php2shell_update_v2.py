@@ -40,7 +40,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 
 SCRIPT_NAME = "freebsd_php2shell_update_v2.py"
-SCRIPT_VERSION = "2.2.0"
+SCRIPT_VERSION = "2.3.1"
 V1_NAME = "freebsd_php2shell_update.py"
 BACKUP_ROOT = Path("/var/backups/php2shell-v2")
 
@@ -394,6 +394,15 @@ def apply_update(v1: Any, installs: list, impact: Impact, args: argparse.Namespa
             v1.log(rm.message, "ok" if rm.ok else "warn")
             report["actions"].append({"action": "disable_missing_ext", **asdict(rm)})
 
+    # กันหน้าขาว: ปิด php_flag/php_value ใน .htaccess หลังใช้ FPM (configtest มองไม่เห็น)
+    if v1.detect_http_front() != "nginx":
+        v1.log("กวาด php_flag ใน .htaccess/conf ก่อนรีสตาร์ท (กันหน้าขาว)", "step")
+        hs = v1.sanitize_modphp_directives(dry_run=args.dry_run)
+        v1.log(hs.message, "ok" if hs.ok else "warn")
+        for d in hs.details[:15]:
+            print(d)
+        report["actions"].append({"action": "sanitize_htaccess_modphp", **asdict(hs)})
+
     v1.log("รีสตาร์ทบริการเว็บ/PHP", "step")
     for r in v1.restart_services(
         flavors or [i.flavor for i in installs if i.flavor],
@@ -471,11 +480,20 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     installs = v1.discover_installs(None)
     v1.print_report(installs)
     v1.print_sapi_matrix(installs)
+    v1.warn_persistent_fastcgi()
+    v1.log("ตรวจ CVE-2026-115560: upload_progress + serialize_handler", "step")
+    v1.verify_mitigation(installs)
+    v1.scan_serialize_handler_risk()
     impact = build_impact(v1, installs, args.allow_branch_change)
     print_impact(impact)
 
     if not args.apply:
         v1.log("โหมดตรวจอย่างเดียว — ยังไม่ได้อัปเดต", "warn")
+        v1.log(
+            "เกณฑ์บทความ (8.5.12/…) = PHP2Shell ขั้นต่ำ — สคริปต์นี้ใช้ ThaiCERT "
+            "8.5.13 / 8.4.28 / 8.3.37 / 8.2.36",
+            "info",
+        )
         if impact.needs_apply:
             v1.log("จำเป็นต้องอัปเดต: sudo python3 freebsd_php2shell_update_v2.py --apply --yes", "step")
         else:
